@@ -286,6 +286,7 @@ resp (#fun f) =  λ _ → tt
 id-mor (#fun f) = tt
 comp-mor (#fun f) = tt
 
+
 -- #comp : ∀ {l} {A B C} (f : hom (ESet {l}) A B) (g : hom (ESet {l}) B C) →
   
 
@@ -308,10 +309,10 @@ module eFamNotation {ls lt : Level} {A : obj (ESet {ls})} (B : eFunctor (# A) (E
 
 -- isInvertible : {lo lh lr : Level} (C : ECat {lo} {lh} {lr}) → Set _
 
-module SomeCatLaws {lo lh lr : Level} (C : ECat {lo} {lh} {lr}) where
-  open ECat C using () renaming ( hom-rel to _~_ ; comp to _∘_ ; hom-eqr to ceq )
-  trivial-left : ∀ {a b} {f : hom C b b} {g : hom C a b} → f ~ id C → (f ∘ g) ~ g
-  trivial-left p = ceq .trans (comp-cong-l C p) (id-l C)
+-- module SomeCatLaws {lo lh lr : Level} (C : ECat {lo} {lh} {lr}) where
+--   open ECat C using () renaming ( hom-rel to _~_ ; comp to _∘_ ; hom-eqr to ceq )
+--   trivial-left : ∀ {a b} {f : hom C b b} {g : hom C a b} → f ~ id C → (f ∘ g) ~ g
+--   trivial-left p = ceq .trans (comp-cong-l C p) (id-l C)
 
   
 EFam : {ls : Level} → ECat
@@ -366,19 +367,18 @@ EFam {ls}  = cat where
 
   trans (hom-eqr cat {A , B} {A' , B'}) {f , α} {g , β} {h , γ} (fg , αβ) (gh , βγ) =
     seq .trans fg gh , λ a → 
-    let open EqRelReason (seq {fun B a} {fun B' (h .ap a)})
-    in
-     begin
-       mor B' (seq .trans fg gh ` A .refl) ∘s nat α a
-     ≈⟨ comp-cong-l S {g = nat α a} (seq .sym (comp-mor B')) ⟩
-       (mor B' (gh ` A .refl) ∘s mor B' (fg ` A .refl)) ∘s nat α a
-     ≈⟨ comp-assoc S {f = mor B' (gh ` A .refl)} {g = mor B' (fg ` A .refl)} {h = nat α a}⟩
-       mor B' (gh ` A .refl) ∘s (mor B' (fg ` A .refl) ∘s nat α a)
-     ≈⟨ comp-cong-r S {f = mor B' (gh ` A .refl)} (αβ a) ⟩
-       mor B' (gh ` A .refl) ∘s nat β a
-     ≈⟨ βγ a ⟩
-       (nat γ a)
-     ∎
+      let open EqRelReason (seq {fun B a} {fun B' (h .ap a)}) in
+      begin
+        mor B' (seq .trans fg gh ` A .refl) ∘s nat α a
+      ≈⟨ comp-cong-l S {g = nat α a} (seq .sym (comp-mor B')) ⟩
+        (mor B' (gh ` A .refl) ∘s mor B' (fg ` A .refl)) ∘s nat α a
+      ≈⟨ comp-assoc S {f = mor B' (gh ` A .refl)} {g = mor B' (fg ` A .refl)} {h = nat α a}⟩
+        mor B' (gh ` A .refl) ∘s (mor B' (fg ` A .refl) ∘s nat α a)
+      ≈⟨ comp-cong-r S {f = mor B' (gh ` A .refl)} (αβ a) ⟩
+        mor B' (gh ` A .refl) ∘s nat β a
+      ≈⟨ βγ a ⟩
+        (nat γ a)
+      ∎
 
   comp cat {A , B} {A' , B'} {A'' , B''} (f , α) (g , β) = f ∘s g , {! λ a → !}
   comp-assoc cat = {!!}
