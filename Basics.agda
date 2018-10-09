@@ -109,15 +109,16 @@ record eMapRel {lao lar lbo lbr} {A : eSet {lao} {lar}} {B : eSet {lbo} {lbr}}
   constructor map-rel
   field
     map-resp : ∀ {a b} → A .rel a b → B .rel (f .ap a) (g .ap b)
+  _`_ = map-resp
 open eMapRel public
 
 eMapEqR : {lao lar lbo lbr : Level} {A : eSet {lao} {lar}} {B : eSet {lbo} {lbr}} →
   EqRel (eMapRel {A = A} {B = B})
 refl (eMapEqR {A = A} {B}) {f} = map-rel (f .ap-cong)
-sym (eMapEqR {A = A} {B}) p = map-rel λ ab → B .sym (p .map-resp (A .sym ab))
-trans (eMapEqR {A = A} {B}) = {!!}
+sym (eMapEqR {A = A} {B}) p = map-rel λ ab → B .sym (p ` (A .sym ab))
+trans (eMapEqR {A = A} {B}) p q = map-rel λ r → B .trans (p ` r) (q ` (A .refl))
 
-{- 
+
 
 -- The E-Cat of E-Sets
 ESet : {l : Level} → ECat {lsuc l} {l} {l}
@@ -128,15 +129,16 @@ hom ESet A B = eMap A B
 --hom-rel ESet {A} {B} f g =  ∀ {a b} → A .rel a b → B .rel (f .ap a) (g .ap b)
 hom-rel ESet f g = eMapRel f g
 -- hom-rel ESet {A} {B} (f , _) (g , _) = ∀ (a : A .set) → B .rel (f a) (g b)
-refl (hom-eqr ESet {A} {B}) {f} = map-rel (f .ap-cong)
-sym (hom-eqr ESet {A} {B}) ptw pa = B .sym (ptw .map-resp (A .sym pa))
-trans (hom-eqr ESet {A} {B}) ptw ptw' pa = B .trans (ptw pa) (ptw' (A .refl))
+-- refl (hom-eqr ESet {A} {B}) {f} = (f .ap-cong)
+-- sym (hom-eqr ESet {A} {B}) ptw pa = B .sym (ptw .map-resp (A .sym pa))
+-- trans (hom-eqr ESet {A} {B}) ptw ptw' pa = B .trans (ptw pa) (ptw' (A .refl))
+hom-eqr ESet = eMapEqR
 comp ESet f g =  record { ap = λ x → f .ap (g .ap x) ; ap-cong = λ p →  f .ap-cong (g .ap-cong p) }
-comp-assoc ESet {A} {B} {C} {D} {f} {g} {h} pa =  f .ap-cong (g .ap-cong (h .ap-cong pa))
-comp-cong ESet p q ab = p (q ab)
+comp-assoc ESet {A} {B} {C} {D} {f} {g} {h} = map-rel λ pa → f .ap-cong (g .ap-cong (h .ap-cong pa))
+comp-cong ESet p q = map-rel λ ab → p ` (q ` ab)
 id ESet {A} = record { ap = λ x → x ; ap-cong = λ {_} {_} x → x }
-id-l ESet {f = f} ab = f .ap-cong ab
-id-r ESet {f = f} ab = f .ap-cong ab
+id-l ESet {f = f} = map-rel λ ab → f .ap-cong ab
+id-r ESet {f = f} = map-rel λ ab → f .ap-cong ab
 
 ESet0 : ECat
 ESet0 = ESet {lzero}
@@ -241,8 +243,6 @@ module ePShNotation {k lo lh lr} {C : ECat {lo} {lh} {lr}} (F : ePSh {k} C) wher
 
 -- infixl 40 _∘d_
 
-
-
 -- The category of elements of a preasheaf
 ∫ : ∀ {k lo lh lr} {C : ECat {lo} {lh} {lr}} (F : ePSh {k} C) → ECat
 ∫ {C = C} F = cat where
@@ -255,11 +255,11 @@ module ePShNotation {k lo lh lr} {C : ECat {lo} {lh} {lr}} (F : ePSh {k} C) wher
   fst (comp cat (f , _) (g , _)) = f ∘d g
   snd (comp cat {(K , w)} {(J , v)} {(I , u)} (f , p) (g , q)) = 
       let gvrelfgu : v · g ~ u · (f ∘d g)
-          gvrelfgu  = fun F K .trans (mor F g .ap-cong  p) (F .comp-mor (fun F I .refl))
+          gvrelfgu  = fun F K .trans (mor F g .ap-cong  p) (F .comp-mor ` (fun F I .refl))
       in fun F K .trans q gvrelfgu
   comp-assoc cat = C .comp-assoc
   comp-cong cat = C .comp-cong
-  id cat {(I , u)}=  id C , id-mor F (fun F I .refl) 
+  id cat {(I , u)}=  id C , id-mor F ` (fun F I .refl) 
   id-l cat = id-l C
   id-r cat = id-r C
 
@@ -320,7 +320,7 @@ EFam {ls}  = cat where
     Σ λ (f : hom S A A') → eNat B (B' ∘Func (#fun {ls} {A} {A'} f))
   hom-rel cat {(A , B)} {(A' , B')} (f , α) (g , β) =
     Σ λ (p : f ~s g) → 
-    ∀ (a : A .set) → (mor B' (p (A .refl))) ∘s (nat α a) ~s (nat β a)
+    ∀ (a : A .set) → (mor B' (p ` (A .refl))) ∘s (nat α a) ~s (nat β a)
          -- TODO: why do we have to insert all the unreadable implicits?
          -- S .hom-rel {fun B a} {fun B' (g .ap a)} 
          --   (S .comp {fun B a} {fun B' (f .ap a)} {fun B' (g .ap a)} 
@@ -329,19 +329,19 @@ EFam {ls}  = cat where
   -- Why is Agda so horribly unusable here?!
   refl (hom-eqr cat {(A , B)} {(A' , B')}) {(f , α)} = seq .refl {f} , λ a → 
     -- WORKS, no yellow
-    let lem : mor B' (seq .refl {f} (A .refl)) ~s mor B' (A' .refl)
+    let lem : mor B' (seq .refl {f} ` (A .refl)) ~s mor B' (A' .refl)
         lem = resp B' tt
         lem2 : id S ~s mor B' (A' .refl)
         lem2 = id-mor B'
-        foo : mor B' (seq .refl {f} (A .refl)) ~s id S
+        foo : mor B' (seq .refl {f} ` (A .refl)) ~s id S
         foo = seq .trans 
-                  {mor B' (seq .refl {f} (A .refl))}
+                  {mor B' (seq .refl {f} ` (A .refl))}
                   {mor B' (A' .refl)}
                   {id S}
                   lem
                   (seq .sym {id S} {mor B' (A' .refl)} lem2)
-    in seq .trans {mor B' (seq .refl {f} (A .refl)) ∘s nat α a} {id S ∘s nat α a} { nat α a}
-           (comp-cong-l S {f = mor B' (seq .refl {f} (A .refl))} {f' = id S} {g = nat α a} foo)
+    in seq .trans {mor B' (seq .refl {f} ` (A .refl)) ∘s nat α a} {id S ∘s nat α a} { nat α a}
+           (comp-cong-l S {f = mor B' (seq .refl {f} ` (A .refl))} {f' = id S} {g = nat α a} foo)
            (id-l S {f = nat α a})
     --     open SomeCatLaws S
     -- in trivial-left {fun B a} {fun B' (f .ap a)} {mor B' (seq .refl {f} (A .refl))} {nat α a}

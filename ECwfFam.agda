@@ -31,7 +31,7 @@ toIsoCat {lo} {lh} {lr} C = cat where
   trans (∼-eq cat) = C .∼-eq .trans
   _∘_ cat {a} {b} {c} (f , fi , fr , fl) (g , gi , gr , gl) = 
     let
-      fgr =  let open EqRelReason Ceq in
+      fgr = let open EqRelReason Ceq in
         begin
           ((f ∘c g) ∘c (gi ∘c fi)) 
         ≈⟨ Ceq .sym (C .∘-assoc) ⟩
@@ -45,7 +45,7 @@ toIsoCat {lo} {lh} {lr} C = cat where
         ≈⟨ fr ⟩
           idc
         ∎ 
-      fgl =  let open EqRelReason Ceq in
+      fgl = let open EqRelReason Ceq in
         begin
           ((gi ∘c fi) ∘c (f ∘c g)) 
         ≈⟨ Ceq .sym (C .∘-assoc) ⟩
@@ -78,29 +78,43 @@ ESetIso {l} = toIsoCat (ESet {l})
 -- elements of the functor (probably misses an op somewhere?)
 --   Cat(-, ESet) ∘ #
 
-EFam : {ls : Level} → ECat
+EFam : {ls lh lr : Level} → ECat
 EFam {ls}  = cat where
+  _~s_ = ESet {ls} ._∼_
+  _∘s_ = ESet {ls} ._∘_
+  seq = ESet {ls} .∼-eq
   cat : ECat
   obj cat = Σ λ (A : eSet {ls} {ls}) → eFunctor {ls} {ls} {lzero} (# A) (ESet {ls}) 
-  hom cat (A , B) (A' , B') = Σ λ (f : hom (ESet {ls}) A A') → eNat B (B' ∘Func (#fun {ls} {A} {A'} f))
+  hom cat (A , B) (A' , B') =
+    Σ λ (f : hom (ESet {ls}) A A') → eNat B (B' ∘Func (#fun {ls} {A} {A'} f))
   _∼_ cat {(A , B)} {(A' , B')} (f , α) (g , β) =
-    Σ λ (p : ESet ._∼_ f g) →
-    ∀ (a : A .set)
-    -- ∀ {x y : A .set} (q : A .rel x y) → 
-    let -- foo : A' .rel (f .fst x) (g .fst y)
-        -- foo = p q 
-        -- bla : {a b : fun B x .set} →
-        --         fun B x .rel a b →
-        --         fun (B' ∘Func #fun f) x .rel (nat α x .fst a) (nat α x .fst b)
-        -- bla = nat α x .snd
-        -- bla2 : fun B x .set → fun (B' ∘Func #fun f) x .set
-        -- bla2 = mor B' () (nat α x .fst) 
-        -- bla3 : fun B x .set → fun (B' ∘Func #fun g) x .set
-        -- bla3 = nat β x .fst
-
-    in {!!}
-  --               {! ∀ !} -- ( ∀ a → ESet ._∼_ (nat α a) {! nat β a!} )
-  ∼-eq cat = {!!}
+    -- pointwise equality
+    -- Σ λ (p : ESet {ls} ._∼_ f g) →
+    -- ∀ (a : A .set) (b : fun B a .set) →
+    --   fun B' (g .fst a) .rel
+    --     (mor B' (p (A .refl)) .fst (nat α a .fst b))
+    --     (nat β a .fst b)
+    Σ λ (p : ESet {ls} ._∼_ {A} {A'} f g) → 
+    ∀ (a : A .set) → -- ((mor B' (p (A .refl))) ∘s (nat α a)) ~s (nat β a)
+         -- TODO: why do we have to insert all the unreadable implicits?
+         ESet {ls} ._∼_ { fun B a } {fun B' (g .fst a)} 
+           (ESet {ls} ._∘_ {fun B a} {fun B' (f .fst a)} {fun B' (g .fst a)} 
+             (mor B' (p (A .refl))) (nat α a))
+           (nat β a)
+  refl (∼-eq cat {(A , B)} {(A' , B')}) {(f , α)} = seq .refl {f}, λ a → 
+    let open EqRelReason (seq {fun B a} {fun B' (f .fst a)}) in
+      begin
+        -- ((mor B' (seq .refl (A .refl))) ∘s (nat α a)) 
+        (ESet {ls} ._∘_ {fun B a} {fun B' (f .fst a)} {fun B' (f .fst a)} 
+             (mor B' (seq .refl (A .refl))) (nat α a))
+      ≈⟨ ∘-cong-l (ESet {ls}) {! B' !}  ⟩
+         (ESet {ls} .id) ∘s (nat α a) 
+      ≈⟨ {!!} ⟩
+        (nat α a)
+      ∎
+     
+  sym (∼-eq cat) = {!!} -- {!ESet .∼-eq .sym , λ a b → fun _ _ .sym!}
+  trans (∼-eq cat) = {!!}
   _∘_ cat = {!!}
   ∘-assoc cat = {!!}
   ∘-cong cat = {!!}
