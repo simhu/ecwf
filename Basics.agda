@@ -286,6 +286,10 @@ resp (#fun f) =  λ _ → tt
 id-mor (#fun f) = tt
 comp-mor (#fun f) = tt
 
+-- #comp : ∀ {l} {A B C} (f : hom (ESet {l}) A B) (g : hom (ESet {l}) B C) →
+  
+
+
 
 --------------------------------------------------------------------------------
 
@@ -296,18 +300,21 @@ module eFamNotation {ls lt : Level} {A : obj (ESet {ls})} (B : eFunctor (# A) (E
   -- _~t_ = hom-rel (ESet {lt})
   -- _~s_ = hom-rel _
 
-  -- ι : {a b : A .set} (p : A .rel a b) → * a → * b
-  -- ι p = mor B p .fst
+  ι : {a b : A .set} (p : A .rel a b) → * a → * b
+  ι p = mor B p .ap
 
   -- ιirr : {a b : A .set} {p q : A .rel a b} {u v : * a} → u ~s v → ι p u ~t ι q v
   -- ιirr 
+
+-- isInvertible : {lo lh lr : Level} (C : ECat {lo} {lh} {lr}) → Set _
 
 module SomeCatLaws {lo lh lr : Level} (C : ECat {lo} {lh} {lr}) where
   open ECat C using () renaming ( hom-rel to _~_ ; comp to _∘_ ; hom-eqr to ceq )
   trivial-left : ∀ {a b} {f : hom C b b} {g : hom C a b} → f ~ id C → (f ∘ g) ~ g
   trivial-left p = ceq .trans (comp-cong-l C p) (id-l C)
 
-EFam : {ls lh lr : Level} → ECat
+  
+EFam : {ls : Level} → ECat
 EFam {ls}  = cat where
   S = ESet {ls}
   _~s_ = S .hom-rel
@@ -315,86 +322,65 @@ EFam {ls}  = cat where
   infixl 40 _∘s_
   seq = S .hom-eqr
   cat : ECat
-  obj cat = Σ λ (A : eSet {ls} {ls}) → eFunctor {ls} {ls} {lzero} (# A) S
+  obj cat = Σ λ (A : S .obj) → eFunctor (# A) S
   hom cat (A , B) (A' , B') =
     Σ λ (f : hom S A A') → eNat B (B' ∘Func (#fun {ls} {A} {A'} f))
-  hom-rel cat {(A , B)} {(A' , B')} (f , α) (g , β) =
+  hom-rel cat {A , B} {A' , B'} (f , α) (g , β) =
     Σ λ (p : f ~s g) → 
     ∀ (a : A .set) → (mor B' (p ` (A .refl))) ∘s (nat α a) ~s (nat β a)
-         -- TODO: why do we have to insert all the unreadable implicits?
-         -- S .hom-rel {fun B a} {fun B' (g .ap a)} 
-         --   (S .comp {fun B a} {fun B' (f .ap a)} {fun B' (g .ap a)} 
-         --     (mor B' (p (A .refl))) (nat α a))
-         --   (nat β a)
-  -- Why is Agda so horribly unusable here?!
-  refl (hom-eqr cat {(A , B)} {(A' , B')}) {(f , α)} = seq .refl {f} , λ a → 
-    -- WORKS, no yellow
-    let lem : mor B' (seq .refl {f} ` (A .refl)) ~s mor B' (A' .refl)
-        lem = resp B' tt
-        lem2 : id S ~s mor B' (A' .refl)
-        lem2 = id-mor B'
-        foo : mor B' (seq .refl {f} ` (A .refl)) ~s id S
-        foo = seq .trans 
-                  {mor B' (seq .refl {f} ` (A .refl))}
-                  {mor B' (A' .refl)}
-                  {id S}
-                  lem
-                  (seq .sym {id S} {mor B' (A' .refl)} lem2)
-    in seq .trans {mor B' (seq .refl {f} ` (A .refl)) ∘s nat α a} {id S ∘s nat α a} { nat α a}
-           (comp-cong-l S {f = mor B' (seq .refl {f} ` (A .refl))} {f' = id S} {g = nat α a} foo)
-           (id-l S {f = nat α a})
-    --     open SomeCatLaws S
-    -- in trivial-left {fun B a} {fun B' (f .ap a)} {mor B' (seq .refl {f} (A .refl))} {nat α a}
-    --      foo
 
+  refl (hom-eqr cat {A , B} {A' , B'}) {f , α} = seq .refl {f} , λ a → 
+    let open EqRelReason seq in
+    begin
+      (mor B' (seq .refl {f} ` (A .refl))) ∘s (nat α a)
+    ≈⟨ comp-cong-l S {g = nat α a} (resp B' tt) ⟩
+      (mor B' (A' .refl)) ∘s (nat α a)
+    ≈⟨ comp-cong-l S {g = nat α a} (seq .sym (id-mor B')) ⟩
+      (id S) ∘s (nat α a)
+    ≈⟨ id-l S ⟩
+      nat α a
+    ∎
 
-    -- NEW TRY?
-    -- let open EqRelReason (seq {fun B a} {fun B' (f .ap a)}) in
-    -- begin
-    --   S .comp {fun B a} {fun B' (f .ap a)} {fun B' (f .ap a)}
-    --     (mor B' (seq {A} {A'} .refl {f} (A .refl))) (nat α a)
-    -- ≈⟨ comp-cong-l S (resp B' tt) ⟩
-    --   S .comp {fun B a} {fun B' (f .ap a)} {fun B' (f .ap a)}
-    --     (mor B' (A' .refl)) (nat α a)
-    -- ≈⟨ {!!} ⟩
-    --   nat α a
-    -- ∎
+  sym (hom-eqr cat {A , B} {A' , B'}) {f , α} {g , β} (p , q) = seq .sym p , λ a → 
+    let open EqRelReason (seq {fun B a} {fun B' (f .ap a)})
+        qai : nat β a ~s mor B' (p ` eqr A .refl) ∘s nat α a
+        qai = seq .sym (q a)
+        fisf : A' .rel (f .ap a) (f .ap a)
+        fisf = A' .trans (p ` (A .refl)) (seq .sym p ` (A .refl))
+    in 
+      begin
+        mor B' (seq .sym p ` (A .refl)) ∘s nat β a
+      ≈⟨ comp-cong-r S {f = mor B' (seq .sym p ` A .refl)} qai ⟩
+        mor B' (seq .sym p ` (A .refl)) ∘s (mor B' (p ` (A .refl)) ∘s nat α a)
+      ≈⟨ comp-assoc S {f = mor B' (seq .sym p ` (A .refl))} {g = mor B' (p ` (A .refl))} {h = nat α a} ⟩ 
+        (mor B' (seq .sym p ` (A .refl)) ∘s mor B' (p ` (A .refl))) ∘s nat α a
+      ≈⟨ comp-cong-l S {g = nat α a} (comp-mor B') ⟩ 
+        mor B' fisf ∘s nat α a
+      ≈⟨ comp-cong-l S {g = nat α a} (resp B' tt) ⟩ 
+        mor B' (A' .refl) ∘s nat α a
+      ≈⟨ comp-cong-l S {g = nat α a} (seq .sym (id-mor B')) ⟩ 
+        id S ∘s nat α a
+      ≈⟨ id-r S ⟩ 
+        (nat α a)
+      ∎
 
-    -- OLD CRAP
-    --     lem3 : hom-rel ESet {fun B' (f .ap a)} {fun B' (f .ap a)}
-    --                    (mor B' (A' .refl))
-    --                    (id (S) {fun B' (f .ap a)})
-    --     lem3 = seq {fun B' (f .ap a)} {fun B' (f .ap a)} .sym 
-    --              {id (S) {fun B' (f .ap a)}}  {mor B' (A' .refl)}
-    --              lem2
-    --     lem4 : hom-rel ESet {fun B a} {fun B' (f .ap a)}
-    --                (S .comp {fun B a} {fun B' (f .ap a)} {fun B' (f .ap a)} 
-    --                  (mor B' (A' .refl)) (nat α a))
-    --                (S .comp {fun B a} {fun B' (f .ap a)} {fun B' (f .ap a)} 
-    --                  (id (S) {fun B' (f .ap a)}) (nat α a))
-    --     lem4 = comp-cong-l (S) {fun B a} {fun B' (f .ap a)} {fun B' (f .ap a)} 
-    --                  {mor B' (A' .refl)} {id (S) {fun B' (f .ap a)}} {nat α a} lem3
-    --     lem5 : hom-rel ESet {fun B a} {fun B' (f .ap a)}
-    --                (S .comp {fun B a} {fun B' (f .ap a)} {fun B' (f .ap a)} 
-    --                  (mor B' (A' .refl)) (nat α a))
-    --                (S .comp {fun B a} {fun B' (f .ap a)} {fun B' (f .ap a)} 
-    --                  (id (S) {fun B' (f .ap a)}) (nat α a))
-    --     lem5 = {!!}
-    -- in {!!}
-    ----  seq .trans (comp-cong-l ESet (seq .trans lem lem2)) (ESet .id-l)
-    -- in
-    --   begin
-    --     S .comp {fun B a} {fun B' (f .ap a)} {fun B' (f .ap a)} 
-    --          (mor B' (seq {A} {A'} .refl {f} (A .refl {a}))) (nat α a)
-    --   ≈⟨ comp-cong-l _ lem ⟩
-    --     S .comp {fun B a} {fun B' (f .ap a)} {fun B' (f .ap a)} 
-    --          (mor B' (A' .refl)) (nat α a)
-    --   ≈⟨ {!!} ⟩
-    --     nat α a
-    --   ∎
-  sym (hom-eqr cat) p = {!!}
-  trans (hom-eqr cat) = {!!}
-  comp cat = {!!}
+  trans (hom-eqr cat {A , B} {A' , B'}) {f , α} {g , β} {h , γ} (fg , αβ) (gh , βγ) =
+    seq .trans fg gh , λ a → 
+    let open EqRelReason (seq {fun B a} {fun B' (h .ap a)})
+    in
+     begin
+       mor B' (seq .trans fg gh ` A .refl) ∘s nat α a
+     ≈⟨ comp-cong-l S {g = nat α a} (seq .sym (comp-mor B')) ⟩
+       (mor B' (gh ` A .refl) ∘s mor B' (fg ` A .refl)) ∘s nat α a
+     ≈⟨ comp-assoc S {f = mor B' (gh ` A .refl)} {g = mor B' (fg ` A .refl)} {h = nat α a}⟩
+       mor B' (gh ` A .refl) ∘s (mor B' (fg ` A .refl) ∘s nat α a)
+     ≈⟨ comp-cong-r S {f = mor B' (gh ` A .refl)} (αβ a) ⟩
+       mor B' (gh ` A .refl) ∘s nat β a
+     ≈⟨ βγ a ⟩
+       (nat γ a)
+     ∎
+
+  comp cat {A , B} {A' , B'} {A'' , B''} (f , α) (g , β) = f ∘s g , {! λ a → !}
   comp-assoc cat = {!!}
   comp-cong cat = {!!}
   id cat = {!!}
