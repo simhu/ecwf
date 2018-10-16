@@ -21,6 +21,7 @@ _×_ : {l k : Level} (A : Set l) (B : Set k) → Set (l ⊔ k)
 A × B = Σ {A = A} (λ _ → B)
 
 
+
 --------------------------------------------------------------------------------
 
 -- Equivalence Relations
@@ -84,6 +85,15 @@ record ECat {lo lh lr : Level} : Set (lsuc (lo ⊔ lh ⊔ lr)) where
     hom-rel g g' → hom-rel (comp f g) (comp f g')
   comp-cong-r = comp-cong (hom-eqr .refl)
 
+  comp-assoc-inv : ∀ {A B C D} {f : hom C D} {g : hom B C} {h : hom A B} →
+    hom-rel (comp (comp f g) h) (comp f (comp g h))
+  comp-assoc-inv = hom-eqr .sym comp-assoc
+  id-l-inv : ∀ {A B} {f : hom A B} → hom-rel f (comp id f)
+  id-l-inv = hom-eqr .sym id-l
+  id-r-inv : ∀ {A B} {f : hom A B} → hom-rel f (comp f id)
+  id-r-inv = hom-eqr .sym id-r
+
+
 
 open ECat public
 
@@ -100,7 +110,8 @@ C op = record C
 -- We have to pack E-Maps into a record instead of just a Σ-type;
 -- otherwise, the definition of EFam below needs too many (all)
 -- implicit arguments.
-record eMap {lao lar lbo lbr} (A : eSet {lao} {lar}) (B : eSet {lbo} {lbr}) : Set (lao ⊔ lar ⊔ lbo ⊔ lbr) where
+record eMap {lao lar lbo lbr} (A : eSet {lao} {lar}) (B : eSet {lbo} {lbr}) :
+  Set (lao ⊔ lar ⊔ lbo ⊔ lbr) where
   no-eta-equality
   field
     ap : A .set → B .set
@@ -129,15 +140,8 @@ trans (eMapEqR {A = A} {B}) p q = map-rel λ r → B .trans (p ` r) (q ` (A .ref
 -- TODO: this should really take two universe levels...
 ESet : {l : Level} → ECat {lsuc l} {l} {l}
 obj (ESet {l}) = eSet {l} {l}
---hom ESet A B = Σ λ (f : A .set → B .set) → ∀ {a b} → A .rel a b → B .rel (f a) (f b)
 hom ESet A B = eMap A B
--- This should really be pointwise equality instead?
---hom-rel ESet {A} {B} f g =  ∀ {a b} → A .rel a b → B .rel (f .ap a) (g .ap b)
 hom-rel ESet f g = eMapRel f g
--- hom-rel ESet {A} {B} (f , _) (g , _) = ∀ (a : A .set) → B .rel (f a) (g b)
--- refl (hom-eqr ESet {A} {B}) {f} = (f .ap-cong)
--- sym (hom-eqr ESet {A} {B}) ptw pa = B .sym (ptw .map-resp (A .sym pa))
--- trans (hom-eqr ESet {A} {B}) ptw ptw' pa = B .trans (ptw pa) (ptw' (A .refl))
 hom-eqr ESet = eMapEqR
 comp ESet f g =  record { ap = λ x → f .ap (g .ap x) ; ap-cong = λ p →  f .ap-cong (g .ap-cong p) }
 comp-assoc ESet {A} {B} {C} {D} {f} {g} {h} = map-rel λ pa → f .ap-cong (g .ap-cong (h .ap-cong pa))
@@ -169,6 +173,7 @@ record eFunctor {lco lch lcr ldo ldh ldr : Level}
   comp-mor-inv = D .hom-eqr .sym comp-mor
   id-mor-inv : ∀ {a} → hom-rel D (mor {a} {a} (C .id)) (D .id)
   id-mor-inv = D .hom-eqr .sym id-mor
+
 
 open eFunctor public
 
@@ -282,6 +287,62 @@ l-whisker :
 l-whisker F α = hcomp (id (EFunctor _ _) {F}) α
 
 
+-- Comma categories
+comma : {lco lch lcr ldo ldh ldr leo leh ler : Level}
+  {C : ECat {lco} {lch} {lcr}} {D : ECat {ldo} {ldh} {ldr}} {E : ECat {leo} {leh} {ler}}
+  (F : eFunctor C D) (G : eFunctor E D) →
+  ECat {lco ⊔ ldh ⊔ leo} {lch ⊔ (ldr ⊔ leh)} {lcr ⊔ ler}
+comma {C = C} {D} {E} F G = record
+  { obj = Σ λ (c : obj C) → Σ λ (e : obj E) → hom D (fun F c) (fun G e)
+  ; hom = λ { (c , e , h) (c' , e' , h') →  Σ λ (f : hom C c c') → Σ λ (g : hom E e e') →
+           h' ∘d (mor F f) ~d  (mor G g) ∘d h}
+  ; hom-rel = λ { (f , g , _) (f' , g' , _) → (f ~c f') × (g ~e g')}
+  ; hom-eqr =  record { refl = C .hom-eqr .refl , E .hom-eqr .refl
+                      ; sym =  λ p → C .hom-eqr .sym (fst p) , E .hom-eqr .sym (snd p)
+                      ; trans = λ p q → C .hom-eqr .trans (fst p) (fst q) , 
+                                        E .hom-eqr .trans (snd p) (snd q)
+                      }
+  ; comp = λ { {_ , _ , h} {_ , _ , h'} {_ , _ , h'' } (f , g , p) (f' , g' , p') →  
+      f ∘c f' , g ∘e g' ,
+      let open EqRelReason (D .hom-eqr) in
+        begin
+           h'' ∘d mor F (f ∘c f')
+         ≈⟨ comp-cong-r D (comp-mor-inv F) ⟩
+           h'' ∘d (mor F f ∘d mor F f')
+         ≈⟨ comp-assoc D ⟩
+           (h'' ∘d mor F f) ∘d mor F f'
+         ≈⟨ comp-cong-l D p ⟩
+           (mor G g ∘d h') ∘d mor F f'
+         ≈⟨ comp-assoc-inv D ⟩
+           mor G g ∘d (h' ∘d mor F f')
+         ≈⟨ comp-cong-r D p' ⟩
+           mor G g ∘d (mor G g' ∘d h)
+         ≈⟨ comp-assoc D ⟩
+           (mor G g ∘d mor G g') ∘d h
+         ≈⟨ comp-cong-l D (comp-mor G) ⟩
+           mor G (g ∘e g') ∘d h
+         ∎ }
+  ; comp-assoc = comp-assoc C , comp-assoc E
+  ; comp-cong = λ p q → comp-cong C (fst p) (fst q) , comp-cong E (snd p) (snd q)
+  ; id =  λ { {c , e , h} → id C , id E , let open EqRelReason (D .hom-eqr) in
+                            begin
+                              h ∘d mor F (id C)
+                            ≈⟨ comp-cong-r D (id-mor-inv F) ⟩ 
+                              h ∘d id D
+                            ≈⟨ id-r D ⟩ 
+                              h
+                            ≈⟨ id-l-inv D ⟩ 
+                              id D ∘d h
+                            ≈⟨ comp-cong-l D (id-mor G) ⟩ 
+                              mor G (id E) ∘d h
+                            ∎}
+  ; id-l = id-l C , id-l E
+  ; id-r = id-r C , id-r E
+  }
+  where _~d_ = hom-rel D ; _∘d_ = comp D ; infixl 40 _∘d_
+        _~c_ = hom-rel C ; _∘c_ = comp C ; infixl 40 _∘c_
+        _~e_ = hom-rel E ; _∘e_ = comp E ; infixl 40 _∘e_
+
 -- Presheaves
 ePSh : ∀ {k lo lh lr} (C : ECat {lo} {lh} {lr}) → Set ((lsuc k) ⊔ lo ⊔ lh ⊔ lr)
 ePSh {k} C = eFunctor (C op) (ESet {k})
@@ -301,8 +362,6 @@ module ePShNotation {k lo lh lr} {C : ECat {lo} {lh} {lr}} (F : ePSh {k} C) wher
   _·_ : ∀ {I J} → setF I → hom C J I → setF J
   u · h = mor F h .ap u
 
--- infixl 40 _∘d_
-
 -- The category of elements of a preasheaf
 ∫ : ∀ {k lo lh lr} {C : ECat {lo} {lh} {lr}} (F : ePSh {k} C) → ECat
 ∫ {C = C} F = cat where
@@ -311,7 +370,8 @@ module ePShNotation {k lo lh lr} {C : ECat {lo} {lh} {lr}} (F : ePSh {k} C) wher
   obj cat = Σ setF
   hom cat (J , v) (I , u) = Σ λ (f : hom C J I) → v ~ u · f
   hom-rel cat (f , _) (g , _) = f ~d g  -- proof irrelevant in the second argument
-  hom-eqr cat = record { refl =  C .hom-eqr .refl ; sym =  C .hom-eqr .sym ; trans = C .hom-eqr .trans }
+  hom-eqr cat = record
+    { refl =  C .hom-eqr .refl ; sym =  C .hom-eqr .sym ; trans = C .hom-eqr .trans }
   fst (comp cat (f , _) (g , _)) = f ∘d g
   snd (comp cat {(K , w)} {(J , v)} {(I , u)} (f , p) (g , q)) = 
       let gvrelfgu : v · g ~ u · (f ∘d g)
@@ -390,7 +450,8 @@ EFam {ls}  = cat where
         mor B' (seq .sym p ` (A .refl)) ∘s nat β a
       ≈⟨ comp-cong-r S {f = mor B' (seq .sym p ` A .refl)} qai ⟩
         mor B' (seq .sym p ` (A .refl)) ∘s (mor B' (p ` (A .refl)) ∘s nat α a)
-      ≈⟨ comp-assoc S {f = mor B' (seq .sym p ` (A .refl))} {g = mor B' (p ` (A .refl))} {h = nat α a} ⟩ 
+      ≈⟨ comp-assoc S {f = mor B' (seq .sym p ` (A .refl))} 
+           {g = mor B' (p ` (A .refl))} {h = nat α a} ⟩ 
         (mor B' (seq .sym p ` (A .refl)) ∘s mor B' (p ` (A .refl))) ∘s nat α a
       ≈⟨ comp-cong-l S {g = nat α a} (comp-mor B') ⟩ 
         mor B' fisf ∘s nat α a
@@ -454,16 +515,21 @@ EFam {ls}  = cat where
         begin  -- (comp-cong S ff' gg' ` A .refl {a}) is (ff' `(gg' ` A .refl {a}))
           mor B'' (ff' `(gg' ` A .refl {a})) ∘s (nat α (g .ap a) ∘s nat β a) 
         ≈⟨ comp-cong-l S {g = nat α (g .ap a) ∘s nat β a} (resp B'' tt) ⟩
-          (mor B'' (A'' .trans (f .ap-cong (gg' ` A .refl)) (ff' ` A' .refl))) ∘s (nat α (g .ap a) ∘s nat β a)
+          (mor B'' (A'' .trans (f .ap-cong (gg' ` A .refl)) (ff' ` A' .refl)))
+            ∘s (nat α (g .ap a) ∘s nat β a)
         ≈⟨ comp-cong-l S {g = nat α (g .ap a) ∘s nat β a} (comp-mor-inv B'') ⟩
-          (mor B'' (ff' ` A' .refl) ∘s mor B'' (f .ap-cong (gg' ` A .refl))) ∘s (nat α (g .ap a) ∘s nat β a)
+          (mor B'' (ff' ` A' .refl) ∘s mor B'' (f .ap-cong (gg' ` A .refl))) 
+            ∘s (nat α (g .ap a) ∘s nat β a)
         ≈⟨  seq .sym (comp-assoc S 
              {f = mor B'' (ff' ` A' .refl)} {g = mor B'' (f .ap-cong (gg' ` A .refl))}
              {h = nat α (g .ap a) ∘s nat β a}) ⟩
-          mor B'' (ff' ` A' .refl) ∘s (mor B'' (f .ap-cong (gg' ` A .refl)) ∘s (nat α (g .ap a) ∘s nat β a))
+          mor B'' (ff' ` A' .refl) ∘s (mor B'' (f .ap-cong (gg' ` A .refl))
+            ∘s (nat α (g .ap a) ∘s nat β a))
         ≈⟨ comp-cong-r S {f = mor B'' (ff' ` A' .refl)} 
-           (comp-assoc S {f = mor B'' (f .ap-cong (gg' ` A .refl))} {g = nat α (g .ap a)} {h = nat β a}) ⟩
-          mor B'' (ff' ` A' .refl) ∘s ((mor B'' (f .ap-cong (gg' ` A .refl)) ∘s nat α (g .ap a)) ∘s nat β a)
+           (comp-assoc S {f = mor B'' (f .ap-cong (gg' ` A .refl))}
+             {g = nat α (g .ap a)} {h = nat β a}) ⟩
+          mor B'' (ff' ` A' .refl) ∘s ((mor B'' (f .ap-cong (gg' ` A .refl))
+            ∘s nat α (g .ap a)) ∘s nat β a)
         ≈⟨ comp-cong-r S {f = mor B'' (ff' ` A' .refl)} 
            (comp-cong-l S {g = nat β a} (nat-eq α)) ⟩
           mor B'' (ff' ` A' .refl) ∘s ((nat α (g' .ap a) ∘s mor B' (gg' ` A .refl)) ∘s nat β a)
@@ -554,16 +620,6 @@ EFam {ls}  = cat where
                    map-rel λ p → f .ap-cong (g .ap-cong p) }
   }
 
--- module eFamNotation {ls lt : Level} {A : obj (ESet {ls})} (B : eFunctor (# A) (ESet {lt})) where
---   *_ : (a : A .set) → Set lt
---   * a = fun B a .set 
-
---   -- _~t_ = hom-rel (ESet {lt})
---   -- _~s_ = hom-rel _
-
---   ι : {a b : A .set} (p : A .rel a b) → * a → * b
---   ι p = mor B p .ap
-
 
 -- The Fam variant of an E-CwF
 record eCwf {lv lo lh lr : Level} : Set (lsuc (lv ⊔ lo ⊔ lh ⊔ lr)) where
@@ -606,9 +662,8 @@ record eCwf {lv lo lh lr : Level} : Set (lsuc (lv ⊔ lo ⊔ lh ⊔ lr)) where
   teq {Γ} {A} = (fun F Γ) .snd .fun A .eqr
 
   _[_]t : ∀ {Γ Δ A} (t : Ter Γ A) (σ : Subst Δ Γ) → Ter Δ (A [ σ ])
-  u [ σ ]t = {!F .mor _ !}
+  u [ σ ]t = F .mor σ .snd .nat _ .ap u
   infix 50 _[_]t
-
 
   ι : ∀ {Γ} {A B : Typ Γ} → A ~ B → Ter Γ A → Ter Γ B
   ι {Γ} p = fun F Γ .snd .mor p .ap  
@@ -622,7 +677,6 @@ record eCwf {lv lo lh lr : Level} : Set (lsuc (lv ⊔ lo ⊔ lh ⊔ lr)) where
   ιtrans : ∀ {Γ} {A B C : Typ Γ} {p : B ~ C} {q : A ~ B} {u : Ter Γ A} →
            ι p (ι q u) ~t ι (~eq .trans q p) u
   ιtrans {Γ} = fun F Γ .snd .comp-mor .map-resp (teq .refl)
-
 
   field
     -- terminal object
@@ -639,3 +693,7 @@ record eCwf {lv lo lh lr : Level} : Set (lsuc (lv ⊔ lo ⊔ lh ⊔ lr)) where
     pp<> : ∀ {Δ Γ} {σ : Subst Δ Γ} {A : Typ Γ} {t : Ter Δ (A [ σ ])} →
              pp ∘s < σ , t > ~s σ
 
+    -- TODO: missing laws etc
+
+
+-- -}
