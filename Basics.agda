@@ -4,7 +4,9 @@ open import Agda.Primitive
 
 --------------------------------------------------------------------------------
 
-data Unit : Set where
+data ⊥ {l : Level} : Set l where
+
+data Unit {l : Level} : Set l where
   tt : Unit
 
 record Σ {l k} {A : Set l} (B : A → Set k) : Set (l ⊔ k) where
@@ -239,6 +241,7 @@ EFunctor C D = cat where
   id-l cat = λ _ → D .id-l
   id-r cat = λ _ → D .id-r
 
+
 -- Horizontal composition (not used at the moment)
 hcomp :
   {lco lch lcr ldo ldh ldr leo leh ler : Level}
@@ -407,6 +410,29 @@ mor (#fun f) = f .ap-cong
 resp (#fun f) =  λ _ → tt
 id-mor (#fun f) = tt
 comp-mor (#fun f) = tt
+
+
+--------------------------------------------------------------------------------
+-- The initial category
+
+𝟘 : ∀ {lo lh lr} → ECat {lo} {lh} {lr}
+𝟘 = record
+  { obj = ⊥
+  ; hom = λ _ _ → ⊥
+  ; hom-rel = λ _ _ → ⊥
+  ; hom-eqr = record { refl = λ {} ; sym = λ z → z ; trans = λ _ z → z }
+  ; comp = λ _ z → z
+  ; comp-assoc = λ {}
+  ; comp-cong = λ _ z → z
+  ; id = λ {}
+  ; id-l = λ {}
+  ; id-r = λ {}
+  }
+
+𝟘-elim : ∀ {lo lh lr lco lch lcr} {C : ECat {lco} {lch} {lcr}} → eFunctor (𝟘 {lo} {lh} {lr}) C
+𝟘-elim = record { fun = λ () ; mor = λ () ; resp = λ () ; id-mor = λ {} ; comp-mor = λ {} }
+
+
 
 
 --------------------------------------------------------------------------------
