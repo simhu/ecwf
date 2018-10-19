@@ -392,7 +392,7 @@ module ePShNotation {k lo lh lr} {C : ECat {lo} {lh} {lr}} (F : ePSh {k} C) wher
 # : ∀ {ls lr} (A : eSet {ls} {lr}) → ECat
 obj (# A) = A .set
 hom (# A) a b = A .rel a b
-hom-rel (# A) p q = Unit
+hom-rel (# A) p q = Unit {lzero}
 refl (hom-eqr (# A)) = tt
 sym (hom-eqr (# A)) =  λ _ → tt
 trans (hom-eqr (# A)) = λ _ _ → tt

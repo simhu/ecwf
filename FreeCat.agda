@@ -92,52 +92,57 @@ mor-t (t-∘r pf pg) = mor-t pf
 
 module FreeElim {lo lh lr} (C : ECat {lo} {lh} {lr})
            (iA : A → obj C) (iR : {a b : A} → R a b → hom C (iA a) (iA b)) where
-  open ECat C using () renaming (comp to _∘c_ ; hom-rel to _~c_)
+  open ECat C using () renaming (comp to _∘c_ ; hom-rel to _~c_ ; hom-eqr to ceq )
 
-  objMap : {a : Raw} (p : Obj a) → obj C
-  objMap {.(in-obj a)} (t-in-obj a) = iA a
+  -- objMap : {a : Raw} (p : Obj a) → obj C
+  -- objMap {.(in-obj a)} (t-in-obj a) = iA a
 
-  homMap' : {a b f : Raw} →
-           (pf : f ∈ a ⇒ b) → hom C (objMap (mor-s pf)) (objMap (mor-t pf))
-  homMap' (t-in-hom r) = iR r
-  homMap' (t-id x) = id C
-  homMap' (t-∘r {a} {b} {c} {f} {g} pf pg) = comp C (homMap' pf) {!homMap' pg!}
+  -- -- homMap' : {a b f : Raw} →
+  -- --          (pf : f ∈ a ⇒ b) → hom C (objMap (mor-s pf)) (objMap (mor-t pf))
+  -- -- homMap' (t-in-hom r) = iR r
+  -- -- homMap' (t-id x) = id C
+  -- -- homMap' (t-∘r {a} {b} {c} {f} {g} pf pg) = comp C (homMap' pf) {!homMap' pg!}
 
 
 
-  homMap : {a b f : Raw} (pa : Obj a) (pb : Obj b) → 
-           f ∈ a ⇒ b → hom C (objMap pa) (objMap pb)
-  -- If this is the last equation, we don't get the right definitional equalities.
-  homMap pa pb (t-∘r pf pg) = comp C (homMap (mor-s pf) pb pf) (homMap pa (mor-s pf) pg)
-  homMap (t-in-obj a) (t-in-obj b) (t-in-hom r) = iR r
-  -- Does this generalize?
-  homMap {.(in-obj a)} {.(in-obj a)} (t-in-obj a) (t-in-obj .a) (t-id x) = id C
-
-  -- NB: matching here on pa and pb instead of the withs will generate
-  -- case-trees where the last case will not be a definitional
-  -- equality?  (Is this a bug in Agda?)
+  -- homMap : {a b f : Raw} (pa : Obj a) (pb : Obj b) → 
+  --          f ∈ a ⇒ b → hom C (objMap pa) (objMap pb)
+  -- -- If this is the last equation, we don't get the right definitional equalities.
   -- homMap pa pb (t-∘r pf pg) = comp C (homMap (mor-s pf) pb pf) (homMap pa (mor-s pf) pg)
   -- homMap (t-in-obj a) (t-in-obj b) (t-in-hom r) = iR r
   -- -- Does this generalize?
-
   -- homMap {.(in-obj a)} {.(in-obj a)} (t-in-obj a) (t-in-obj .a) (t-id x) = id C
 
+  -- -- NB: matching here on pa and pb instead of the withs will generate
+  -- -- case-trees where the last case will not be a definitional
+  -- -- equality?  (Is this a bug in Agda?)
+  -- -- homMap pa pb (t-∘r pf pg) = comp C (homMap (mor-s pf) pb pf) (homMap pa (mor-s pf) pg)
+  -- -- homMap (t-in-obj a) (t-in-obj b) (t-in-hom r) = iR r
+  -- -- -- Does this generalize?
 
-  -- homMap pa pb (t-in-hom r) with pa | pb
-  -- homMap pa pb (t-in-hom r) | t-in-obj a | t-in-obj b = iR r
-  -- homMap pa pb (t-id x) with pa | pb 
-  -- homMap pa pb (t-id x) | t-in-obj a | t-in-obj .a = id C
-  -- homMap pa pb (t-∘r pf pg) = comp C (homMap (mor-s pf) pb pf) (homMap pa (mor-s pf) pg)
+  -- -- homMap {.(in-obj a)} {.(in-obj a)} (t-in-obj a) (t-in-obj .a) (t-id x) = id C
 
 
+  -- -- homMap pa pb (t-in-hom r) with pa | pb
+  -- -- homMap pa pb (t-in-hom r) | t-in-obj a | t-in-obj b = iR r
+  -- -- homMap pa pb (t-id x) with pa | pb 
+  -- -- homMap pa pb (t-id x) | t-in-obj a | t-in-obj .a = id C
+  -- -- homMap pa pb (t-∘r pf pg) = comp C (homMap (mor-s pf) pb pf) (homMap pa (mor-s pf) pg)
 
-  ~Map   : {a b f g : Raw} {pa : Obj a} {pb : Obj b}
-           {pf : f ∈ a ⇒ b} {pg : g ∈ a ⇒ b} →
-           f ~ g ∈ a ⇒ b → (homMap pa pb pf) ~c (homMap pa pb pg)
-  ~Map {pa = pa} {pb} {t-∘r pf1 (t-∘r pg1 ph1)} {t-∘r (t-∘r pf2 pg2) ph2} (t-∘r-assoc {a} {b} {c} {d} {f} {g} {h}) = {!!}
-  ~Map {pa = pa} {pb} {pf} {pg} (t-∘r-cong pfg pfg₁) = {!!}
-  ~Map {pa = pa} {pb} {pf} {pg} (t-idr-l x) = {!!}
-  ~Map {pa = pa} {pb} {pf} {pg} (t-idr-r x) = {!!}
-  ~Map {pa = pa} {pb} {pf} {pg} t-~-refl = {!!}
-  ~Map {pa = pa} {pb} {pf} {pg} (t-~-sym pfg) = {!!}
-  ~Map {pa = pa} {pb} {pf} {pg} (t-~-trans pfg pfg₁) = {!!}
+
+  -- homMapIrr : {a b f : Raw} (pa : Obj a) (pb : Obj b) → 
+  --          (pf pf' : f ∈ a ⇒ b) → homMap pa pb pf ~c homMap pa pb pf'
+  -- homMapIrr pa pb (t-in-hom r) (t-in-hom .r) = ceq .refl
+  -- homMapIrr (t-in-obj a) (t-in-obj .a) (t-id x) (t-id x₁) = ceq .refl
+  -- homMapIrr pa pb (t-∘r pf pg) (t-∘r pf' pg') = {!!}
+
+  -- ~Map   : {a b f g : Raw} {pa : Obj a} {pb : Obj b}
+  --          {pf : f ∈ a ⇒ b} {pg : g ∈ a ⇒ b} →
+  --          f ~ g ∈ a ⇒ b → (homMap pa pb pf) ~c (homMap pa pb pg)
+  -- ~Map {pa = pa} {pb} {t-∘r pf1 (t-∘r pg1 ph1)} {t-∘r (t-∘r pf2 pg2) ph2} (t-∘r-assoc {a} {b} {c} {d} {f} {g} {h} {p} {q} {r}) = {!~Map pf1!}
+  -- ~Map {pa = pa} {pb} {pf} {pg} (t-∘r-cong pfg pfg₁) = {!!}
+  -- ~Map {pa = pa} {pb} {pf} {pg} (t-idr-l x) = {!!}
+  -- ~Map {pa = pa} {pb} {pf} {pg} (t-idr-r x) = {!!}
+  -- ~Map {pa = pa} {pb} {pf} {pg} t-~-refl = {!!}
+  -- ~Map {pa = pa} {pb} {pf} {pg} (t-~-sym pfg) = {!!}
+  -- ~Map {pa = pa} {pb} {pf} {pg} (t-~-trans pfg pfg₁) = {!!}
