@@ -17,7 +17,6 @@ data Raw : Set (ls ⊔ lr) where
   compr : Obj → Raw → Raw → Raw
 
 
-
 data _∈_⇒_ : (f : Raw) → Obj → Obj → Set (ls ⊔ lr)
 data _~_∈_⇒_ : (f g : Raw) → Obj → Obj → Set (ls ⊔ lr)
 
@@ -144,3 +143,7 @@ module FreeElim {lo lh lr} (C : ECat {lo} {lh} {lr})
         homMap pf1
       ∎
 
+  free-elim : eFunctor freeCat C
+  free-elim = record
+    { fun = objMap ; mor = λ {(f , pf) → homMap pf} ; resp = λ p → ~Map _ _ p
+    ; id-mor = ceq .refl ; comp-mor = ceq .refl }
