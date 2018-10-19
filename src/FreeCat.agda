@@ -145,5 +145,9 @@ module FreeElim {lo lh lr} (C : ECat {lo} {lh} {lr})
 
   free-elim : eFunctor freeCat C
   free-elim = record
-    { fun = objMap ; mor = λ {(f , pf) → homMap pf} ; resp = λ p → ~Map _ _ p
-    ; id-mor = ceq .refl ; comp-mor = ceq .refl }
+    { fun = objMap
+    ; mor = λ {(f , pf) → homMap pf}
+    ; resp = λ {a} {b} {f} {g} p → ~Map (snd f) (snd g) p
+    ; id-mor = ceq .refl
+    ; comp-mor = ceq .refl
+    }
