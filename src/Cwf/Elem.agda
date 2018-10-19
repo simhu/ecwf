@@ -3,6 +3,8 @@
 -- of elements of Ty.  Note, this is *not* the same as the
 -- Fiore/Awodey definition
 
+-- TODO: clean up and refactor using EqRelReason
+
 module Cwf.Elem where
 
 open import Basics
