@@ -320,7 +320,7 @@ comp-mor (#fun f) = tt
 --------------------------------------------------------------------------------
 
 isTerminal : ∀ {l l' l''} {C : ECat {l} {l'} {l''}} (T : obj C) → Set (l ⊔ (l' ⊔ l''))
-isTerminal {C = C} T = ∀ A → Σ λ (f : hom C A T) → ∀ g → hom-rel C f g 
+isTerminal {C = C} T = ∀ A → Σ λ (f : hom C A T) → ∀ g → hom-rel C f g
 
 
 --------------------------------------------------------------------------------
@@ -346,6 +346,58 @@ isTerminal {C = C} T = ∀ A → Σ λ (f : hom C A T) → ∀ g → hom-rel C f
 
 
 --------------------------------------------------------------------------------
+
+
+module eNatIsoModule
+         {lco lch lcr ldo ldh ldr : Level}
+         {C : ECat {lco} {lch} {lcr}} {D : ECat {ldo} {ldh} {ldr}}
+         {F G : eFunctor C D} where
+
+  open ECat C using() renaming (comp to _∘C_ ; hom-rel to _~C_)
+  open ECat D using() renaming (comp to _∘D_ ; hom-rel to _~D_ ; hom-eqr to deq)
+
+  record isNatIso (α : eNat F G) : Set (lco ⊔ lch ⊔ lcr ⊔ ldo ⊔ ldh ⊔ ldr) where
+    no-eta-equality
+    field
+      nat-inv : (a : obj C) → hom D (fun G a) (fun F a)
+      nat-inv-sect : ∀ {a} → (nat α a ∘D nat-inv a) ~D id D
+      nat-inv-retract : ∀ {a} → (nat-inv a ∘D nat α a) ~D id D
+
+  isnatiso-inv : ∀ {α} → isNatIso α → eNat G F
+  isnatiso-inv {α} p = let open isNatIso p in record
+    { nat = nat-inv
+    ; nat-eq = λ {a b f} → let open EqRelReason deq in
+      begin
+        mor F f ∘D nat-inv a
+      ≈⟨ comp-cong-l D (id-l-inv D) ⟩
+        (id D ∘D mor F f) ∘D nat-inv a
+      ≈⟨ comp-cong-l D (comp-cong-l D (deq .sym nat-inv-retract)) ⟩
+        ((nat-inv b ∘D nat α b) ∘D mor F f) ∘D nat-inv a
+      ≈⟨ comp-cong-l D (comp-assoc-inv D) ⟩
+        (nat-inv b ∘D (nat α b ∘D mor F f)) ∘D nat-inv a
+      ≈⟨ comp-cong-l D (comp-cong-r D (deq .sym (nat-eq α))) ⟩
+        (nat-inv b ∘D (mor G f ∘D nat α a)) ∘D nat-inv a
+      ≈⟨ comp-assoc-inv D ⟩
+        nat-inv b ∘D ((mor G f ∘D nat α a) ∘D nat-inv a)
+      ≈⟨ comp-cong-r D (comp-assoc-inv D) ⟩
+        nat-inv b ∘D (mor G f ∘D (nat α a ∘D nat-inv a))
+      ≈⟨ comp-cong-r D (comp-cong-r D (nat-inv-sect)) ⟩
+        nat-inv b ∘D (mor G f ∘D id D)
+      ≈⟨ comp-cong-r D (id-r D) ⟩
+        nat-inv b ∘D mor G f
+      ∎
+    }
+
+  record eNatIso : Set (lco ⊔ lch ⊔ lcr ⊔ ldo ⊔ ldh ⊔ ldr) where
+    no-eta-equality
+    field
+      to-nat : eNat F G
+      to-is-iso : isNatIso to-nat
+
+  open eNatIso public
+
+open eNatIsoModule public
+
 
 
 -- -}

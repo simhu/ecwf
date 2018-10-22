@@ -1,7 +1,6 @@
 -- The free e-category on a graph.
 module FreeCat {ls lr} (A : Set ls) (R : A → A → Set lr) where
 
-open import Agda.Primitive
 open import Basics
 
 
