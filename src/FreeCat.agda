@@ -207,8 +207,8 @@ module FreeElim {lo lh lr} (C : ECat {lo} {lh} {lr})
     bwd-fwd-id (in-obj a) = eA a .from-to-id
 
     -- This should not be neccessary if we'd used more general
-    -- definitions if functors and natural transformations.  This is
-    -- copy-paste from isnatiso-inv.
+    -- definitions of functors and natural transformations.  This is
+    -- copy-paste from isnatiso-inv from Basics.
     bwd-nat-eq : {a b : Obj} {f : Raw} (pf : f ∈ a ⇒ b) →
                  (homMap pf ∘c bwd-nat a) ~c (bwd-nat b ∘c mor F (f , pf))
     bwd-nat-eq {a} {b} {f} pf = let open EqRelReason ceq in
