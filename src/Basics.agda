@@ -211,7 +211,6 @@ record eNat {lco lch lcr ldo ldh ldr : Level}
 
 open eNat public
 
-
 EFunctor : {lco lch lcr ldo ldh ldr : Level}
   (C : ECat {lco} {lch} {lcr}) (D : ECat {ldo} {ldh} {ldr}) →
   ECat
@@ -245,6 +244,13 @@ EFunctor C D = cat where
   nat-eq (id cat) = Deq .trans (D .id-r) (Deq .sym (D .id-l))
   id-l cat = λ _ → D .id-l
   id-r cat = λ _ → D .id-r
+
+idFunctor : ∀ {lco lch lcr} (C : ECat {lco} {lch} {lcr}) → eFunctor C C
+fun (idFunctor C) = λ a → a
+mor (idFunctor C) = λ f → f
+resp (idFunctor C) = λ p → p
+id-mor (idFunctor C) = C .hom-eqr .refl
+comp-mor (idFunctor C) = C .hom-eqr .refl
 
 
 --------------------------------------------------------------------------------
@@ -317,29 +323,6 @@ l-whisker :
   (F : eFunctor D E) (α : eNat G H) → eNat (F ∘Func G) (F ∘Func H)
 l-whisker F α = hcomp (id (EFunctor _ _) {F}) α
 
---------------------------------------------------------------------------------
--- Any setoid is a discrete category (which is also a groupoid)
-# : ∀ {ls lr} (A : eSet {ls} {lr}) → ECat
-obj (# A) = A .set
-hom (# A) a b = A .rel a b
-hom-rel (# A) p q = Unit {lzero}
-refl (hom-eqr (# A)) = tt
-sym (hom-eqr (# A)) =  λ _ → tt
-trans (hom-eqr (# A)) = λ _ _ → tt
-comp (# A) p q = A .trans q p
-comp-assoc (# A) = tt
-comp-cong (# A) = λ _ _ → tt
-id (# A) = A .refl
-id-l (# A) = tt
-id-r (# A) = tt
-
-
-#fun : ∀ {l} {A B} (f : hom (ESet {l}) A B) → eFunctor (# A) (# B)
-fun (#fun f) = f .ap
-mor (#fun f) = f .ap-cong
-resp (#fun f) =  λ _ → tt
-id-mor (#fun f) = tt
-comp-mor (#fun f) = tt
 
 --------------------------------------------------------------------------------
 
@@ -484,6 +467,11 @@ module eNatIsoModule
     ; inverse-retract = λ a → nat-inv-retract {a}
     }
 
+  iso-isnatiso : ∀ {α} → isIso {C = EFunctor C D} α → isNatIso α
+  iso-isnatiso p = record { nat-inv =  λ a → nat (inverse p) a
+                          ; nat-inv-sect = p .inverse-section _
+                          ; nat-inv-retract = p .inverse-retract _
+                          }
   record eNatIso : Set (lco ⊔ lch ⊔ lcr ⊔ ldo ⊔ ldh ⊔ ldr) where
     no-eta-equality
     field
@@ -496,7 +484,14 @@ module eNatIsoModule
       )
   open eNatIso public
 
-open eNatIsoModule public
+
+eNatIso : {lco lch lcr ldo ldh ldr : Level}
+          {C : ECat {lco} {lch} {lcr}} {D : ECat {ldo} {ldh} {ldr}}
+          (F G : eFunctor C D) → Set _
+eNatIso F G = eNatIsoModule.eNatIso {F = F} {G = G}
+
+open eNatIsoModule public hiding ( eNatIso )
+
 
 
 

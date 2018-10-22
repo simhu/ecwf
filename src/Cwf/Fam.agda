@@ -4,6 +4,7 @@
 module Cwf.Fam where
 
 open import Basics
+open import Discrete
 open import Presheaves
 
 
