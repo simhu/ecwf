@@ -276,7 +276,7 @@ comp-mor (idFunctor C) = C .hom-eqr .refl
 𝟘-elim = record { fun = λ () ; mor = λ () ; resp = λ () ; id-mor = λ {} ; comp-mor = λ {} }
 
 --------------------------------------------------------------------------------
--- Horizontal composition (not used at the moment)
+-- Horizontal composition
 hcomp :
   {lco lch lcr ldo ldh ldr leo leh ler : Level}
   {C : ECat {lco} {lch} {lcr}} {D : ECat {ldo} {ldh} {ldr}} {E : ECat {leo} {leh} {ler}}
@@ -338,7 +338,7 @@ isTerminal {C = C} T = ∀ A → Σ λ (f : hom C A T) → ∀ g → hom-rel C f
 
 -- Isomorphisms in a given category
 module IsoModule {lo lh lr : Level} {C : ECat {lo} {lh} {lr}} where
-  open ECat C using() renaming (comp to _∘C_ ; hom-rel to _~C_ ; hom-eqr to Ceq)
+  open ECat C using () renaming (comp to _∘C_ ; hom-rel to _~C_ ; hom-eqr to Ceq)
 
   record isIso {a b : obj C}
     (f : hom C a b) : Set (lh ⊔ lr) where
@@ -486,13 +486,155 @@ module eNatIsoModule
       )
   open eNatIso public
 
+  iso-natiso : Iso {C = EFunctor C D} F G → eNatIso
+  iso-natiso p = record { to-nat = to-mor p ; to-is-iso = iso-isnatiso (to-mor-iso p) }
+
+  natiso-iso : eNatIso → Iso {C = EFunctor C D} F G
+  natiso-iso p = record { to-mor = to-nat p ; to-mor-iso = isnatiso-iso (to-is-iso p) }
+
+
 
 eNatIso : {lco lch lcr ldo ldh ldr : Level}
           {C : ECat {lco} {lch} {lcr}} {D : ECat {ldo} {ldh} {ldr}}
           (F G : eFunctor C D) → Set _
 eNatIso F G = eNatIsoModule.eNatIso {F = F} {G = G}
 
+
 open eNatIsoModule public hiding ( eNatIso )
+
+
+
+∘Func-assoc : {lbo lbh lbr lco lch lcr ldo ldh ldr leo leh ler : Level}
+  {B : ECat {lbo} {lbh} {lbr}} {C : ECat {lco} {lch} {lcr}}
+  {D : ECat {ldo} {ldh} {ldr}} {E : ECat {leo} {leh} {ler}}
+  (F : eFunctor D E) (G : eFunctor C D) (H : eFunctor B C) →
+  eNatIso (F ∘Func (G ∘Func H)) ((F ∘Func G) ∘Func H)
+∘Func-assoc {B = B} {C} {D} {E} F G H =
+  let eta : eNatIso ((F ∘Func G) ∘Func H) ((F ∘Func G) ∘Func H)
+      eta = iso-natiso iso-refl
+  in record  -- no-eta isn't really our friend here
+  { to-nat = record
+    { nat = eta .to-nat .nat
+    ; nat-eq = eta .to-nat .nat-eq }
+  ; to-is-iso = record { nat-inv = eta .to-is-iso .isNatIso.nat-inv
+                       ; nat-inv-sect = eta .to-is-iso .isNatIso.nat-inv-sect
+                       ; nat-inv-retract = eta .to-is-iso .isNatIso.nat-inv-retract
+                       }
+  }
+
+idFunctor-l : ∀ {lco lch lcr ldo ldh ldr} {C : ECat {lco} {lch} {lcr}} {D : ECat {ldo} {ldh} {ldr}}
+              {F : eFunctor C D} → eNatIso (idFunctor D ∘Func F) F
+idFunctor-l {C = C} {D} {F} =
+  let eta : eNatIso F F
+      eta = iso-natiso iso-refl
+  in record  -- no-eta isn't really our friend here
+  { to-nat = record
+    { nat = eta .to-nat .nat
+    ; nat-eq = eta .to-nat .nat-eq }
+  ; to-is-iso = record { nat-inv = eta .to-is-iso .isNatIso.nat-inv
+                       ; nat-inv-sect = eta .to-is-iso .isNatIso.nat-inv-sect
+                       ; nat-inv-retract = eta .to-is-iso .isNatIso.nat-inv-retract
+                       }
+  }
+
+idFunctor-r : ∀ {lco lch lcr ldo ldh ldr} {C : ECat {lco} {lch} {lcr}} {D : ECat {ldo} {ldh} {ldr}}
+              {F : eFunctor C D} → eNatIso (F ∘Func idFunctor C) F
+idFunctor-r {C = C} {D} {F} =
+  let eta : eNatIso F F
+      eta = iso-natiso iso-refl
+  in record  -- no-eta isn't really our friend here
+  { to-nat = record
+    { nat = eta .to-nat .nat
+    ; nat-eq = eta .to-nat .nat-eq }
+  ; to-is-iso = record { nat-inv = eta .to-is-iso .isNatIso.nat-inv
+                       ; nat-inv-sect = eta .to-is-iso .isNatIso.nat-inv-sect
+                       ; nat-inv-retract = eta .to-is-iso .isNatIso.nat-inv-retract
+                       }
+  }
+
+∘Func-cong : {lco lch lcr ldo ldh ldr leo leh ler : Level}
+  {C : ECat {lco} {lch} {lcr}} {D : ECat {ldo} {ldh} {ldr}} {E : ECat {leo} {leh} {ler}}
+  {F F' : eFunctor D E} {G G' : eFunctor C D} {α : eNat F F'} {β : eNat G G'} →
+  isNatIso α → isNatIso β → isNatIso (hcomp α β)
+∘Func-cong {C = C} {D} {E} {F} {F'} {G} {G'} {α} {β} isoα isoβ =
+  let open ECat E using() renaming (comp to _∘E_ ; hom-rel to _~E_ ; hom-eqr to Eqr )
+      open isNatIso isoα using () renaming
+        (nat-inv to invα ; nat-inv-sect to αinvα ; nat-inv-retract to invαα)
+      open isNatIso isoβ using () renaming
+        (nat-inv to invβ ; nat-inv-sect to βinvβ ; nat-inv-retract to invββ)
+  in record
+  { nat-inv = λ a → mor F (invβ a) ∘E invα (fun G' a)
+  ; nat-inv-sect =
+    λ {a} → let open EqRelReason Eqr in
+    begin
+      (mor F' (nat β a) ∘E nat α (fun G a)) ∘E (mor F (invβ a) ∘E invα (fun G' a))
+    ≈⟨ comp-assoc E ⟩
+      ((mor F' (nat β a) ∘E nat α (fun G a)) ∘E mor F (invβ a)) ∘E invα (fun G' a)
+    ≈⟨ comp-cong-l E (comp-assoc-inv E) ⟩
+      (mor F' (nat β a) ∘E (nat α (fun G a) ∘E (mor F (invβ a)))) ∘E invα (fun G' a)
+    ≈⟨ comp-cong-l E (comp-cong-r E (nat-eq-inv α)) ⟩
+      (mor F' (nat β a) ∘E (mor F' (invβ a) ∘E nat α (fun G' a))) ∘E invα (fun G' a)
+    ≈⟨ comp-cong-l E (comp-assoc E) ⟩
+      ((mor F' (nat β a) ∘E mor F' (invβ a)) ∘E nat α (fun G' a)) ∘E invα (fun G' a)
+    ≈⟨ comp-assoc-inv E ⟩
+      (mor F' (nat β a) ∘E mor F' (invβ a)) ∘E ((nat α (fun G' a)) ∘E invα (fun G' a))
+    ≈⟨ comp-cong E (comp-mor F') αinvα ⟩
+      mor F' (comp D (nat β a) (invβ a)) ∘E id E
+    ≈⟨ id-r E ⟩
+      mor F' (comp D (nat β a) (invβ a))
+    ≈⟨ resp F' βinvβ ⟩
+      mor F' (id D)
+    ≈⟨ id-mor-inv F' ⟩
+      id E
+    ∎
+  ; nat-inv-retract =
+    λ {a} → let open EqRelReason Eqr in
+    begin
+      (mor F (invβ a) ∘E invα (fun G' a)) ∘E (mor F' (nat β a) ∘E nat α (fun G a))
+    ≈⟨ comp-assoc E ⟩
+      ((mor F (invβ a) ∘E invα (fun G' a)) ∘E mor F' (nat β a)) ∘E nat α (fun G a)
+    ≈⟨ comp-cong-l E (comp-assoc-inv E) ⟩
+      (mor F (invβ a) ∘E (invα (fun G' a) ∘E (mor F' (nat β a)))) ∘E nat α (fun G a)
+    ≈⟨ comp-cong-l E (comp-cong-r E (nat-eq-inv (isnatiso-inv isoα))) ⟩
+      (mor F (invβ a) ∘E (mor F (nat β a) ∘E invα (fun G a))) ∘E nat α (fun G a)
+    ≈⟨ comp-cong-l E (comp-assoc E) ⟩
+      ((mor F (invβ a) ∘E mor F (nat β a)) ∘E invα (fun G a)) ∘E nat α (fun G a)
+    ≈⟨ comp-assoc-inv E ⟩
+      (mor F (invβ a) ∘E mor F (nat β a)) ∘E ((invα (fun G a)) ∘E nat α (fun G a))
+    ≈⟨ comp-cong E (comp-mor F) invαα ⟩
+      mor F (comp D (invβ a) (nat β a)) ∘E id E
+    ≈⟨ id-r E ⟩
+      mor F (comp D (invβ a) (nat β a))
+    ≈⟨ resp F invββ ⟩
+      mor F (id D)
+    ≈⟨ id-mor-inv F ⟩
+      id E
+    ∎
+  }
+
+
+
+-- The categories of categories with equality of functors being
+-- natural isomorphism
+CAT : {lo lh lr : Level} → ECat
+CAT {lo} {lh} {lr} = record
+  { obj = ECat {lo} {lh} {lr}
+  ; hom = eFunctor
+  ; hom-rel = eNatIso
+  ; hom-eqr = record { refl = iso-natiso iso-refl
+                     ; sym = λ α → iso-natiso (iso-sym (natiso-iso α))
+                     ; trans = λ α β →
+                       iso-natiso (iso-trans (natiso-iso α) (natiso-iso β))
+                     }
+  ; comp = _∘Func_
+  ; comp-assoc = λ { {f = F} {G} {H} → ∘Func-assoc F G H }
+  ; comp-cong = λ pα pβ → record { to-nat = hcomp (to-nat pα) (to-nat pβ)
+                                  ; to-is-iso = ∘Func-cong (to-is-iso pα) (to-is-iso pβ) }
+  ; id = idFunctor _
+  ; id-l = idFunctor-l
+  ; id-r = idFunctor-r
+  }
+
 
 
 
