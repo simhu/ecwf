@@ -153,10 +153,10 @@ module FreeElim {lo lh lr} (C : ECat {lo} {lh} {lr})
     }
 
 
-  -- This is formulated *very* cumbersome, due to the fact that we
+  -- This is formulated rather cumbersome, due to the fact that we
   -- formulated functors not general enough; the problem is that
   -- graphs (gadgets (A,R) as above) don't naturally form a category
-  -- as there is no natural way to formulate equality of morphisms
+  -- as there is no natural way to formulate equality of morphisms.
   module FreeElimUnique
            (F : eFunctor freeCat C)
            (eA : (a : A) → Iso {C = C} (iA a) (fun F (in-obj a)))
