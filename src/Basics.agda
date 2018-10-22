@@ -101,6 +101,7 @@ record ECat {lo lh lr : Level} : Set (lsuc (lo ⊔ lh ⊔ lr)) where
 
 open ECat public
 
+
 _op : ∀ {lo lh lr} → ECat {lo} {lh} {lr} → ECat
 C op = record C
      { hom = λ A B → hom C B A
@@ -246,6 +247,27 @@ EFunctor C D = cat where
   id-r cat = λ _ → D .id-r
 
 
+--------------------------------------------------------------------------------
+-- The initial category
+
+𝟘 : ∀ {lo lh lr} → ECat {lo} {lh} {lr}
+𝟘 = record
+  { obj = ⊥
+  ; hom = λ _ _ → ⊥
+  ; hom-rel = λ _ _ → ⊥
+  ; hom-eqr = record { refl = λ {} ; sym = λ z → z ; trans = λ _ z → z }
+  ; comp = λ _ z → z
+  ; comp-assoc = λ {}
+  ; comp-cong = λ _ z → z
+  ; id = λ {}
+  ; id-l = λ {}
+  ; id-r = λ {}
+  }
+
+𝟘-elim : ∀ {lo lh lr lco lch lcr} {C : ECat {lco} {lch} {lcr}} → eFunctor (𝟘 {lo} {lh} {lr}) C
+𝟘-elim = record { fun = λ () ; mor = λ () ; resp = λ () ; id-mor = λ {} ; comp-mor = λ {} }
+
+--------------------------------------------------------------------------------
 -- Horizontal composition (not used at the moment)
 hcomp :
   {lco lch lcr ldo ldh ldr leo leh ler : Level}
@@ -295,7 +317,7 @@ l-whisker :
   (F : eFunctor D E) (α : eNat G H) → eNat (F ∘Func G) (F ∘Func H)
 l-whisker F α = hcomp (id (EFunctor _ _) {F}) α
 
-
+--------------------------------------------------------------------------------
 -- Any setoid is a discrete category (which is also a groupoid)
 # : ∀ {ls lr} (A : eSet {ls} {lr}) → ECat
 obj (# A) = A .set
@@ -319,39 +341,102 @@ resp (#fun f) =  λ _ → tt
 id-mor (#fun f) = tt
 comp-mor (#fun f) = tt
 
-
-
 --------------------------------------------------------------------------------
 
 isTerminal : ∀ {l l' l''} {C : ECat {l} {l'} {l''}} (T : obj C) → Set (l ⊔ (l' ⊔ l''))
 isTerminal {C = C} T = ∀ A → Σ λ (f : hom C A T) → ∀ g → hom-rel C f g
 
 
---------------------------------------------------------------------------------
--- The initial category
-
-𝟘 : ∀ {lo lh lr} → ECat {lo} {lh} {lr}
-𝟘 = record
-  { obj = ⊥
-  ; hom = λ _ _ → ⊥
-  ; hom-rel = λ _ _ → ⊥
-  ; hom-eqr = record { refl = λ {} ; sym = λ z → z ; trans = λ _ z → z }
-  ; comp = λ _ z → z
-  ; comp-assoc = λ {}
-  ; comp-cong = λ _ z → z
-  ; id = λ {}
-  ; id-l = λ {}
-  ; id-r = λ {}
-  }
-
-𝟘-elim : ∀ {lo lh lr lco lch lcr} {C : ECat {lco} {lch} {lcr}} → eFunctor (𝟘 {lo} {lh} {lr}) C
-𝟘-elim = record { fun = λ () ; mor = λ () ; resp = λ () ; id-mor = λ {} ; comp-mor = λ {} }
-
 
 
 --------------------------------------------------------------------------------
 
+-- Isomorphisms in a given category
+module IsoModule {lo lh lr : Level} {C : ECat {lo} {lh} {lr}} where
+  open ECat C using() renaming (comp to _∘C_ ; hom-rel to _~C_ ; hom-eqr to Ceq)
 
+  record isIso {a b : obj C}
+    (f : hom C a b) : Set (lh ⊔ lr) where
+    no-eta-equality
+    field
+      inverse : hom C b a
+      inverse-section : (f ∘C inverse) ~C id C
+      inverse-retract : (inverse ∘C f) ~C id C
+
+  open isIso public
+
+  record Iso (a b : obj C) : Set (lh ⊔ lr) where
+    no-eta-equality
+    field
+      to-mor : hom C a b
+      to-mor-iso : isIso to-mor
+    open isIso to-mor-iso public renaming
+      ( inverse to from-mor
+      ; inverse-section to to-from-id
+      ; inverse-retract to from-to-id
+      )
+  open Iso public
+
+  isiso-id : {a : obj C} → isIso (id C {a})
+  isiso-id = record { inverse =  id C ; inverse-section = id-r C ; inverse-retract = id-r C }
+
+
+  isiso-inv : {a b : obj C} {f : hom C a b} (pf : isIso f) → isIso (pf .inverse)
+  isiso-inv {f = f} pf = record
+    { inverse = f
+    ; inverse-section = inverse-retract pf
+    ; inverse-retract = inverse-section pf
+    }
+
+  isiso-comp : {a b c : obj C} {f : hom C b c} {g : hom C a b} → isIso f → isIso g → isIso (f ∘C g)
+  isiso-comp {f = f} {g = g} pf pg = record
+    { inverse =  pg .inverse ∘C  pf .inverse
+    ; inverse-section = let open EqRelReason Ceq in
+      begin
+        (f ∘C g) ∘C (pg .inverse ∘C pf .inverse)
+      ≈⟨ comp-assoc-inv C ⟩
+        f ∘C (g ∘C (pg .inverse ∘C pf .inverse))
+      ≈⟨ comp-cong-r C (comp-assoc C) ⟩
+        f ∘C ((g ∘C pg .inverse) ∘C pf .inverse)
+      ≈⟨ comp-cong-r C (comp-cong-l C (pg .inverse-section)) ⟩
+        f ∘C (id C ∘C pf .inverse)
+      ≈⟨ comp-cong-r C (id-l C) ⟩
+        f ∘C pf .inverse
+      ≈⟨ pf .inverse-section ⟩
+        id C
+      ∎
+    ; inverse-retract = let open EqRelReason Ceq in
+      begin
+        (pg .inverse ∘C pf .inverse) ∘C (f ∘C g)
+      ≈⟨ comp-assoc-inv C ⟩
+        pg .inverse ∘C (pf .inverse ∘C (f ∘C g))
+      ≈⟨ comp-cong-r C (comp-assoc C) ⟩
+        pg .inverse ∘C ((pf .inverse ∘C f) ∘C g)
+      ≈⟨ comp-cong-r C (comp-cong-l C (pf .inverse-retract)) ⟩
+        pg .inverse ∘C (id C ∘C g)
+      ≈⟨ comp-cong-r C (id-l C) ⟩
+        pg .inverse ∘C g
+      ≈⟨ pg .inverse-retract ⟩
+        id C
+      ∎
+    }
+
+  iso-refl : {a : obj C} → Iso a a
+  iso-refl = record { to-mor = id C  ; to-mor-iso = isiso-id}
+
+  iso-sym : {a b : obj C} → Iso a b → Iso b a
+  iso-sym iso = record { to-mor = from-mor iso ; to-mor-iso = isiso-inv (to-mor-iso iso) }
+
+  iso-trans : {a b c : obj C} → Iso a b → Iso b c → Iso a c
+  iso-trans pf pg = record
+    { to-mor = to-mor pg ∘C to-mor pf
+    ; to-mor-iso = isiso-comp (to-mor-iso pg) (to-mor-iso pf)
+    }
+
+  --  iso-comp : {lo lh lr : Level} {C : ECat {lo} {lh} {lr}} {a b c: obj C} {f : }
+open IsoModule public
+
+-- Natural isomorphism
 module eNatIsoModule
          {lco lch lcr ldo ldh ldr : Level}
          {C : ECat {lco} {lch} {lcr}} {D : ECat {ldo} {ldh} {ldr}}
@@ -392,12 +477,23 @@ module eNatIsoModule
       ∎
     }
 
+  isnatiso-iso : ∀ {α} → isNatIso α → isIso {C = EFunctor C D} α
+  isnatiso-iso {α} p = let open isNatIso p in record
+    { inverse = isnatiso-inv p
+    ; inverse-section = λ a → nat-inv-sect {a}
+    ; inverse-retract = λ a → nat-inv-retract {a}
+    }
+
   record eNatIso : Set (lco ⊔ lch ⊔ lcr ⊔ ldo ⊔ ldh ⊔ ldr) where
     no-eta-equality
     field
       to-nat : eNat F G
       to-is-iso : isNatIso to-nat
-
+    open isNatIso to-is-iso public renaming
+      ( nat-inv to from-nat
+      ; nat-inv-sect to ptw-to-from-id
+      ; nat-inv-retract to ptw-from-to-id
+      )
   open eNatIso public
 
 open eNatIsoModule public
