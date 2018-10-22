@@ -211,6 +211,8 @@ record eNat {lco lch lcr ldo ldh ldr : Level}
 
 open eNat public
 
+-- TODO: we can also consider "functors" where C is not a category,
+-- but merely given by obj, hom, id, comp (but no equations)
 EFunctor : {lco lch lcr ldo ldh ldr : Level}
   (C : ECat {lco} {lch} {lcr}) (D : ECat {ldo} {ldh} {ldr}) →
   ECat

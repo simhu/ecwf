@@ -26,7 +26,7 @@ data _∈_⇒_ where
 data _~_∈_⇒_ where
   t-compr-assoc : ∀ {a b c d f g h} {p : f ∈ c ⇒ d} {q : g ∈ b ⇒ c} {r : h ∈ a ⇒ b} →
     compr c f (compr b g h) ~ compr b (compr c f g) h ∈ a ⇒ d
-  t-compr-cong : ∀ {a b c f f' g g'} 
+  t-compr-cong : ∀ {a b c f f' g g'}
                 {p : f ∈ b ⇒ c} {q : f' ∈ b ⇒ c} {r : g ∈ a ⇒ b} {s : g' ∈ a ⇒ b} →
                 f ~ f' ∈ b ⇒ c → g ~ g' ∈ a ⇒ b → compr b f g ~ compr b f' g' ∈ a ⇒ c
   t-idr-l : ∀ {a b f} → f ∈ a ⇒ b → compr b idr f ~ f ∈ a ⇒ b
@@ -38,11 +38,11 @@ data _~_∈_⇒_ where
 
 freeCat : ECat
 obj freeCat = Obj
-hom freeCat a b = Σ λ (f : Raw) → f ∈ a ⇒ b 
+hom freeCat a b = Σ λ (f : Raw) → f ∈ a ⇒ b
 hom-rel freeCat {a} {b} (f , _) (g , _) = f ~ g ∈ a ⇒ b
 hom-eqr freeCat = record
   { refl = λ {a} → t-~-refl {p = snd a} ; sym = t-~-sym ; trans = t-~-trans }
-comp freeCat (f , p) (g , q) = compr _ f g , t-compr p q 
+comp freeCat (f , p) (g , q) = compr _ f g , t-compr p q
 comp-assoc freeCat {f = f} {g} {h} = t-compr-assoc {p = snd f} {snd g} {snd h}
 comp-cong freeCat {f = f} {f'} {g} {g'} = t-compr-cong {p = snd f} {snd f'} {snd g} {snd g'}
 id freeCat {p} = idr , t-id p
@@ -72,6 +72,8 @@ id-r freeCat {f = f} = t-idr-r (snd f)
 module FreeElim {lo lh lr} (C : ECat {lo} {lh} {lr})
            (iA : A → obj C) (iR : {a b : A} → R a b → hom C (iA a) (iA b)) where
   open ECat C using () renaming (comp to _∘c_ ; hom-rel to _~c_ ; hom-eqr to ceq )
+  -- TODO: How do we get this fixity declaration to work?
+  -- infixl 40 _∘c_
 
   objMap : Obj → obj C
   objMap (in-obj a) = iA a
@@ -103,14 +105,14 @@ module FreeElim {lo lh lr} (C : ECat {lo} {lh} {lr})
         open EqRelReason ceq
     in begin
        homMap pf
-     ≈⟨ ~Map pf pg0 pfg ⟩ 
+     ≈⟨ ~Map pf pg0 pfg ⟩
        homMap pg0
-     ≈⟨ homMapIrr pg0 pg1 ⟩ 
+     ≈⟨ homMapIrr pg0 pg1 ⟩
        homMap pg1
-     ≈⟨ ~Map pg1 ph pgh ⟩ 
+     ≈⟨ ~Map pg1 ph pgh ⟩
        homMap ph
      ∎
-  ~Map (t-compr pf0 (t-compr pg0 ph0)) (t-compr (t-compr pf1 pg1) ph1) t-compr-assoc = 
+  ~Map (t-compr pf0 (t-compr pg0 ph0)) (t-compr (t-compr pf1 pg1) ph1) t-compr-assoc =
     let open EqRelReason ceq in
       begin
         homMap pf0 ∘c (homMap pg0 ∘c homMap ph0)
@@ -134,7 +136,7 @@ module FreeElim {lo lh lr} (C : ECat {lo} {lh} {lr})
   ~Map (t-compr pf0 (t-id a)) pf1 (t-idr-r x) =
     let open EqRelReason ceq in
       begin
-        homMap pf0 ∘c id C 
+        homMap pf0 ∘c id C
       ≈⟨ id-r C ⟩
         homMap pf0
       ≈⟨ homMapIrr pf0 pf1 ⟩
@@ -149,3 +151,97 @@ module FreeElim {lo lh lr} (C : ECat {lo} {lh} {lr})
     ; id-mor = ceq .refl
     ; comp-mor = ceq .refl
     }
+
+
+  -- This is formulated *very* cumbersome, due to the fact that we
+  -- formulated functors not general enough; the problem is that
+  -- graphs (gadgets (A,R) as above) don't naturally form a category
+  -- as there is no natural way to formulate equality of morphisms
+  module FreeElimUnique
+           (F : eFunctor freeCat C)
+           (eA : (a : A) → Iso {C = C} (iA a) (fun F (in-obj a)))
+           (eA-to-nat : ∀ {a b} (r : R a b) → (mor F (in-hom r , t-in-hom r) ∘c eA a .to-mor)
+                                              ~c (eA b .to-mor ∘c iR r))
+    where
+
+    fwd-nat : (a : Obj) → hom C (fun free-elim a) (fun F a)
+    fwd-nat (in-obj a) = eA a .to-mor
+
+    fwd-nat-eq : {a b : Obj} {f : Raw} (pf : f ∈ a ⇒ b) →
+                 (mor F (f , pf) ∘c fwd-nat a) ~c (fwd-nat b ∘c (homMap pf))
+    fwd-nat-eq (t-in-hom {a} {b} r) = eA-to-nat r
+    fwd-nat-eq (t-id a) = let open EqRelReason ceq in
+      begin
+        mor F (id freeCat) ∘c fwd-nat a
+      ≈⟨ comp-cong-l C (id-mor-inv F) ⟩
+        id C ∘c fwd-nat a
+      ≈⟨ id-l C ⟩
+        fwd-nat a
+      ≈⟨ id-r-inv C ⟩
+        fwd-nat a ∘c id C
+      ∎
+    fwd-nat-eq (t-compr {f} {g} {a} {b} {c} pf pg) = let open EqRelReason ceq in
+      begin
+        mor F (compr _ f g , t-compr pf pg) ∘c fwd-nat a
+      ≈⟨ comp-cong-l C (comp-mor-inv F) ⟩
+        (mor F (f , pf) ∘c mor F (g , pg))∘c fwd-nat a
+      ≈⟨ comp-assoc-inv C ⟩
+        mor F (f , pf) ∘c (mor F (g , pg)∘c fwd-nat a)
+      ≈⟨ comp-cong-r C (fwd-nat-eq pg) ⟩ -- IH g
+        mor F (f , pf) ∘c (fwd-nat b ∘c homMap pg)
+      ≈⟨ comp-assoc C ⟩
+        (mor F (f , pf) ∘c fwd-nat b) ∘c homMap pg
+      ≈⟨ comp-cong-l C (fwd-nat-eq pf) ⟩ -- IH f
+        (fwd-nat c ∘c homMap pf) ∘c homMap pg
+      ≈⟨ comp-assoc-inv C ⟩
+        fwd-nat c ∘c (homMap pf ∘c homMap pg)
+      ∎
+
+    bwd-nat : (a : Obj) → hom C (fun F a) (objMap a)
+    bwd-nat (in-obj a) = eA a .from-mor
+
+    fwd-bwd-id : (a : Obj) → (fwd-nat a ∘c bwd-nat a) ~c id C
+    fwd-bwd-id (in-obj a) = eA a .to-from-id
+
+    bwd-fwd-id : (a : Obj) → (bwd-nat a ∘c fwd-nat a) ~c id C
+    bwd-fwd-id (in-obj a) = eA a .from-to-id
+
+    -- This should not be neccessary if we'd used more general
+    -- definitions if functors and natural transformations.  This is
+    -- copy-paste from isnatiso-inv.
+    bwd-nat-eq : {a b : Obj} {f : Raw} (pf : f ∈ a ⇒ b) →
+                 (homMap pf ∘c bwd-nat a) ~c (bwd-nat b ∘c mor F (f , pf))
+    bwd-nat-eq {a} {b} {f} pf = let open EqRelReason ceq in
+      begin
+        homMap pf ∘c bwd-nat a
+      ≈⟨ comp-cong-l C (id-l-inv C) ⟩
+        (id C ∘c homMap pf) ∘c bwd-nat a
+      ≈⟨ comp-cong-l C (comp-cong-l C (ceq .sym (bwd-fwd-id b))) ⟩
+        ((bwd-nat b ∘c fwd-nat b) ∘c homMap pf) ∘c bwd-nat a
+      ≈⟨ comp-cong-l C (comp-assoc-inv C) ⟩
+        (bwd-nat b ∘c (fwd-nat b ∘c homMap pf)) ∘c bwd-nat a
+      ≈⟨ comp-cong-l C (comp-cong-r C (ceq .sym (fwd-nat-eq pf))) ⟩
+        (bwd-nat b ∘c (mor F (f , pf) ∘c fwd-nat a)) ∘c bwd-nat a
+      ≈⟨ comp-assoc-inv C ⟩
+        bwd-nat b ∘c ((mor F (f , pf) ∘c fwd-nat a) ∘c bwd-nat a)
+      ≈⟨ comp-cong-r C (comp-assoc-inv C) ⟩
+        bwd-nat b ∘c (mor F (f , pf) ∘c (fwd-nat a ∘c bwd-nat a))
+      ≈⟨ comp-cong-r C (comp-cong-r C (fwd-bwd-id a)) ⟩
+        bwd-nat b ∘c (mor F (f , pf) ∘c id C)
+      ≈⟨ comp-cong-r C (id-r C) ⟩
+        bwd-nat b ∘c mor F (f , pf)
+      ∎
+
+    free-elim-unique : eNatIso free-elim F
+    free-elim-unique = record
+      { to-nat = record { nat = fwd-nat
+                        ; nat-eq = λ {a} {b} {fpf} → fwd-nat-eq (snd fpf) }
+      ; to-is-iso = record
+        { nat-inv = bwd-nat
+        ; nat-inv-sect = λ {a} → fwd-bwd-id a
+        ; nat-inv-retract = λ {a} → bwd-fwd-id a
+        }
+      }
+  open FreeElimUnique public using ( free-elim-unique )
+
+open FreeElim public
