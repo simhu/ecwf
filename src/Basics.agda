@@ -22,6 +22,7 @@ infixr 10 _,_
 _×_ : {l k : Level} (A : Set l) (B : Set k) → Set (l ⊔ k)
 A × B = Σ {A = A} (λ _ → B)
 
+infixr 10 _×_
 
 
 --------------------------------------------------------------------------------
@@ -203,6 +204,9 @@ record eNat {lco lch lcr ldo ldh ldr : Level}
     nat : (a : obj C) → hom D (fun F a) (fun G a)
     nat-eq : ∀ {a b} {f : hom C a b} →
                ((mor G f) ∘D (nat a)) ~D ((nat b) ∘D (mor F f))
+  nat-eq-inv : ∀ {a b} {f : hom C a b} →
+                 ((nat b) ∘D (mor F f)) ~D ((mor G f) ∘D (nat a))
+  nat-eq-inv = D .hom-eqr .sym nat-eq
 
 open eNat public
 

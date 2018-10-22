@@ -15,7 +15,6 @@ data Raw : Set (ls ⊔ lr) where
   idr : Raw
   compr : Obj → Raw → Raw → Raw
 
-
 data _∈_⇒_ : (f : Raw) → Obj → Obj → Set (ls ⊔ lr)
 data _~_∈_⇒_ : (f g : Raw) → Obj → Obj → Set (ls ⊔ lr)
 

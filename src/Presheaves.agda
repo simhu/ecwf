@@ -20,7 +20,8 @@ module ePShNotation {k lo lh lr} {C : ECat {lo} {lh} {lr}} (F : ePSh {k} C) wher
   u · h = mor F h .ap u
 
 -- The category of elements of a preasheaf
-∫ : ∀ {k lo lh lr} {C : ECat {lo} {lh} {lr}} (F : ePSh {k} C) → ECat
+-- TODO: Why do we always have to put the category C when using ∫?
+∫ : ∀ {k lo lh lr} {C : ECat {lo} {lh} {lr}} (F : ePSh {k} C) → ECat {k ⊔ lo} {k ⊔ lh} {lr}
 ∫ {C = C} F = cat where
   open ePShNotation {C = C} F
   cat : ECat
@@ -39,3 +40,22 @@ module ePShNotation {k lo lh lr} {C : ECat {lo} {lh} {lr}} (F : ePSh {k} C) wher
   id cat {(I , u)}=  id C , id-mor F ` (fun F I .refl)
   id-l cat = id-l C
   id-r cat = id-r C
+
+∫proj : ∀ {k lo lh lr} {C : ECat {lo} {lh} {lr}} (F : ePSh {k} C) → eFunctor (∫ {C = C} F) C
+∫proj {C = C} F = record
+  { fun = fst 
+  ; mor = fst
+  ; resp = λ p → p
+  ; id-mor = C .hom-eqr .refl
+  ; comp-mor = C .hom-eqr .refl
+  }
+
+∫fun : ∀ {k lo lh lr} {C : ECat {lo} {lh} {lr}} {F G : ePSh {k} C}
+       (α : eNat F G ) → eFunctor (∫ {C = C} F) (∫ {C = C} G)
+fun (∫fun {C = C} {F} {G} α) (I , u) = I , nat α I .ap u 
+mor (∫fun {C = C} {F} {G} α) {J , v} {I , u} (f , p) =
+  f , fun G J .trans (nat α J .ap-cong p) (nat-eq-inv α ` fun F I .refl)
+resp (∫fun {C = C} {F} {G} α) p = p
+id-mor (∫fun {C = C} {F} {G} α) = C .hom-eqr .refl
+comp-mor (∫fun {C = C} {F} {G} α) = C .hom-eqr .refl
+
