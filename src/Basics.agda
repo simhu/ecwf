@@ -326,10 +326,6 @@ l-whisker :
 l-whisker F α = hcomp (id (EFunctor _ _) {F}) α
 
 
---------------------------------------------------------------------------------
-
-isTerminal : ∀ {l l' l''} {C : ECat {l} {l'} {l''}} (T : obj C) → Set (l ⊔ (l' ⊔ l''))
-isTerminal {C = C} T = ∀ A → Σ λ (f : hom C A T) → ∀ g → hom-rel C f g
 
 
 
@@ -493,7 +489,6 @@ module eNatIsoModule
   natiso-iso p = record { to-mor = to-nat p ; to-mor-iso = isnatiso-iso (to-is-iso p) }
 
 
-
 eNatIso : {lco lch lcr ldo ldh ldr : Level}
           {C : ECat {lco} {lch} {lcr}} {D : ECat {ldo} {ldh} {ldr}}
           (F G : eFunctor C D) → Set _
@@ -501,7 +496,6 @@ eNatIso F G = eNatIsoModule.eNatIso {F = F} {G = G}
 
 
 open eNatIsoModule public hiding ( eNatIso )
-
 
 
 ∘Func-assoc : {lbo lbh lbr lco lch lcr ldo ldh ldr leo leh ler : Level}
@@ -634,6 +628,47 @@ CAT {lo} {lh} {lr} = record
   ; id-l = idFunctor-l
   ; id-r = idFunctor-r
   }
+
+
+--------------------------------------------------------------------------------
+
+-- The terminal category
+
+1cat : {lo lh lr : Level} → ECat {lo} {lh} {lr}
+1cat = record
+     { obj = Unit
+     ; hom = λ { _ _ → Unit }
+     ; hom-rel =  λ { _ _ → Unit }
+     ; hom-eqr = record { refl = tt ; sym = λ _ → tt ; trans = λ _ _ → tt }
+     ; comp = λ _ _ → tt
+     ; comp-assoc = tt
+     ; comp-cong = λ _ _ → tt
+     ; id = tt
+     ; id-l = tt
+     ; id-r = tt
+     }
+
+!cat : {lo lh lr lco lch lcr : Level} (C : ECat {lco} {lch} {lcr}) → eFunctor C (1cat {lo} {lh} {lr})
+!cat C = record { fun = λ _ → tt ; mor = λ _ → tt ; resp = λ _ → tt ; id-mor = tt ; comp-mor = tt }
+
+-- Uniqueness of !cat up to unique natural isomorphism
+!cat-unique : {lo lh lr lco lch lcr : Level} {C : ECat {lco} {lch} {lcr}}
+              {F G : eFunctor C (1cat {lo} {lh} {lr})} → eNatIso F G
+!cat-unique = record
+                { to-nat = record { nat = λ _ → tt ; nat-eq = tt }
+                ; to-is-iso =
+                    record
+                    { nat-inv = λ _ → tt
+                    ; nat-inv-sect = tt
+                    ; nat-inv-retract = tt
+                    }
+                }
+
+!cat-unique-nat : {lo lh lr lco lch lcr : Level} {C : ECat {lco} {lch} {lcr}}
+                  {F G : eFunctor C (1cat {lo} {lh} {lr})} {α β : eNatIso F G} →
+                  hom-rel (EFunctor C 1cat) (to-nat α) (to-nat β)
+!cat-unique-nat a = tt
+
 
 
 -- -}
