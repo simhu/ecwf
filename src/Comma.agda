@@ -58,3 +58,23 @@ comma {C = C} {D} {E} F G = record
         _~c_ = hom-rel C ; _∘c_ = comp C ; infixl 40 _∘c_
         _~e_ = hom-rel E ; _∘e_ = comp E ; infixl 40 _∘e_
 
+
+_↓_ = comma
+
+comma-fst : {lco lch lcr ldo ldh ldr leo leh ler : Level}
+            {C : ECat {lco} {lch} {lcr}} {D : ECat {ldo} {ldh} {ldr}} {E : ECat {leo} {leh} {ler}}
+            (F : eFunctor C D) (G : eFunctor E D) →
+            eFunctor (F ↓ G) C
+comma-fst {C = C} F G = record
+  { fun = fst ; mor = fst ; resp = fst
+  ; id-mor = C .hom-eqr .refl ; comp-mor = C .hom-eqr .refl
+  }
+
+comma-snd : {lco lch lcr ldo ldh ldr leo leh ler : Level}
+            {C : ECat {lco} {lch} {lcr}} {D : ECat {ldo} {ldh} {ldr}} {E : ECat {leo} {leh} {ler}}
+            (F : eFunctor C D) (G : eFunctor E D) →
+            eFunctor (F ↓ G) E
+comma-snd {E = E} F G = record
+  { fun = λ x → x .snd .fst ; mor = λ x → x .snd .fst ; resp = snd
+  ; id-mor = E .hom-eqr .refl ; comp-mor = E .hom-eqr .refl
+  }
