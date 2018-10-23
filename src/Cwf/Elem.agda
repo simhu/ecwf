@@ -9,10 +9,11 @@ module Cwf.Elem where
 
 open import Basics
 open import Presheaves
+open import Limits
 
 -- Some derived notions to define and use eCwFs
-module eCwFNotation {lv lo lh lr} {Ctx : ECat {lo} {lh} {lr}} 
-    (Ty : ePSh {lv} Ctx) (Tm : ePSh {lv} (∫ {C = Ctx} Ty)) where 
+module eCwFNotation {lvs lvr lo lh lr} {Ctx : ECat {lo} {lh} {lr}} 
+    (Ty : ePSh {lvs} {lvr} Ctx) (Tm : ePSh {lvs} {lvr} (∫ {C = Ctx} Ty)) where 
   Subst = hom Ctx
   _∘s_ = Ctx .comp
   infixl 40 _∘s_
@@ -30,9 +31,9 @@ module eCwFNotation {lv lo lh lr} {Ctx : ECat {lo} {lh} {lr}}
   _∘el_ = ∫ {C = Ctx} Ty .comp
   infixl 40 _∘el_
 
-  Typ : (Γ : obj Ctx) → Set lv
+  Typ : (Γ : obj Ctx) → Set lvs
   Typ = λ Γ → set (fun Ty Γ)
-  _~_ : {Γ : obj Ctx} → Typ Γ → Typ Γ → Set lv
+  _~_ : {Γ : obj Ctx} → Typ Γ → Typ Γ → Set lvr
   _~_ {Γ} = rel (fun Ty Γ)
   ~eq : {Γ : obj Ctx} → _
   ~eq {Γ} = eqr (fun Ty Γ)
@@ -176,11 +177,11 @@ module eCwFNotation {lv lo lh lr} {Ctx : ECat {lo} {lh} {lr}}
   -- ιswap : ∀ {Γ A B} {u : Ter Γ B} {v : Ter Γ A} (p : B ~ A) (e : u ~t ι p v) → ι (~eq .sym p) u ~t v
   -- ιswap p e = ~teq .trans {!!} {!!}
 
-record eCwF {lv lo lh lr : Level} : Set (lsuc (lv ⊔ lo ⊔ lh ⊔ lr)) where
+record eCwF {lvs lvr lo lh lr : Level} : Set (lsuc (lvs ⊔ lvr ⊔ lo ⊔ lh ⊔ lr)) where
   field
     Ctx : ECat {lo} {lh} {lr}
-    Ty : ePSh {lv} Ctx
-    Tm : ePSh {lv} (∫ {C = Ctx} Ty)
+    Ty : ePSh {lvs} {lvr} Ctx
+    Tm : ePSh {lvs} {lvr} (∫ {C = Ctx} Ty)
   open eCwFNotation {Ctx = Ctx} Ty Tm
   field
     -- terminal object

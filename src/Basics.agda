@@ -142,9 +142,8 @@ trans (eMapEqR {A = A} {B}) p q = map-rel λ r → B .trans (p ` r) (q ` (A .ref
 
 
 -- The E-Cat of E-Sets
--- TODO: this should really take two universe levels...
-ESet : {l : Level} → ECat {lsuc l} {l} {l}
-obj (ESet {l}) = eSet {l} {l}
+ESet : {ls lr : Level} → ECat
+obj (ESet {ls} {lr}) = eSet {ls} {lr}
 hom ESet A B = eMap A B
 hom-rel ESet f g = eMapRel f g
 hom-eqr ESet = eMapEqR
@@ -157,7 +156,7 @@ id-l ESet {f = f} = map-rel λ ab → f .ap-cong ab
 id-r ESet {f = f} = map-rel λ ab → f .ap-cong ab
 
 ESet0 : ECat
-ESet0 = ESet {lzero}
+ESet0 = ESet {lzero} {lzero}
 
 
 -- E-Functors

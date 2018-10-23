@@ -10,18 +10,18 @@ open import Comma
 open import Limits using (module ConstantFunctor)
 
 -- This looks way too complicated, or?
-EFam : {ls : Level} → ECat
-EFam {ls}  = cat where
-  S = ESet {ls}
+EFam : {ls lr : Level} → ECat {lsuc ls ⊔ lsuc lr} {lsuc ls ⊔ lsuc lr} {ls ⊔ lr}
+EFam {ls} {lr}  = cat where
+  S = ESet {ls} {lr}
   _~s_ = S .hom-rel
   _∘s_ = S .comp
   infixl 40 _∘s_
   seq = S .hom-eqr
 
   cat : ECat
-  obj cat = Σ λ (A : S .obj) → eFunctor (# A) S
+  obj cat = Σ λ (A : S .obj) → eFunctor (#0 A) S
   hom cat (A , B) (A' , B') =
-    Σ λ (f : hom S A A') → eNat B (B' ∘Func (#fun {ls} {A} {A'} f))
+    Σ λ (f : hom S A A') → eNat B (B' ∘Func (#fun0 {ls = ls} {lr = lr} {A} {A'} f))
   hom-rel cat {A , B} {A' , B'} (f , α) (g , β) =
     Σ λ (p : f ~s g) →
     ∀ (a : A .set) → (mor B' (p ` (A .refl))) ∘s (nat α a) ~s (nat β a)
@@ -216,7 +216,7 @@ EFam {ls}  = cat where
   -- comp-cong cat {A , B} {A' , B'} {A'' , B''} {f , α} {f' , α'} {g , β} {g' , β'}
   --    (ff' , αα') (gg' , ββ') = {!!}
 
-π : {l : Level} → eFunctor (EFam {l}) (ESet {l})
+π : {ls lr : Level} → eFunctor (EFam {ls} {lr}) (ESet {ls} {lr})
 π = record
   { fun = fst ; mor = fst ; resp = fst
   ; id-mor = map-rel λ p → p
@@ -227,6 +227,9 @@ EFam {ls}  = cat where
 
 -- -- Another definition of EFam using the comma construction
 
+-- test : ∀ {l} → Set l → Set (lsuc l)
+-- test A = {!lift!}
+
 -- EFam' : {ls : Level} → ECat
 -- EFam' {ls} = let open ConstantFunctor 1cat0 (CAT {ls} {ls} {{!lzero!}})
 --                  !set : eFunctor 1cat CAT
@@ -235,10 +238,10 @@ EFam {ls}  = cat where
 
 
 -- The Fam variant of an E-CwF
-record eCwf {lv lo lh lr : Level} : Set (lsuc (lv ⊔ lo ⊔ lh ⊔ lr)) where
+record eCwf {lvs lvr lo lh lr : Level} : Set (lsuc (lvs ⊔ lvr ⊔ lo ⊔ lh ⊔ lr)) where
   field
     Ctx : ECat {lo} {lh} {lr}
-    F   : eFunctor (Ctx op) (EFam {lv})
+    F   : eFunctor (Ctx op) (EFam {lvs} {lvr})
 
   -- Some notation
   Subst = Ctx .hom
@@ -253,11 +256,10 @@ record eCwf {lv lo lh lr : Level} : Set (lsuc (lv ⊔ lo ⊔ lh ⊔ lr)) where
   TyS Γ = fun Ty Γ
   Typ : obj Ctx → Set _
   Typ Γ = set (fun Ty Γ)
-  _~_ : {Γ : obj Ctx} → Typ Γ → Typ Γ → Set lv
+  _~_ : {Γ : obj Ctx} → Typ Γ → Typ Γ → Set lvr
   _~_ {Γ} = rel (fun Ty Γ)
-  ~eq : {Γ : obj Ctx} → _
+  ~eq : {Γ : obj Ctx} → EqRel (fun Ty Γ .rel)
   ~eq {Γ} = eqr (fun Ty Γ)
-
 
   _[_] : ∀ {Δ Γ} → Typ Γ → Subst Δ Γ → Typ Δ
   A [ σ ] = mor Ty σ .ap A
@@ -307,3 +309,6 @@ record eCwf {lv lo lh lr : Level} : Set (lsuc (lv ⊔ lo ⊔ lh ⊔ lr)) where
              pp ∘s < σ , t > ~s σ
 
     -- TODO: missing laws etc
+
+
+-- -}
