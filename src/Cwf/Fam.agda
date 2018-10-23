@@ -6,7 +6,8 @@ module Cwf.Fam where
 open import Basics
 open import Discrete
 open import Presheaves
-
+open import Comma
+open import Limits using (module ConstantFunctor)
 
 -- This looks way too complicated, or?
 EFam : {ls : Level} → ECat
@@ -222,6 +223,15 @@ EFam {ls}  = cat where
   ; comp-mor = λ { {f = f , _} {g = g , _} →
                    map-rel λ p → f .ap-cong (g .ap-cong p) }
   }
+
+
+-- -- Another definition of EFam using the comma construction
+
+-- EFam' : {ls : Level} → ECat
+-- EFam' {ls} = let open ConstantFunctor 1cat0 (CAT {ls} {ls} {{!lzero!}})
+--                  !set : eFunctor 1cat CAT
+--                  !set = Δobj (ESet {ls})
+--              in  (## {ls}) ↓ {!!set!}
 
 
 -- The Fam variant of an E-CwF

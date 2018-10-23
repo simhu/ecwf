@@ -648,8 +648,12 @@ CAT {lo} {lh} {lr} = record
      ; id-r = tt
      }
 
+1cat0 = 1cat {lzero} {lzero} {lzero}
+
 !cat : {lo lh lr lco lch lcr : Level} (C : ECat {lco} {lch} {lcr}) → eFunctor C (1cat {lo} {lh} {lr})
 !cat C = record { fun = λ _ → tt ; mor = λ _ → tt ; resp = λ _ → tt ; id-mor = tt ; comp-mor = tt }
+
+!cat0 = !cat {lzero} {lzero} {lzero}
 
 -- Uniqueness of !cat up to unique natural isomorphism
 !cat-unique : {lo lh lr lco lch lcr : Level} {C : ECat {lco} {lch} {lcr}}
@@ -668,6 +672,7 @@ CAT {lo} {lh} {lr} = record
                   {F G : eFunctor C (1cat {lo} {lh} {lr})} {α β : eNatIso F G} →
                   hom-rel (EFunctor C 1cat) (to-nat α) (to-nat β)
 !cat-unique-nat a = tt
+
 
 
 
