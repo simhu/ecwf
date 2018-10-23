@@ -210,6 +210,13 @@ record eNat {lco lch lcr ldo ldh ldr : Level}
 
 open eNat public
 
+idNat : {lco lch lcr ldo ldh ldr : Level}
+        {C : ECat {lco} {lch} {lcr}} {D : ECat {ldo} {ldh} {ldr}}
+        (F : eFunctor C D) → eNat F F
+idNat {D = D} F = record
+  { nat = λ _ → id D ; nat-eq = D .hom-eqr .trans (id-r D) (id-l-inv D) }
+
+
 -- TODO: we can also consider "functors" where C is not a category,
 -- but merely given by obj, hom, id, comp (but no equations)
 EFunctor : {lco lch lcr ldo ldh ldr : Level}
@@ -622,7 +629,8 @@ CAT {lo} {lh} {lr} = record
   ; comp = _∘Func_
   ; comp-assoc = λ { {f = F} {G} {H} → ∘Func-assoc F G H }
   ; comp-cong = λ pα pβ → record { to-nat = hcomp (to-nat pα) (to-nat pβ)
-                                  ; to-is-iso = ∘Func-cong (to-is-iso pα) (to-is-iso pβ) }
+                                  ; to-is-iso = ∘Func-cong (to-is-iso pα) (to-is-iso pβ)
+                                  }
   ; id = idFunctor _
   ; id-l = idFunctor-l
   ; id-r = idFunctor-r

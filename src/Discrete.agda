@@ -32,7 +32,7 @@ comp-mor (#fun f) = tt
 #fun0 : ∀ {ls lr} {A B} (f : hom (ESet {ls} {lr}) A B) → eFunctor (#0 A) (#0 B)
 #fun0 = #fun
 
-#id : ∀ {k ls lr} {A : eSet {ls} {lr}}  → eNatIso (idFunctor (# {k} A)) (#fun (id (ESet {ls} {lr})))
+#id : ∀ {k ls lr} {A : eSet {ls} {lr}} → eNatIso (idFunctor (# {k} A)) (#fun (id (ESet {ls} {lr})))
 #id {A = A} = record 
   { to-nat = record { nat = λ _ → A .refl ; nat-eq = tt }
   ; to-is-iso = record { nat-inv =  λ _ → A .refl ; nat-inv-sect = tt ; nat-inv-retract = tt }
