@@ -155,7 +155,7 @@ module _ {lco lch lcr ldo ldh ldr : Level}
   preserves-products = ∀ {a b ab : obj C} {p : hom C ab a} {q : hom C ab b} →
     isProduct C ab p q → isProduct D (fun F ab) (mor F p) (mor F q)
 
--- TODO: formalize CAT with product preserving functors
+-- TODO: formalize CATs with products and product preserving functors
 
 -- Freely add binary products to a category
 module FreeProd {lo lh lr : Level} (C : ECat {lo} {lh} {lr}) where
@@ -285,6 +285,7 @@ module FreeProd {lo lh lr : Level} (C : ECat {lo} {lh} {lr}) where
 
     open ECat D using () renaming (comp to _∘d_ ; hom-rel to _~d_ ; hom-eqr to deq )
     open hasProducts d-products
+    open module EqR {a b} = EqRelReason (deq {a} {b})
 
     objMap : Obj → obj D
     objMap [ x ] = fun F x
@@ -319,7 +320,6 @@ module FreeProd {lo lh lr : Level} (C : ECat {lo} {lh} {lr}) where
           pg0 = ~-r pfg
           pg1 : g ∈ a ⇒ b
           pg1 = ~-l pgh
-          open EqRelReason deq
       in begin
          homMap pf
        ≈⟨ ~Map pf pg0 pfg ⟩
@@ -330,35 +330,31 @@ module FreeProd {lo lh lr : Level} (C : ECat {lo} {lh} {lr}) where
          homMap ph
        ∎
     ~Map (t-compr pf0 (t-compr pg0 ph0)) (t-compr (t-compr pf1 pg1) ph1) t-compr-assoc =
-      let open EqRelReason deq in
-        begin
-          homMap pf0 ∘d (homMap pg0 ∘d homMap ph0)
-        ≈⟨ comp-assoc D ⟩
-          (homMap pf0 ∘d homMap pg0) ∘d homMap ph0
-        ≈⟨ comp-cong D (comp-cong D (homMapIrr pf0 pf1) (homMapIrr pg0 pg1)) (homMapIrr ph0 ph1) ⟩
-          (homMap pf1 ∘d homMap pg1) ∘d homMap ph1
-        ∎
+      begin
+        homMap pf0 ∘d (homMap pg0 ∘d homMap ph0)
+      ≈⟨ comp-assoc D ⟩
+        (homMap pf0 ∘d homMap pg0) ∘d homMap ph0
+      ≈⟨ comp-cong D (comp-cong D (homMapIrr pf0 pf1) (homMapIrr pg0 pg1)) (homMapIrr ph0 ph1) ⟩
+        (homMap pf1 ∘d homMap pg1) ∘d homMap ph1
+      ∎
     ~Map (t-compr pf0 pg0) (t-compr pf1 pg1) (t-compr-cong pf01 pg01) =
       comp-cong D (~Map pf0 pf1 pf01) (~Map pg0 pg1 pg01)
     ~Map (t-compr (t-id a) pf0) pf1 (t-idr-l x) =
-      let open EqRelReason deq in
-        begin
-          id D ∘d homMap pf0
-        ≈⟨ id-l D ⟩
-          homMap pf0
-        ≈⟨ homMapIrr pf0 pf1 ⟩
-          homMap pf1
-        ∎
-
+      begin
+        id D ∘d homMap pf0
+      ≈⟨ id-l D ⟩
+        homMap pf0
+      ≈⟨ homMapIrr pf0 pf1 ⟩
+        homMap pf1
+      ∎
     ~Map (t-compr pf0 (t-id a)) pf1 (t-idr-r x) =
-      let open EqRelReason deq in
-        begin
-          homMap pf0 ∘d id D
-        ≈⟨ id-r D ⟩
-          homMap pf0
-        ≈⟨ homMapIrr pf0 pf1 ⟩
-          homMap pf1
-        ∎
+      begin
+        homMap pf0 ∘d id D
+      ≈⟨ id-r D ⟩
+        homMap pf0
+      ≈⟨ homMapIrr pf0 pf1 ⟩
+        homMap pf1
+      ∎
     ~Map (t-[] f) (t-[] g) (t-[]-cong x) = resp F x
     ~Map (t-[] .(comp C f g)) (t-compr (t-[] f) (t-[] g)) (t-[]-comp {a} {_} {_} {f} {.g}) =
       deq .sym (comp-mor F)
@@ -366,32 +362,29 @@ module FreeProd {lo lh lr : Level} (C : ECat {lo} {lh} {lr}) where
     ~Map (t-⟨⟩r pf pg) (t-⟨⟩r pf' pg') (t-⟨⟩-cong pff' pgg') =
       ⟨⟩-cong (~Map pf pf' pff') (~Map pg pg' pgg')
     ~Map (t-compr t-ppr (t-⟨⟩r pf0 pg0)) pf1 t-⟨⟩-β-fst =
-      let open EqRelReason deq in
-        begin
-          pp ∘d ⟨ homMap pf0 , homMap pg0 ⟩
-        ≈⟨ ⟨⟩-β-fst ⟩
-          homMap pf0
-        ≈⟨ homMapIrr pf0 pf1 ⟩
-          homMap pf1
-        ∎
+      begin
+        pp ∘d ⟨ homMap pf0 , homMap pg0 ⟩
+      ≈⟨ ⟨⟩-β-fst ⟩
+        homMap pf0
+      ≈⟨ homMapIrr pf0 pf1 ⟩
+        homMap pf1
+      ∎
     ~Map (t-compr t-qqr (t-⟨⟩r pf0 pg0)) pg1 t-⟨⟩-β-snd =
-      let open EqRelReason deq in
-        begin
-          qq ∘d ⟨ homMap pf0 , homMap pg0 ⟩
-        ≈⟨ ⟨⟩-β-snd ⟩
-          homMap pg0
-        ≈⟨ homMapIrr pg0 pg1 ⟩
-          homMap pg1
-        ∎
+      begin
+        qq ∘d ⟨ homMap pf0 , homMap pg0 ⟩
+      ≈⟨ ⟨⟩-β-snd ⟩
+        homMap pg0
+      ≈⟨ homMapIrr pg0 pg1 ⟩
+        homMap pg1
+      ∎
     ~Map pf0 (t-⟨⟩r (t-compr t-ppr pf1) (t-compr t-qqr pf2)) t-⟨⟩-η =
-      let open EqRelReason deq in
-        begin
-          homMap pf0
-        ≈⟨ ⟨⟩-η _ ⟩
-          ⟨ pp ∘d homMap pf0 , qq ∘d homMap pf0 ⟩
-        ≈⟨ ⟨⟩-cong (comp-cong-r D (homMapIrr pf0 pf1)) (comp-cong-r D (homMapIrr pf0 pf2)) ⟩
-          ⟨ pp ∘d homMap pf1 , qq ∘d homMap pf2 ⟩
-        ∎
+      begin
+        homMap pf0
+      ≈⟨ ⟨⟩-η _ ⟩
+        ⟨ pp ∘d homMap pf0 , qq ∘d homMap pf0 ⟩
+      ≈⟨ ⟨⟩-cong (comp-cong-r D (homMapIrr pf0 pf1)) (comp-cong-r D (homMapIrr pf0 pf2)) ⟩
+        ⟨ pp ∘d homMap pf1 , qq ∘d homMap pf2 ⟩
+      ∎
 
     free-elim : eFunctor freeProd D
     free-elim = record
