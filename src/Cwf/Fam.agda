@@ -225,16 +225,14 @@ EFam {ls} {lr}  = cat where
   }
 
 
--- -- Another definition of EFam using the comma construction
-
--- test : ∀ {l} → Set l → Set (lsuc l)
--- test A = {!lift!}
-
--- EFam' : {ls : Level} → ECat
--- EFam' {ls} = let open ConstantFunctor 1cat0 (CAT {ls} {ls} {{!lzero!}})
---                  !set : eFunctor 1cat CAT
---                  !set = Δobj (ESet {ls})
---              in  (## {ls}) ↓ {!!set!}
+-- Another definition of EFam using the comma construction
+-- TOOD: there is some madness with universe levels..
+-- EFam' : {l : Level} → ECat
+-- EFam' {l} =
+--   let open ConstantFunctor 1cat0 CAT
+--       !set : eFunctor 1cat0 CAT
+--       !set = Δobj (ESet {{!!}} {{!!}})
+--   in (## {lsuc l} {l} {l}) ↓ !set
 
 
 -- The Fam variant of an E-CwF
