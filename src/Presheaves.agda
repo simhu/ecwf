@@ -10,7 +10,7 @@ EPSh {ks} {kr} C = EFunctor (C op) (ESet {ks} {kr})
 
 -- Some notation for a presheaf
 module ePShNotation {ks kr lo lh lr} {C : ECat {lo} {lh} {lr}} (F : ePSh {ks} {kr} C) where
-  open ECat C public using () renaming ( comp to _∘d_ ; hom-rel to _~d_ )
+  open ECat C public using () renaming ( comp to _∘d_ ; hom-rel to _~d_ ; hom-eqr to ~deqr )
   setF : obj C → Set ks
   setF I = set (fun F I)
   _~_ : {I : obj C} → setF I → setF I → Set kr
@@ -110,9 +110,18 @@ comp-mor (∫fun {C = C} {F} {G} α) = C .hom-eqr .refl
 ∫resp : ∀ {ks kr lo lh lr} {C : ECat {lo} {lh} {lr}} {F G : ePSh {ks} {kr} C}
           {α  β : eNat F G} → hom-rel (EPSh C) α β →
           hom-rel CAT (∫fun {C = C} α) (∫fun β)
-∫resp {C = C} {α = α} {β = β} αβ = record
-  { to-nat = record { nat = λ a → id C , {!!} ; nat-eq = {!!} } ; to-is-iso = {!!} }
-
+∫resp {C = C} {F} {G} {α} {β} αβ = let open ePShNotation {C = C} G in record
+  { to-nat = record
+      { nat = λ a → id C , ~eqr .trans (αβ (fst a) ` (fun F (fst a) .refl)) ·-id
+      ; nat-eq = ~deqr .trans (id-r C) (id-l-inv C)
+      }
+    ; to-is-iso = record
+      { nat-inv = λ a → id C , ~eqr .trans (fun G (fst a) .sym
+                                  (αβ (fst a) ` (fun F (fst a) .refl))) ·-id
+      ; nat-inv-sect = id-l C
+      ; nat-inv-retract = id-l C
+      }
+  }
 
 ∫∫ : ∀ {ks kr lo lh lr} {C : ECat {lo} {lh} {lr}} → eFunctor (EPSh {ks} {kr} C) CAT
 ∫∫ {C = C} = record { fun = ∫ {C = C} ; mor = ∫fun ; resp = ∫resp ; id-mor = ∫id ; comp-mor = ∫comp }
