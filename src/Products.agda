@@ -41,7 +41,7 @@ module _ {lo lh lr : Level} (C : ECat {lo} {lh} {lr}) where
       ⟨⟩-η  : ∀ {x} (f : hom C x ab) → f ~c ⟨ p ∘c f , q ∘c f ⟩
 
     ⟨⟩-η'  : ∀ {x} {f g : hom C x ab} → (p ∘c f) ~c (p ∘c g) → (q ∘c f) ~c (q ∘c g) → f ~c g
-    ⟨⟩-η' {f = f} {g} pfg qfg =  let open EqRelReason ceq in
+    ⟨⟩-η' {f = f} {g} pfg qfg = let open EqRelReason ceq in
       begin
         f
       ≈⟨ ⟨⟩-η f ⟩
@@ -54,6 +54,30 @@ module _ {lo lh lr : Level} (C : ECat {lo} {lh} {lr}) where
 
     ⟨⟩-η-id : ⟨ p , q ⟩ ~c id C
     ⟨⟩-η-id = ⟨⟩-η' (ceq .trans ⟨⟩-β-fst (id-r-inv C)) (ceq .trans ⟨⟩-β-snd (id-r-inv C))
+
+    ⟨⟩-comp : ∀ {c d} {f : hom C c a} {g : hom C c b} {h : hom C d c} →
+              (⟨ f , g ⟩ ∘c h) ~c ⟨ f ∘c h , g ∘c h ⟩
+    ⟨⟩-comp {f = f} {g} {h} = ⟨⟩-η' eq1 eq2
+      where open module M {x} {y} = EqRelReason (ceq {x} {y}) public
+            eq1 = begin
+                    p ∘c (⟨ f , g ⟩ ∘c h)
+                  ≈⟨ comp-assoc C ⟩
+                    (p ∘c ⟨ f , g ⟩) ∘c h
+                  ≈⟨ comp-cong-l C ⟨⟩-β-fst ⟩
+                    f ∘c h
+                  ≈⟨ ceq .sym ⟨⟩-β-fst ⟩
+                    p ∘c ⟨ f ∘c h , g ∘c h ⟩
+                  ∎
+            eq2 = begin
+                    q ∘c (⟨ f , g ⟩ ∘c h)
+                  ≈⟨ comp-assoc C ⟩
+                    (q ∘c ⟨ f , g ⟩) ∘c h
+                  ≈⟨ comp-cong-l C ⟨⟩-β-snd ⟩
+                    g ∘c h
+                  ≈⟨ ceq .sym ⟨⟩-β-snd ⟩
+                    q ∘c ⟨ f ∘c h , g ∘c h ⟩
+                  ∎
+
 
   products-unique : ∀ {x y a b pa qa pb qb} →
                     isProduct {x} {y} a pa qa → isProduct {x} {y} b pb qb →
@@ -247,6 +271,13 @@ module FreeProd {lo lh lr : Level} (C : ECat {lo} {lh} {lr}) where
        ; ⟨⟩-η = λ f → t-⟨⟩-η {p = snd f}
        } }
 
+  η : eFunctor C freeProd
+  fun η a = [ a ]
+  mor η f = [ f ] , t-[] f
+  resp η p = t-[]-cong p
+  id-mor η = t-~-sym (t-[]-id)
+  comp-mor η = t-~-sym t-[]-comp
+
   ~-l : ∀ {a b f g} → f ~ g ∈ a ⇒ b → f ∈ a ⇒ b
   ~-r : ∀ {a b f g} → f ~ g ∈ a ⇒ b → g ∈ a ⇒ b
 
@@ -397,8 +428,136 @@ module FreeProd {lo lh lr : Level} (C : ECat {lo} {lh} {lr}) where
 
     -- The chosen products are preserved definitionally:
     free-elim-preserves-product-str :
-      ∀ {a b : Obj} → let open module F = hasProducts freeprod-has-products
-                      in isProduct D (fun free-elim (F.prod a b))
-                           (mor free-elim (F.pp {a} {b}))
-                           (mor free-elim (F.qq {a} {b}))
+      ∀ {a b : Obj} → let open module M = hasProducts freeprod-has-products
+                      in isProduct D (fun free-elim (M.prod a b))
+                           (mor free-elim (M.pp {a} {b}))
+                           (mor free-elim (M.qq {a} {b}))
     free-elim-preserves-product-str = is-product
+
+
+    -- elim-commute-to : eNat (free-elim ∘Func η) F
+    -- nat elim-commute-to a = {!!}
+    -- nat-eq elim-commute-to = {!!}
+
+    elim-commute : eNatIso (free-elim ∘Func η) F
+    elim-commute = let eta : eNatIso F F
+                       eta = iso-natiso iso-refl
+      in record
+      { to-nat = record
+        { nat = eta .to-nat .nat
+        ; nat-eq = λ {a} {b} {f} → eta .to-nat .nat-eq {f = f} }
+      ; to-is-iso = record { nat-inv = eta .to-is-iso .isNatIso.nat-inv
+                           ; nat-inv-sect = λ {a} →
+                             eta .to-is-iso .isNatIso.nat-inv-sect {a}
+                           ; nat-inv-retract = λ {a} →
+                             eta .to-is-iso .isNatIso.nat-inv-retract {a = a}
+                           }
+      }
+
+    module _ (G : eFunctor freeProd D) (G-prod : preserves-products G)
+             (α : eNatIso (G ∘Func η) F) where
+
+      -- TODO: clean this mess
+      fwd-nat : (a : Obj) → hom D (fun free-elim a) (fun G a)
+      fwd-nat [ x ] = α .from-nat x
+      fwd-nat (a ×r b) =
+        let open module M = hasProducts freeprod-has-products
+              renaming ( pp to pp' ; qq to qq' )
+            gab : isProduct D {a = fun G a} {b = fun G b} (fun G (a ×r b))
+                    (mor G (pp' {a} {b})) (mor G (qq' {a} {b}))
+            gab = G-prod M.is-product
+            open isProduct gab using () renaming ( ⟨_,_⟩ to g⟨_,_⟩ )
+        in g⟨ fwd-nat a ∘d pp , fwd-nat b ∘d qq ⟩
+
+      fwd-nat-eq : ∀ {a b f} (pf : f ∈ a ⇒ b) →
+                     (mor G (f , pf) ∘d fwd-nat a) ~d (fwd-nat b ∘d (homMap pf))
+      fwd-nat-eq (t-[] {a} {b} r) = let αiso = natiso-iso α in αiso .from-mor .nat-eq
+      fwd-nat-eq (t-id a) =
+        begin
+          mor G (id freeProd) ∘d fwd-nat a
+        ≈⟨ comp-cong-l D (id-mor-inv G) ⟩
+          id D ∘d fwd-nat a
+        ≈⟨ id-l D ⟩
+          fwd-nat a
+        ≈⟨ id-r-inv D ⟩
+          fwd-nat a ∘d id D
+        ∎
+      fwd-nat-eq (t-compr {f} {g} {a} {b} {c} pf pg) =
+        begin
+          mor G (compr _ f g , t-compr pf pg) ∘d fwd-nat a
+        ≈⟨ comp-cong-l D (comp-mor-inv G) ⟩
+          (mor G (f , pf) ∘d mor G (g , pg))∘d fwd-nat a
+        ≈⟨ comp-assoc-inv D ⟩
+          mor G (f , pf) ∘d (mor G (g , pg)∘d fwd-nat a)
+        ≈⟨ comp-cong-r D (fwd-nat-eq pg) ⟩ -- IH g
+          mor G (f , pf) ∘d (fwd-nat b ∘d homMap pg)
+        ≈⟨ comp-assoc D ⟩
+          (mor G (f , pf) ∘d fwd-nat b) ∘d homMap pg
+        ≈⟨ comp-cong-l D (fwd-nat-eq pf) ⟩ -- IH f
+          (fwd-nat c ∘d homMap pf) ∘d homMap pg
+        ≈⟨ comp-assoc-inv D ⟩
+          fwd-nat c ∘d (homMap pf ∘d homMap pg)
+        ∎
+      fwd-nat-eq (t-ppr {a} {b}) =
+        let open isProduct (G-prod (hasProducts.is-product freeprod-has-products))
+              renaming (⟨_,_⟩ to g⟨_,_⟩ ; ⟨⟩-β-fst to g-fst)
+        in begin
+          mor G (ppr a b , t-ppr {a} {b}) ∘d fwd-nat (a ×r b)
+        ≈⟨⟩
+          mor G (ppr a b , t-ppr) ∘d g⟨ fwd-nat a ∘d pp , fwd-nat b ∘d qq ⟩
+        ≈⟨ g-fst ⟩
+          fwd-nat a ∘d pp
+        ∎
+      fwd-nat-eq t-qqr = -- likewise
+        let open isProduct (G-prod (hasProducts.is-product freeprod-has-products))
+              renaming (⟨⟩-β-snd to g-snd)
+        in g-snd
+
+      fwd-nat-eq (t-⟨⟩r {a} {b} {c} {f} {g} pf pg) =
+        let open isProduct (G-prod (hasProducts.is-product freeprod-has-products))
+              renaming (⟨_,_⟩ to g⟨_,_⟩ ; ⟨⟩-comp to g⟨⟩-comp ; ⟨⟩-cong to g⟨⟩-cong
+                       ; ⟨⟩-β-fst to g-fst ; ⟨⟩-β-snd to g-snd ; ⟨⟩-η' to g-η)
+            open hasProducts freeprod-has-products using ()
+              renaming (pp to pp' ; qq to qq' ; ⟨⟩-β-fst to fp-fst ; ⟨⟩-β-snd to fp-snd)
+            open ECat freeProd using () renaming (comp to _∘fp_)
+            lem1 = begin
+                     mor G pp' ∘d mor G (⟨ f , g ⟩r , t-⟨⟩r pf pg)
+                   ≈⟨ comp-mor G ⟩
+                     mor G (pp' ∘fp (⟨ f , g ⟩r , t-⟨⟩r pf pg))
+                   ≈⟨ resp G (fp-fst {f = f , pf} {g = g , pg}) ⟩
+                     mor G (f , pf)
+                   ≈⟨ deq .sym g-fst ⟩
+                     mor G pp' ∘d g⟨ mor G (f , pf) , mor G (g ,  pg) ⟩
+                   ∎
+            lem2 = begin
+                     mor G qq' ∘d mor G (⟨ f , g ⟩r , t-⟨⟩r pf pg)
+                   ≈⟨ comp-mor G ⟩
+                     mor G (qq' ∘fp (⟨ f , g ⟩r , t-⟨⟩r pf pg))
+                   ≈⟨ resp G (fp-snd {f = f , pf} {g = g , pg}) ⟩
+                     mor G (g , pg)
+                   ≈⟨ deq .sym g-snd ⟩
+                     mor G qq' ∘d g⟨ mor G (f , pf) , mor G (g ,  pg) ⟩
+                   ∎
+        in
+        begin
+          mor G (⟨ f , g ⟩r , t-⟨⟩r pf pg) ∘d fwd-nat c
+        ≈⟨ comp-cong-l D (g-η lem1 lem2) ⟩
+          g⟨ mor G (f , pf) , mor G (g ,  pg) ⟩ ∘d fwd-nat c
+        ≈⟨ g⟨⟩-comp ⟩
+          g⟨ mor G (f , pf) ∘d fwd-nat c , mor G (g ,  pg) ∘d fwd-nat c ⟩
+        ≈⟨ g⟨⟩-cong (fwd-nat-eq pf) (fwd-nat-eq pg) ⟩
+          g⟨ fwd-nat a ∘d homMap pf , fwd-nat b ∘d homMap pg ⟩
+        ≈⟨ deq .sym (g⟨⟩-cong (comp-cong-r D ⟨⟩-β-fst) (comp-cong-r D ⟨⟩-β-snd)) ⟩
+          g⟨ fwd-nat a ∘d (pp ∘d ⟨ homMap pf , homMap pg ⟩)
+           , fwd-nat b ∘d (qq ∘d ⟨ homMap pf , homMap pg ⟩) ⟩
+        ≈⟨ g⟨⟩-cong (comp-assoc D) (comp-assoc D) ⟩
+          g⟨ (fwd-nat a ∘d pp) ∘d ⟨ homMap pf , homMap pg ⟩
+           , (fwd-nat b ∘d qq) ∘d ⟨ homMap pf , homMap pg ⟩ ⟩
+        ≈⟨ deq .sym g⟨⟩-comp ⟩
+          g⟨ fwd-nat a ∘d pp , fwd-nat b ∘d qq ⟩ ∘d ⟨ homMap pf , homMap pg ⟩
+        ∎
+
+
+
+      free-elim-unique : eNatIso free-elim G
+      free-elim-unique = {!!}
