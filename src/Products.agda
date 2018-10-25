@@ -434,11 +434,6 @@ module FreeProd {lo lh lr : Level} (C : ECat {lo} {lh} {lr}) where
                            (mor free-elim (M.qq {a} {b}))
     free-elim-preserves-product-str = is-product
 
-
-    -- elim-commute-to : eNat (free-elim ∘Func η) F
-    -- nat elim-commute-to a = {!!}
-    -- nat-eq elim-commute-to = {!!}
-
     elim-commute : eNatIso (free-elim ∘Func η) F
     elim-commute = let eta : eNatIso F F
                        eta = iso-natiso iso-refl
@@ -538,8 +533,7 @@ module FreeProd {lo lh lr : Level} (C : ECat {lo} {lh} {lr}) where
                    ≈⟨ deq .sym g-snd ⟩
                      mor G qq' ∘d g⟨ mor G (f , pf) , mor G (g ,  pg) ⟩
                    ∎
-        in
-        begin
+        in begin
           mor G (⟨ f , g ⟩r , t-⟨⟩r pf pg) ∘d fwd-nat c
         ≈⟨ comp-cong-l D (g-η lem1 lem2) ⟩
           g⟨ mor G (f , pf) , mor G (g ,  pg) ⟩ ∘d fwd-nat c
