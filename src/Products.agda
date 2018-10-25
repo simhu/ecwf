@@ -111,7 +111,8 @@ module _ {lo lh lr : Level} (C : ECat {lo} {lh} {lr}) where
            ≈⟨ A.⟨⟩-η lhs ⟩
              A.⟨ pa ∘c lhs , qa ∘c lhs ⟩
            ≈⟨ A.⟨⟩-cong (comp-assoc C) (comp-assoc C) ⟩
-             A.⟨ (pa ∘c A.⟨ pb , qb ⟩) ∘c B.⟨ pa , qa ⟩ , (qa ∘c A.⟨ pb , qb ⟩) ∘c B.⟨ pa , qa ⟩ ⟩
+             A.⟨ (pa ∘c A.⟨ pb , qb ⟩) ∘c B.⟨ pa , qa ⟩
+               , (qa ∘c A.⟨ pb , qb ⟩) ∘c B.⟨ pa , qa ⟩ ⟩
            ≈⟨ A.⟨⟩-cong (comp-cong-l C A.⟨⟩-β-fst) (comp-cong-l C A.⟨⟩-β-snd) ⟩
              A.⟨ pb ∘c B.⟨ pa , qa ⟩ , qb ∘c B.⟨ pa , qa ⟩ ⟩
            ≈⟨ A.⟨⟩-cong B.⟨⟩-β-fst B.⟨⟩-β-snd ⟩
