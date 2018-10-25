@@ -94,7 +94,8 @@ module _ {lo lh lr : Level} (C : ECat {lo} {lh} {lr}) where
            ≈⟨ B.⟨⟩-η lhs ⟩
              B.⟨ pb ∘c lhs , qb ∘c lhs ⟩
            ≈⟨ B.⟨⟩-cong (comp-assoc C) (comp-assoc C) ⟩
-             B.⟨ (pb ∘c B.⟨ pa , qa ⟩) ∘c A.⟨ pb , qb ⟩ , (qb ∘c B.⟨ pa , qa ⟩) ∘c A.⟨ pb , qb ⟩ ⟩
+             B.⟨ (pb ∘c B.⟨ pa , qa ⟩) ∘c A.⟨ pb , qb ⟩
+               , (qb ∘c B.⟨ pa , qa ⟩) ∘c A.⟨ pb , qb ⟩ ⟩
            ≈⟨ B.⟨⟩-cong (comp-cong-l C B.⟨⟩-β-fst) (comp-cong-l C B.⟨⟩-β-snd) ⟩
              B.⟨ pa ∘c A.⟨ pb , qb ⟩ , qa ∘c A.⟨ pb , qb ⟩ ⟩
            ≈⟨ B.⟨⟩-cong A.⟨⟩-β-fst A.⟨⟩-β-snd ⟩
@@ -458,8 +459,7 @@ module FreeProd {lo lh lr : Level} (C : ECat {lo} {lh} {lr}) where
       fwd-nat (a ×r b) =
         let open module M = hasProducts freeprod-has-products
               renaming ( pp to pp' ; qq to qq' )
-            gab : isProduct D {a = fun G a} {b = fun G b} (fun G (a ×r b))
-                    (mor G (pp' {a} {b})) (mor G (qq' {a} {b}))
+            gab : isProduct D (fun G (a ×r b)) (mor G pp') (mor G qq')
             gab = G-prod M.is-product
             open isProduct gab using () renaming ( ⟨_,_⟩ to g⟨_,_⟩ )
         in g⟨ fwd-nat a ∘d pp , fwd-nat b ∘d qq ⟩
@@ -552,6 +552,82 @@ module FreeProd {lo lh lr : Level} (C : ECat {lo} {lh} {lr}) where
         ∎
 
 
+      bwd-nat : (a : Obj) → hom D (fun G a) (fun free-elim a)
+      bwd-nat [ x ] = α .to-nat .nat x
+      bwd-nat (a ×r b) = ⟨ bwd-nat a ∘d mor G pp' , bwd-nat b ∘d mor G qq' ⟩
+        where open module M = hasProducts freeprod-has-products
+                                using () renaming (  pp to pp' ; qq to qq' )
+
+      fwd-bwd-id : (a : Obj) → (fwd-nat a ∘d bwd-nat a) ~d id D
+      fwd-bwd-id [ _ ] = α .ptw-from-to-id
+      fwd-bwd-id (a ×r b) =
+        begin  -- TODO: can we somehow use products-unique?
+          g⟨ fwd-nat a ∘d pp , fwd-nat b ∘d qq ⟩ ∘d
+            ⟨ bwd-nat a ∘d mor G pp' , bwd-nat b ∘d mor G qq' ⟩
+        ≈⟨ g-comp ⟩
+          g⟨ (fwd-nat a ∘d pp) ∘d ⟨ bwd-nat a ∘d mor G pp' , bwd-nat b ∘d mor G qq' ⟩
+           , (fwd-nat b ∘d qq) ∘d ⟨ bwd-nat a ∘d mor G pp' , bwd-nat b ∘d mor G qq' ⟩ ⟩
+        ≈⟨ g-cong (comp-assoc-inv D) (comp-assoc-inv D) ⟩
+          g⟨ fwd-nat a ∘d (pp ∘d ⟨ bwd-nat a ∘d mor G pp' , bwd-nat b ∘d mor G qq' ⟩)
+           , fwd-nat b ∘d (qq ∘d ⟨ bwd-nat a ∘d mor G pp' , bwd-nat b ∘d mor G qq' ⟩) ⟩
+        ≈⟨ g-cong (comp-cong-r D ⟨⟩-β-fst) (comp-cong-r D ⟨⟩-β-snd) ⟩
+          g⟨ fwd-nat a ∘d (bwd-nat a ∘d mor G pp')
+           , fwd-nat b ∘d (bwd-nat b ∘d mor G qq') ⟩
+        ≈⟨ g-cong (comp-assoc D) (comp-assoc D) ⟩
+          g⟨ (fwd-nat a ∘d bwd-nat a) ∘d mor G pp'
+           , (fwd-nat b ∘d bwd-nat b) ∘d mor G qq' ⟩
+        ≈⟨ g-cong (comp-cong-l D (fwd-bwd-id a)) (comp-cong-l D (fwd-bwd-id b)) ⟩
+          g⟨ id D ∘d mor G pp' , id D ∘d mor G qq' ⟩
+        ≈⟨ g-cong (id-l D) (id-l D) ⟩
+          g⟨ mor G pp' , mor G qq' ⟩
+        ≈⟨ g-η-id ⟩
+          id D
+        ∎
+        where open module M = hasProducts freeprod-has-products
+                                using () renaming (  pp to pp' ; qq to qq' )
+              gab : isProduct D (fun G (a ×r b)) (mor G pp') (mor G qq')
+              gab = G-prod M.is-product
+              open isProduct gab using () renaming
+                (⟨_,_⟩ to g⟨_,_⟩ ; ⟨⟩-comp to g-comp ; ⟨⟩-cong to g-cong
+                ; ⟨⟩-η-id to g-η-id)
+
+      bwd-fwd-id : (a : Obj) → (bwd-nat a ∘d fwd-nat a) ~d id D
+      bwd-fwd-id [ _ ] = α .ptw-to-from-id
+      bwd-fwd-id (a ×r b) =
+        begin  -- TODO: can we somehow use products-unique?
+           ⟨ bwd-nat a ∘d mor G pp' , bwd-nat b ∘d mor G qq' ⟩ ∘d
+            g⟨ fwd-nat a ∘d pp , fwd-nat b ∘d qq ⟩
+        ≈⟨ ⟨⟩-comp ⟩
+           ⟨ (bwd-nat a ∘d mor G pp') ∘d g⟨ fwd-nat a ∘d pp , fwd-nat b ∘d qq ⟩
+           , (bwd-nat b ∘d mor G qq') ∘d g⟨ fwd-nat a ∘d pp , fwd-nat b ∘d qq ⟩ ⟩
+        ≈⟨ ⟨⟩-cong (comp-assoc-inv D) (comp-assoc-inv D) ⟩
+           ⟨ bwd-nat a ∘d (mor G pp' ∘d g⟨ fwd-nat a ∘d pp , fwd-nat b ∘d qq ⟩)
+           , bwd-nat b ∘d (mor G qq' ∘d g⟨ fwd-nat a ∘d pp , fwd-nat b ∘d qq ⟩)⟩
+        ≈⟨ ⟨⟩-cong (comp-cong-r D g-fst) (comp-cong-r D g-snd) ⟩
+           ⟨ bwd-nat a ∘d (fwd-nat a ∘d pp) , bwd-nat b ∘d (fwd-nat b ∘d qq)⟩
+        ≈⟨ ⟨⟩-cong (comp-assoc D) (comp-assoc D) ⟩
+           ⟨ (bwd-nat a ∘d fwd-nat a) ∘d pp , (bwd-nat b ∘d fwd-nat b) ∘d qq ⟩
+        ≈⟨ ⟨⟩-cong (comp-cong-l D (bwd-fwd-id a)) (comp-cong-l D (bwd-fwd-id b)) ⟩
+           ⟨ id D ∘d pp , id D ∘d qq ⟩
+        ≈⟨ ⟨⟩-cong (id-l D) (id-l D) ⟩
+           ⟨ pp , qq ⟩
+        ≈⟨ ⟨⟩-η-id ⟩
+          id D
+        ∎
+        where open module M = hasProducts freeprod-has-products
+                                using () renaming (  pp to pp' ; qq to qq' )
+              gab : isProduct D (fun G (a ×r b)) (mor G pp') (mor G qq')
+              gab = G-prod M.is-product
+              open isProduct gab using () renaming
+                (⟨_,_⟩ to g⟨_,_⟩ ; ⟨⟩-β-fst to g-fst ; ⟨⟩-β-snd to g-snd)
+
 
       free-elim-unique : eNatIso free-elim G
-      free-elim-unique = {!!}
+      free-elim-unique = record
+        { to-nat = record { nat = fwd-nat ; nat-eq = fwd-nat-eq _ }
+        ; to-is-iso = record
+          { nat-inv = bwd-nat
+          ; nat-inv-sect = fwd-bwd-id _
+          ; nat-inv-retract = bwd-fwd-id _
+          }
+        }
