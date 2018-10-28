@@ -12,8 +12,8 @@ open import Presheaves
 open import Limits
 
 -- Some derived notions to define and use eCwFs
-module eCwFNotation {lvs lvr lo lh lr} {Ctx : ECat {lo} {lh} {lr}} 
-    (Ty : ePSh {lvs} {lvr} Ctx) (Tm : ePSh {lvs} {lvr} (∫ {C = Ctx} Ty)) where 
+module eCwFNotation {lvs lvr lo lh lr} {Ctx : ECat {lo} {lh} {lr}}
+    (Ty : ePSh {lvs} {lvr} Ctx) (Tm : ePSh {lvs} {lvr} (∫ {C = Ctx} Ty)) where
   Subst = hom Ctx
   _∘s_ = Ctx .comp
   infixl 40 _∘s_
@@ -44,15 +44,15 @@ module eCwFNotation {lvs lvr lo lh lr} {Ctx : ECat {lo} {lh} {lr}}
 
   []-id' : ∀ {Γ} {A B : Typ Γ} → A ~ B → A ~ B [ ids ]
   []-id' = id-mor Ty .map-resp
-  
+
   []-id : ∀ {Γ} {A : Typ Γ} → A ~ A [ ids ]
   []-id = []-id' (~eq .refl)
 
-  []-assoc' : ∀ {Θ Δ Γ} {τ : Subst Θ Δ} {σ : Subst Δ Γ} {A B : Typ Γ} → 
+  []-assoc' : ∀ {Θ Δ Γ} {τ : Subst Θ Δ} {σ : Subst Δ Γ} {A B : Typ Γ} →
              A ~ B → A [ σ ] [ τ ] ~ B [ σ ∘s τ ]
   []-assoc' = comp-mor Ty .map-resp
 
-  []-assoc : ∀ {Θ Δ Γ} {τ : Subst Θ Δ} {σ : Subst Δ Γ} {A : Typ Γ} → 
+  []-assoc : ∀ {Θ Δ Γ} {τ : Subst Θ Δ} {σ : Subst Δ Γ} {A : Typ Γ} →
              A [ σ ] [ τ ] ~ A [ σ ∘s τ ]
   []-assoc = []-assoc' (~eq .refl)
 
@@ -92,16 +92,17 @@ module eCwFNotation {lvs lvr lo lh lr} {Ctx : ECat {lo} {lh} {lr}}
   ιresp = Tm .resp (~seq .refl) .map-resp
 
   ιrefl : ∀ {Γ} {A : Typ Γ} {u : Ter Γ A} → u ~t ι (~eq .refl) u
-  ιrefl {Γ} {A} {u} = 
+  ιrefl {Γ} {A} {u} =
     let lem : u ~t Tm .mor (∫ {C = Ctx} Ty .id) .ap u
         lem = Tm .id-mor ` (~teq .refl)
     in ~teq .trans lem (Tm .resp (~seq .refl) ` (~teq .refl))
 
-  ιtrans : ∀ {Γ} {A B C : Typ Γ} (p : C ~ B) (q : B ~ A) {u : Ter Γ A} → ι p (ι q u) ~t ι (~eq .trans p q) u
+  ιtrans : ∀ {Γ} {A B C : Typ Γ} (p : C ~ B) (q : B ~ A) {u : Ter Γ A} →
+           ι p (ι q u) ~t ι (~eq .trans p q) u
   ιtrans p q = ~teq .trans (Tm .comp-mor ` (~teq .refl)) (Tm .resp (Ctx .id-l) ` (~teq .refl))
 
   ιsubst : ∀ {Δ Γ} (σ : Subst Δ Γ) {A B : Typ Γ} (p : B ~ A) (u : Ter Γ A) →
-             (ι p u) [ σ ]t ~t ι ([]-resp' p (~seq .refl)) (u [ σ ]t)
+           (ι p u) [ σ ]t ~t ι ([]-resp' p (~seq .refl)) (u [ σ ]t)
   ιsubst σ p u =
     let -- TODO: clean using EqRel reasoning?
         lem : (ids , trans ~eq p []-id) ∘el (σ ,  eqr (fun Ty _) .refl)
@@ -123,7 +124,7 @@ module eCwFNotation {lvs lvr lo lh lr} {Ctx : ECat {lo} {lh} {lr}}
   []t-assoc : ∀ {Θ Δ Γ} {τ : Subst Θ Δ} {σ : Subst Δ Γ} {A : Typ Γ} {u : Ter Γ A} →
                 u [ σ ]t [ τ ]t ~t ι []-assoc (u [ σ ∘s τ ]t)
   []t-assoc {τ = τ} {σ = σ} {A = A} {u = u} =
-    let mid = Tm .mor ((σ , ~eq .refl) ∘el (τ , ~eq .refl)) .ap u 
+    let mid = Tm .mor ((σ , ~eq .refl) ∘el (τ , ~eq .refl)) .ap u
         lhsmid :  u [ σ ]t [ τ ]t  ~t mid
         lhsmid = Tm .comp-mor ` (~teq .refl)
         -- eq : ((σ , ~eq .refl) ∘el (τ , ~eq .refl)) ~el ((σ ∘s τ , ~eq .refl) ∘el (ids , []-id' []-assoc))
@@ -135,7 +136,7 @@ module eCwFNotation {lvs lvr lo lh lr} {Ctx : ECat {lo} {lh} {lr}}
 
   []t-id : ∀ {Γ} {A} {u : Ter Γ A} → u ~t ι []-id (u [ ids ]t)
   []t-id {u = u} = ~teq .trans (Tm .id-mor ` (~teq .refl))
-                     (~teq .sym (~teq .trans (Tm .comp-mor ` (~teq .refl)) 
+                     (~teq .sym (~teq .trans (Tm .comp-mor ` (~teq .refl))
                                   (Tm .resp (Ctx .id-l) ` (~teq .refl))))
 
   -- In an eCwf we will require all of the following categories to
@@ -161,19 +162,19 @@ module eCwFNotation {lvs lvr lo lh lr} {Ctx : ECat {lo} {lh} {lr}}
           , (let lem : σ ~s ((σ'' ∘s τ) ∘s τ')
                  lem = ~seq .trans q' (Ctx .comp-cong q (~seq .refl))
                  lem2 : (σ'' ∘s τ) ∘s τ' ~s σ'' ∘s (τ ∘s τ')
-                 lem2 = ~seq .sym (Ctx .comp-assoc) 
+                 lem2 = ~seq .sym (Ctx .comp-assoc)
              in ~seq .trans lem lem2)
           , ~teq .trans α' (~teq .trans (ιresp ([]t-resp-l α))
             (~teq .trans (ιresp (ιsubst _ _ _))
             (~teq .trans (ιtrans _ _)
             (~teq .trans (ιresp []t-assoc)
             (~teq .trans (ιtrans _ _) (ιirr (~teq .refl)))))))
-    comp-assoc cat = Ctx .comp-assoc 
+    comp-assoc cat = Ctx .comp-assoc
     comp-cong cat = Ctx .comp-cong
     id cat =  ids , ~seq .sym (Ctx .id-r) , ~teq .trans []t-id (ιirr (~teq .refl))
     id-l cat = Ctx .id-l
-    id-r cat = Ctx .id-r    
-  
+    id-r cat = Ctx .id-r
+
   -- ιswap : ∀ {Γ A B} {u : Ter Γ B} {v : Ter Γ A} (p : B ~ A) (e : u ~t ι p v) → ι (~eq .sym p) u ~t v
   -- ιswap p e = ~teq .trans {!!} {!!}
 

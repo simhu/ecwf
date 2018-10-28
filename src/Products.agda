@@ -212,8 +212,8 @@ module FreeProd {lo lh lr : Level} (C : ECat {lo} {lh} {lr}) where
     t-id : ∀ (a : Obj) → idr ∈ a ⇒ a
     t-compr : ∀ {f g a b c} → f ∈ b ⇒ c → g ∈ a ⇒ b → (compr b f g) ∈ a ⇒ c
 
-    t-ppr : ∀ { a b : Obj} → ppr a b ∈ a ×r b ⇒ a
-    t-qqr : ∀ { a b : Obj} → qqr a b ∈ a ×r b ⇒ b
+    t-ppr : ∀ {a b : Obj} → ppr a b ∈ a ×r b ⇒ a
+    t-qqr : ∀ {a b : Obj} → qqr a b ∈ a ×r b ⇒ b
     t-⟨⟩r : ∀ {a b c : Obj} {f g} → f ∈ c ⇒ a → g ∈ c ⇒ b → ⟨ f , g ⟩r ∈ c ⇒ a ×r b
 
   data _~_∈_⇒_ where
