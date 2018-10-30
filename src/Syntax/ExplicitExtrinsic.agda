@@ -4,6 +4,9 @@ module Syntax.ExplicitExtrinsic where
 open import Agda.Primitive
 open import Basics
 open import Presheaves
+open import Cwf.Elem
+-- open import Limits
+open import Products using (isTerminal)
 
 module _ {l : Level} where
   data Raw : Set l where
@@ -167,7 +170,7 @@ module _ {l : Level} where
       ∀ {Γ} →
       Γ ⊢ →
       ----------
-      ! ∈ ε ⇒ Γ
+      ! ∈ Γ ⇒ ε
 
     subst-<> :
       ∀ {Δ Γ σ t A} →
@@ -190,19 +193,19 @@ module _ {l : Level} where
   data _~_∈_⇒_ where
     subst-eq-!-η :
       ∀ {Γ σ} →
-      σ ∈ ε ⇒ Γ →
+      σ ∈ Γ ⇒ ε →
       ---------------
-      ! ~ σ ∈ ε ⇒ Γ
+      σ ~ ! ∈ Γ ⇒ ε
 
     subst-eq-<>-η :
       ∀ {Δ Γ σ A} →
       σ ∈ Δ ⇒ Γ ∙ A →
       -------------------------------------------
-      < comps pp σ , qq [ σ ] > ~ σ ∈ Δ ⇒ Γ ∙ A
+      σ ~ < comps pp σ , qq [ σ ] > ∈ Δ ⇒ Γ ∙ A
 
     subst-eq-pp<> :
       ∀ {Δ Γ σ t A} →
-      σ ∈ Γ ⇒ Δ → Γ ⊢ A → Δ ⊢ t ∈ A [ σ ] →
+      σ ∈ Δ ⇒ Γ → Γ ⊢ A → Δ ⊢ t ∈ A [ σ ] →
       ---------------------------------------
       comps pp < σ , t > ~ σ ∈ Δ ⇒ Γ
 
@@ -270,6 +273,7 @@ module _ {l : Level} where
 
 
   ------------------------------------------------------------------------------
+
   ctx-cat : ECat
   obj ctx-cat = Σ _⊢
   hom ctx-cat Δ Γ = Σ (_∈ fst Δ ⇒ fst Γ)
@@ -358,3 +362,47 @@ module _ {l : Level} where
           }
       }
     }
+
+  open eCwFNotation {Ctx = ctx-cat} ty-psh ter-psh public
+    renaming (ids to idSubst ; _[_] to _[_]S)
+
+  -- context extension
+  _◂_ : (Γ : obj ctx-cat) → Typ Γ → obj ctx-cat
+  (Γ , pΓ) ◂ (A , pA) = Γ ∙ A , ctx-cons pΓ pA
+
+
+  εS : obj ctx-cat
+  εS = ε , ctx-nil
+
+  !S : ∀ {Γ} → Subst Γ εS
+  !S {Γ , pΓ} = ! , subst-! pΓ
+
+  -- TODO: Why do we have to put all the implicits? :-(
+  !S-unique : ∀ {Γ : obj ctx-cat } {σ : Subst Γ εS} → _~s_ {εS} {Γ} σ (!S {Γ})
+  !S-unique {Γ , pΓ} {σ , pσ}= subst-eq-!-η pσ
+
+
+  ppS : ∀ {Γ A} → Subst (Γ ◂ A) Γ
+  ppS {A = A , pA} = pp , subst-pp pA
+
+  qqS : ∀ {Γ A} → Ter (Γ ◂ A) (_[_]S {Γ} {Γ ◂ A} A (ppS {Γ} {A})) -- (A [ ppS {Γ} {A} ]S)
+  qqS {Γ , pΓ} {A , pA} = qq , ter-qq {Γ} {A} pA
+
+  compr : ∀ {Γ A} → isTerminal (cprInp Γ A) (Γ ◂ A , ppS {Γ} {A}, qqS {Γ} {A})
+  isTerminal.! (compr {Γ , pΓ} {A , pA}) {(Δ , pΔ) , (σ , pσ) , (t , pt)} =
+    (< σ , t > , (subst-<> pσ pA pt)) ,
+    subst-eq-sym (subst-eq-pp<> pσ pA pt) ,
+    ter-eq-trans (ter-eq-id pt) (ter-eq-ty-eq (ter-eq-subst'
+      (ter-eq-sym (ter-eq-qq<> pσ pA pt)) (subst-id pΔ))
+        (ty-eq-sym (ty-eq-id (ty-subst pA pσ))))
+  isTerminal.!-η (compr {Γ , pΓ} {A , pA}) {(Δ , pΔ) , (σ , pσ) , t , pt}
+    {(τ , pτ) , eq , q} =
+    subst-eq-trans
+      (subst-eq-<>-η pτ)
+      (subst-eq-<> pA
+        (subst-eq-refl (subst-comp (subst-pp pA) pτ))
+        (ter-eq-trans
+          (ter-eq-id (ter-ty-eq (ter-subst (ter-qq pA) pτ)
+            (ty-eq-assoc pA (subst-pp pA) pτ)))
+          (ter-eq-ty-eq (ter-eq-sym q) (ty-eq-subst (ty-eq-refl pA) eq))))
+
