@@ -259,7 +259,14 @@ module _ {l : Level} where
       Γ ⊢ t ~ t' ∈ A → σ ∈ Δ ⇒ Γ →
       -----------------------------------
       Δ ⊢ t [ σ ] ~ t' [ σ ] ∈ A [ σ ]
-  ter-eq-subst' tt' pσ = ter-eq-subst tt' {!subst-eq-refl!}
+  ter-eq-subst' tt' pσ = ter-eq-subst tt' (subst-eq-refl pσ)
+
+  ty-eq-subst' :
+    ∀ {σ Δ Γ A A'} →
+    Γ ⊢ A ~ A' → σ ∈ Δ ⇒ Γ →
+    -------------------------------
+    Δ ⊢ A [ σ ] ~ A' [ σ ]
+  ty-eq-subst' aa' pσ = ty-eq-subst aa' (subst-eq-refl pσ)
 
 
   ------------------------------------------------------------------------------
@@ -345,7 +352,9 @@ module _ {l : Level} where
         {(σ , pσ) , p} {(τ , pτ) , q} →
           map-rel λ
           { {t , pt} {s , ps} ts →
-            ter-eq-ty-eq (ter-eq-trans (ter-eq-subst (ter-eq-subst ts {!!}) {!!}) {!!}) {!!}
+            ter-eq-ty-eq (ter-eq-trans (ter-eq-subst' (ter-eq-subst' ts pτ) pσ)
+                           (ter-eq-assoc ps pτ pσ))
+            (ty-eq-trans (ty-eq-subst' (ty-eq-sym q) pσ) (ty-eq-sym p))
           }
       }
     }
