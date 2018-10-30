@@ -282,8 +282,15 @@ module _ {l : Level} where
   ty-resp {Δ} {Γ} {σ} {τ} {pσ} {pτ} p = map-rel λ x → ty-eq-subst x p
 
   ty-psh : ePSh ctx-cat
-  fun ty-psh (Γ , pΓ) = ty-set Γ
-  mor ty-psh (σ , pσ) = ty-map pσ
-  resp ty-psh = ty-resp
-  id-mor ty-psh = map-rel {!!}
-  comp-mor ty-psh = {!!}
+  ty-psh = record
+    { fun =  λ { (Γ , pΓ) → ty-set Γ }
+    ; mor =  λ { (σ , pσ) → ty-map pσ }
+    ; resp = ty-resp
+    ; id-mor = map-rel λ { {b = B , pB} AB → ty-eq-trans AB (ty-eq-id pB) }
+    ; comp-mor = λ { {f = σ , pσ} {g = τ , pτ} → map-rel
+                     λ { {A , pA} {B , pB} AB →
+                         ty-eq-trans (ty-eq-assoc pA pτ pσ)
+                           (ty-eq-subst AB (subst-eq-refl (subst-comp pτ pσ)))
+                       }
+                   }
+    }
