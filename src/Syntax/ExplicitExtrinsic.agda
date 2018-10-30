@@ -134,6 +134,12 @@ module _ {l : Level} where
       -----------------------------------------------------
       Ξ ⊢ t [ σ ] [ τ ] ~ t [ comps σ τ ] ∈ A [ σ ] [ τ ]
 
+    ter-eq-ty-eq :
+      ∀ {Γ A B t s} →
+      Γ ⊢ t ~ s ∈ A → Γ ⊢ A ~ B →
+      ------------------------
+      Γ ⊢ t ~ s ∈ B
+
     ter-eq-refl :
       ∀ {Γ A t} →
       Γ ⊢ t ∈ A →
@@ -246,6 +252,15 @@ module _ {l : Level} where
       ---------------------------------
       σ ~ ξ ∈ Δ ⇒ Γ
 
+  ------------------------------------------------------------------------------
+
+  ter-eq-subst' :
+      ∀ {σ Δ Γ A t t'} →
+      Γ ⊢ t ~ t' ∈ A → σ ∈ Δ ⇒ Γ →
+      -----------------------------------
+      Δ ⊢ t [ σ ] ~ t' [ σ ] ∈ A [ σ ]
+  ter-eq-subst' tt' pσ = ter-eq-subst tt' {!subst-eq-refl!}
+
 
   ------------------------------------------------------------------------------
   ctx-cat : ECat
@@ -293,4 +308,44 @@ module _ {l : Level} where
                            (ty-eq-subst AB (subst-eq-refl (subst-comp pτ pσ)))
                        }
                    }
+    }
+
+
+
+  ter-set : (Γ A : Raw) → eSet
+  ter-set Γ A = record
+    { set = Σ (Γ ⊢_∈ A)
+    ; rel = λ { (u , pu) (v , pv) → Γ ⊢ u ~ v ∈ A }
+    ; eqr = record { refl = λ {tpt} → ter-eq-refl (snd tpt)
+                   ; sym = ter-eq-sym
+                   ; trans = ter-eq-trans
+                   }
+    }
+
+  ter-map : ∀ {Γ Δ σ A B} (pσ : σ ∈ Δ ⇒ Γ) (q : Δ ⊢ B ~ A [ σ ]) →
+            eMap (ter-set Γ A) (ter-set Δ B)
+  ter-map {Γ} {Δ} {σ} {A} {B} pσ q = record
+    { ap = λ { (t , pt) → t [ σ ] , ter-ty-eq (ter-subst pt pσ) (ty-eq-sym q) }
+    ; ap-cong = λ ts →
+        ter-eq-ty-eq (ter-eq-subst ts (subst-eq-refl pσ)) (ty-eq-sym q)
+    }
+
+  ter-psh : ePSh (∫ {C = ctx-cat} ty-psh)
+  ter-psh = record
+    { fun = λ { ((Γ , pΓ) , (A , pA)) → ter-set Γ A }
+    ; mor = λ { ((σ , pσ) , p) → ter-map pσ p }
+    ; resp =
+      λ { {(Γ , pΓ) , A , pA} {(Δ , pΔ) , B , pB} {(σ , pσ) , p} {(τ , pτ) , q} στ →
+          map-rel λ { {t , pt} {s , ps} ts →
+                      ter-eq-ty-eq (ter-eq-subst ts στ) (ty-eq-sym p) }
+        }
+    ; id-mor = map-rel λ { {t , pt} {s , ps} ts → ter-eq-trans ts (ter-eq-id ps) }
+    ; comp-mor = λ
+      { {(Γ , pΓ) , A , pA} {(Δ , pΔ) , B , pB} {(Ξ , pΞ) , C , pC}
+        {(σ , pσ) , p} {(τ , pτ) , q} →
+          map-rel λ
+          { {t , pt} {s , ps} ts →
+            ter-eq-ty-eq (ter-eq-trans (ter-eq-subst (ter-eq-subst ts {!!}) {!!}) {!!}) {!!}
+          }
+      }
     }
