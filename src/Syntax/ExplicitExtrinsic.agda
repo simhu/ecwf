@@ -408,3 +408,17 @@ module _ {l : Level} where
             (ty-eq-assoc pA (subst-pp pA) pτ)))
           (ter-eq-ty-eq (ter-eq-sym q) (ty-eq-subst (ty-eq-refl pA) eq))))
 
+
+  SynCwf : eCwF
+  SynCwf = record
+             { Ctx = ctx-cat
+             ; Ty = ty-psh
+             ; Tm = ter-psh
+             ; <> = εS
+             ; ! = λ {Γ} → !S {Γ} -- yellow?!?!?!
+             ; !-unique = λ {Γ σ} → !S-unique {Γ} {σ}
+             ; _∙_ = _◂_
+             ; pp = λ {Γ A} → ppS {Γ} {A}
+             ; qq = λ {Γ A} → qqS {Γ} {A}
+             ; compr = compr
+             }
