@@ -388,6 +388,7 @@ module _ {l : Level} where
   qqS : ∀ {Γ A} → Ter (Γ ◂ A) (_[_]S {Γ} {Γ ◂ A} A (ppS {Γ} {A})) -- (A [ ppS {Γ} {A} ]S)
   qqS {Γ , pΓ} {A , pA} = qq , ter-qq {Γ} {A} pA
 
+  -- TODO: refactor equational reasoning?
   compr : ∀ {Γ A} → isTerminal (cprInp Γ A) (Γ ◂ A , ppS {Γ} {A}, qqS {Γ} {A})
   isTerminal.! (compr {Γ , pΓ} {A , pA}) {(Δ , pΔ) , (σ , pσ) , (t , pt)} =
     (< σ , t > , (subst-<> pσ pA pt)) ,
