@@ -1,7 +1,7 @@
 module Presheaves where
 
 open import Basics
-open import Opposite
+open import Opposite public
 
 ePSh : ∀ {ks kr lo lh lr} (C : ECat {lo} {lh} {lr}) → Set (lsuc ks ⊔ (lsuc kr ⊔ (lo ⊔ (lh ⊔ lr))))
 ePSh {ks} {kr} C = eFunctor (C op) (ESet {ks} {kr})
