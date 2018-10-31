@@ -42,7 +42,8 @@ data _⊢ where
 
   ctx-cons :
     ∀ {Γ A} →
-    Γ ⊢ → Γ ⊢ A →
+    -- Γ ⊢ →
+    Γ ⊢ A →
     --------------
     Γ ∙ A ⊢
 
@@ -268,6 +269,27 @@ ty-eq-subst' :
   Δ ⊢ A [ σ ] ~ A' [ σ ]
 ty-eq-subst' aa' pσ = ty-eq-subst aa' (subst-eq-refl pσ)
 
+-- Some admissible rules.
+
+-- Inversion (fragile concerning possible extensions)
+
+ty-ctx : ∀ {Γ A} → Γ ⊢ A → Γ ⊢
+subst-dom : ∀ {Δ Γ σ} → σ ∈ Δ ⇒ Γ → Δ ⊢
+subst-cod : ∀ {Δ Γ σ} → σ ∈ Δ ⇒ Γ → Γ ⊢
+
+ty-ctx {Γ} {.(_ [ _ ])} (ty-subst pA pσ) = subst-dom pσ
+
+subst-dom (subst-pp pA) = ctx-cons pA
+subst-dom (subst-! pΔ) = pΔ
+subst-dom (subst-<> pσ _ _) = subst-dom pσ
+subst-dom (subst-id pΔ) = pΔ
+subst-dom (subst-comp pσ pτ) = subst-dom pτ
+
+subst-cod (subst-pp pA) = ty-ctx pA
+subst-cod (subst-! pΔ) = ctx-nil
+subst-cod (subst-<> pσ pA x₁) = ctx-cons pA
+subst-cod (subst-id pΔ) = pΔ
+subst-cod (subst-comp pσ pτ) = subst-cod pσ
 
 ------------------------------------------------------------------------------
 
@@ -365,7 +387,7 @@ open eCwFNotation {Ctx = ctx-cat} ty-psh ter-psh public
 
 -- context extension
 _◂_ : (Γ : obj ctx-cat) → Typ Γ → obj ctx-cat
-(Γ , pΓ) ◂ (A , pA) = Γ ∙ A , ctx-cons pΓ pA
+(Γ , pΓ) ◂ (A , pA) = Γ ∙ A , ctx-cons pA --  ctx-cons pΓ pA
 
 
 εS : obj ctx-cat
