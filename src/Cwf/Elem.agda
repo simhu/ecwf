@@ -31,6 +31,8 @@ module eCwFNotation {lvs lvr lo lh lr} {Ctx : ECat {lo} {lh} {lr}}
   _∘el_ = ∫ {C = Ctx} Ty .comp
   infixl 40 _∘el_
 
+  idel = ∫ {C = Ctx} Ty .id
+
   Typ : (Γ : obj Ctx) → Set lvs
   Typ = λ Γ → set (fun Ty Γ)
   _~_ : {Γ : obj Ctx} → Typ Γ → Typ Γ → Set lvr
@@ -104,35 +106,37 @@ module eCwFNotation {lvs lvr lo lh lr} {Ctx : ECat {lo} {lh} {lr}}
   ιsubst : ∀ {Δ Γ} (σ : Subst Δ Γ) {A B : Typ Γ} (p : B ~ A) (u : Ter Γ A) →
            (ι p u) [ σ ]t ~t ι ([]-resp' p (~seq .refl)) (u [ σ ]t)
   ιsubst σ p u =
-    let -- TODO: clean using EqRel reasoning?
+    let open EqRelReason ~teq
         lem : (ids , trans ~eq p []-id) ∘el (σ ,  eqr (fun Ty _) .refl)
-                ~el (σ ,  eqr (fun Ty _) .refl) ∘el (ids , trans ~eq ([]-resp' p (~seq .refl)) []-id)
+                ~el (σ ,  eqr (fun Ty _) .refl) ∘el
+                      (ids , trans ~eq ([]-resp' p (~seq .refl)) []-id)
         lem = ~seq .trans (Ctx .id-l) (~seq .sym (Ctx .id-r))
-        mid = Tm .mor ((ids , trans ~eq p []-id) ∘el (σ ,  eqr (fun Ty _) .refl)) .ap u
-        lhsmid : (ι p u) [ σ ]t ~t mid
-        lhsmid = Tm .comp-mor ` (~teq .refl)
-        mid' = Tm .mor ((σ ,  eqr (fun Ty _) .refl) ∘el (ids , trans ~eq ([]-resp' p (~seq .refl)) []-id)) .ap u
-        midmid' : mid ~t mid'
-        midmid' = Tm .resp lem ` (~teq .refl)
-        mid'rhs : mid' ~t ι ([]-resp' p (~seq .refl)) (u [ σ ]t)
-        mid'rhs = ~teq .sym (Tm .comp-mor ` (~teq .refl))
-    in ~teq .trans lhsmid (~teq .trans midmid' mid'rhs)
+    in begin
+      (ι p u) [ σ ]t
+    ≈⟨ Tm .comp-mor ` (~teq .refl) ⟩
+      Tm .mor ((ids , trans ~eq p []-id) ∘el (σ ,  eqr (fun Ty _) .refl)) .ap u
+    ≈⟨ Tm .resp lem ` ~teq .refl ⟩
+      Tm .mor ((σ ,  eqr (fun Ty _) .refl) ∘el
+        (ids , trans ~eq ([]-resp' p (~seq .refl)) []-id)) .ap u
+    ≈⟨ ~teq .sym (Tm .comp-mor ` ~teq .refl) ⟩
+       ι ([]-resp' p (~seq .refl)) (u [ σ ]t)
+    ∎
 
   ι' : ∀ {Γ} {A B : Typ Γ} → A ~ B → Ter Γ A → Ter Γ B
   ι' p = ι (~eq .sym p)
 
   []t-assoc : ∀ {Θ Δ Γ} {τ : Subst Θ Δ} {σ : Subst Δ Γ} {A : Typ Γ} {u : Ter Γ A} →
                 u [ σ ]t [ τ ]t ~t ι []-assoc (u [ σ ∘s τ ]t)
-  []t-assoc {τ = τ} {σ = σ} {A = A} {u = u} =
-    let mid = Tm .mor ((σ , ~eq .refl) ∘el (τ , ~eq .refl)) .ap u
-        lhsmid :  u [ σ ]t [ τ ]t  ~t mid
-        lhsmid = Tm .comp-mor ` (~teq .refl)
-        -- eq : ((σ , ~eq .refl) ∘el (τ , ~eq .refl)) ~el ((σ ∘s τ , ~eq .refl) ∘el (ids , []-id' []-assoc))
-        -- eq =  ~seq .sym (Ctx .id-r)
-        midrhs : mid ~t ι []-assoc (u [ σ ∘s τ ]t)
-        midrhs = ~teq .trans (Tm .resp (~seq .sym (Ctx .id-r)) ` (~teq .refl))
-                   (~teq .sym (Tm .comp-mor ` (~teq .refl)))
-    in ~teq .trans lhsmid midrhs
+  []t-assoc {τ = τ} {σ = σ} {u = u} = let open EqRelReason ~teq in
+    begin
+      u [ σ ]t [ τ ]t
+    ≈⟨ Tm .comp-mor ` ~teq .refl ⟩
+      Tm .mor ((σ , ~eq .refl) ∘el (τ , ~eq .refl)) .ap u
+    ≈⟨ Tm .resp (~seq .sym (Ctx .id-r)) ` ~teq .refl ⟩
+      Tm .mor ((σ ∘s τ , ~eq .refl) ∘el (ids , ~eq .trans []-assoc []-id)) .ap u
+    ≈⟨ ~teq .sym (Tm .comp-mor ` (~teq .refl)) ⟩
+      ι []-assoc (u [ σ ∘s τ ]t)
+    ∎
 
   []t-id : ∀ {Γ} {A} {u : Ter Γ A} → u ~t ι []-id (u [ ids ]t)
   []t-id {u = u} = ~teq .trans (Tm .id-mor ` (~teq .refl))
@@ -159,16 +163,22 @@ module eCwFNotation {lvs lvr lo lh lr} {Ctx : ECat {lo} {lh} {lr}}
     comp cat {(Δ , σ , v )} {(Δ' , σ' , v')} {(Δ'' , σ'' , v'')}
         (τ , q , α) (τ' , q' , α') =  -- TODO: clean up
           τ ∘s τ'
-          , (let lem : σ ~s ((σ'' ∘s τ) ∘s τ')
-                 lem = ~seq .trans q' (Ctx .comp-cong q (~seq .refl))
-                 lem2 : (σ'' ∘s τ) ∘s τ' ~s σ'' ∘s (τ ∘s τ')
-                 lem2 = ~seq .sym (Ctx .comp-assoc)
-             in ~seq .trans lem lem2)
+          , (let open EqRelReason ~seq in
+             begin
+               σ
+             ≈⟨ q' ⟩
+               σ' ∘s τ'
+             ≈⟨ comp-cong-l Ctx q ⟩
+               (σ'' ∘s τ) ∘s τ'
+             ≈⟨ comp-assoc-inv Ctx ⟩
+               σ'' ∘s (τ ∘s τ')
+             ∎)
           , ~teq .trans α' (~teq .trans (ιresp ([]t-resp-l α))
             (~teq .trans (ιresp (ιsubst _ _ _))
             (~teq .trans (ιtrans _ _)
             (~teq .trans (ιresp []t-assoc)
             (~teq .trans (ιtrans _ _) (ιirr (~teq .refl)))))))
+
     comp-assoc cat = Ctx .comp-assoc
     comp-cong cat = Ctx .comp-cong
     id cat =  ids , ~seq .sym (Ctx .id-r) , ~teq .trans []t-id (ιirr (~teq .refl))
