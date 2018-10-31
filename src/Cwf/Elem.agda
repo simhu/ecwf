@@ -9,7 +9,9 @@ module Cwf.Elem where
 
 open import Basics
 open import Presheaves
-open import Limits
+open import Opposite
+--open import Limits
+open import Products
 
 -- Some derived notions to define and use eCwFs
 module eCwFNotation {lvs lvr lo lh lr} {Ctx : ECat {lo} {lh} {lr}}
@@ -189,6 +191,7 @@ module eCwFNotation {lvs lvr lo lh lr} {Ctx : ECat {lo} {lh} {lr}}
   -- ιswap p e = ~teq .trans {!!} {!!}
 
 record eCwF {lvs lvr lo lh lr : Level} : Set (lsuc (lvs ⊔ lvr ⊔ lo ⊔ lh ⊔ lr)) where
+  no-eta-equality
   field
     Ctx : ECat {lo} {lh} {lr}
     Ty : ePSh {lvs} {lvr} Ctx
@@ -203,20 +206,34 @@ record eCwF {lvs lvr lo lh lr : Level} : Set (lsuc (lvs ⊔ lvr ⊔ lo ⊔ lh �
     _∙_ : (Γ : obj Ctx) (A : Typ Γ) → obj Ctx
     pp : ∀ {Γ A} → Subst (Γ ∙ A) Γ
     qq : ∀ {Γ A} → Ter (Γ ∙ A) (A [ pp ])
-    compr : ∀ {Γ A} → isTerminal {C = cprInp Γ A} (Γ ∙ A , pp , qq)
+    compr : ∀ {Γ A} → isTerminal (cprInp Γ A) (Γ ∙ A , pp , qq)
 
   <_,_> : ∀ {Δ Γ} → (σ : Subst Δ Γ) {A : Typ Γ} (t : Ter Δ (A [ σ ])) → Subst Δ (Γ ∙ A)
-  < σ , t > = compr (_ , σ , t) .fst .fst
+  < σ , t > = compr .isTerminal.! {_ , σ , t}  .fst
 
   pp<> : ∀ {Δ Γ} {σ : Subst Δ Γ} {A : Typ Γ} {t : Ter Δ (A [ σ ])} →
            pp ∘s < σ , t > ~s σ
-  pp<> {σ = σ} {t = t} = ~seq .sym (compr (_ , σ , t)  .fst .snd .fst)
+  pp<> {σ = σ} {t = t} = ~seq .sym (compr .isTerminal.! {_ , σ , t} .snd .fst)
 
   qq<>' : ∀ {Δ Γ} {σ : Subst Δ Γ} {A : Typ Γ} {t : Ter Δ (A [ σ ])} →
-            t ~t ι (~eq .trans ([]-resp (compr (Δ , σ , t) .fst .snd .fst))
+            t ~t ι (~eq .trans ([]-resp (compr .isTerminal.! {Δ , σ , t} .snd .fst))
                     (~eq .sym []-assoc))
                    (qq [ < σ , t > ]t)
-  qq<>' {σ = σ} {t = t} = compr (_ , σ , t) .fst .snd .snd
-
+  qq<>' {σ = σ} {t = t} = compr .isTerminal.! {_ , σ , t} .snd .snd
 
 -- -}
+
+record Mor {ks kr : Level}
+           {lao lah lar : Level}
+           {lbo lbh lbr : Level}
+           (A : eCwF {ks} {kr} {lao} {lah} {lar})
+           (B : eCwF {ks} {kr} {lbo} {lbh} {lbr}) :
+       Set (lao ⊔ lah ⊔ lar ⊔ lbo ⊔ lbh ⊔ lbr ⊔ lsuc (ks ⊔ kr)) where
+  no-eta-equality
+  open eCwF A using () renaming (Ctx to CtxA ; Ty to TyA ; Tm to TmA)
+  open eCwF B using () renaming (Ctx to CtxB ; Ty to TyB ; Tm to TmB)
+  field
+    ctx : eFunctor CtxA CtxB
+    ty : eNat TyA (TyB ∘Func (ctx op-fun))
+    tm : eNat TmA (TmB ∘Func ((∫base ctx ty) op-fun))
+  -- TODO: preserving terminal objects and comprehension

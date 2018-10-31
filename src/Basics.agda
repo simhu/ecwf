@@ -81,6 +81,9 @@ record ECat {lo lh lr : Level} : Set (lsuc (lo ⊔ lh ⊔ lr)) where
     id : ∀ {A} → hom A A
     id-l : ∀ {A B} {f : hom A B} → hom-rel (comp id f) f
     id-r : ∀ {A B} {f : hom A B} → hom-rel (comp f id) f
+
+  hom-set : (A B : obj) → eSet {lh} {lr}
+  hom-set A B = record { set = hom A B ; rel = hom-rel ; eqr = hom-eqr }
   comp-cong-l : ∀ {A B C} {f f' : hom B C} {g : hom A B} →
     hom-rel f f' → hom-rel (comp f g) (comp f' g)
   comp-cong-l p = comp-cong p (hom-eqr .refl)
@@ -100,17 +103,6 @@ record ECat {lo lh lr : Level} : Set (lsuc (lo ⊔ lh ⊔ lr)) where
 
 
 open ECat public
-
-
-_op : ∀ {lo lh lr} → ECat {lo} {lh} {lr} → ECat
-C op = record C
-     { hom = λ A B → hom C B A
-     ; comp = λ f g → comp C g f
-     ; comp-assoc =  C .hom-eqr .sym (C .comp-assoc)
-     ; comp-cong =  λ p q → C .comp-cong q p
-     ; id-l = id-r C
-     ; id-r = id-l C
-     }
 
 -- We have to pack E-Maps into a record instead of just a Σ-type;
 -- otherwise, the definition of EFam below needs too many (all)

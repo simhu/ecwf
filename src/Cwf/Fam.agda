@@ -6,6 +6,7 @@ module Cwf.Fam where
 open import Basics
 open import Discrete
 open import Presheaves
+open import Opposite
 open import Comma
 open import Limits using (module ConstantFunctor)
 

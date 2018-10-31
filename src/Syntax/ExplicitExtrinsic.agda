@@ -3,6 +3,7 @@ module Syntax.ExplicitExtrinsic where
 
 open import Agda.Primitive
 open import Basics
+open import Opposite
 open import Presheaves
 open import Cwf.Elem
 -- open import Limits
