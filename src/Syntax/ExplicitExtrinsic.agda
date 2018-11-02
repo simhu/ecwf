@@ -382,7 +382,7 @@ ter-psh = record
     }
   }
 
-open eCwFNotation {Ctx = ctx-cat} ty-psh ter-psh public
+open eCwFNotation {Ctx = ctx-cat} ty-psh ter-psh
   renaming (ids to idSubst ; _[_] to _[_]S)
 
 -- context extension
