@@ -93,11 +93,14 @@ module eCwFNotation {lvs lvr lo lh lr} {Ctx : ECat {lo} {lh} {lr}}
   ι : ∀ {Γ} {A B : Typ Γ} → B ~ A → Ter Γ A → Ter Γ B
   ι {Γ} {A} {B} p u = Tm .mor (ids , trans ~eq p []-id) .ap u
 
-  ιirr : ∀ {Γ} {A B : Typ Γ} {p q : B ~ A} {u v : Ter Γ A} → u ~t v → ι p u ~t ι q v
-  ιirr {p = p} {q = q} r =
+  ιirr' : ∀ {Γ} {A B : Typ Γ} {p q : B ~ A} {u v : Ter Γ A} → u ~t v → ι p u ~t ι q v
+  ιirr' {p = p} {q = q} r =
     let lem : (ids , trans ~eq p []-id) ~el (ids , trans ~eq q []-id)
         lem = ~seq .refl
     in Tm .resp lem .map-resp r
+
+  ιirr : ∀ {Γ} {A B : Typ Γ} {p q : B ~ A} {u : Ter Γ A} → ι p u ~t ι q u
+  ιirr = ιirr' (~teq .refl)
 
   -- A special case..
   ιresp : ∀ {Γ A B} {p : B ~ A} {u v : Ter Γ A} → u ~t v → ι p u ~t ι p v
@@ -191,11 +194,11 @@ module eCwFNotation {lvs lvr lo lh lr} {Ctx : ECat {lo} {lh} {lr}}
             (~teq .trans (ιresp (ιsubst _ _ _))
             (~teq .trans (ιtrans _ _)
             (~teq .trans (ιresp []t-assoc)
-            (~teq .trans (ιtrans _ _) (ιirr (~teq .refl)))))))
+            (~teq .trans (ιtrans _ _) ιirr)))))
 
     comp-assoc cat = Ctx .comp-assoc
     comp-cong cat = Ctx .comp-cong
-    id cat =  ids , ~seq .sym (Ctx .id-r) , ~teq .trans []t-id (ιirr (~teq .refl))
+    id cat =  ids , ~seq .sym (Ctx .id-r) , ~teq .trans []t-id ιirr
     id-l cat = Ctx .id-l
     id-r cat = Ctx .id-r
 
@@ -223,17 +226,70 @@ record eCwF {lvs lvr lo lh lr : Level} : Set (lsuc (lvs ⊔ lvr ⊔ lo ⊔ lh �
   <_,_> : ∀ {Δ Γ} → (σ : Subst Δ Γ) {A : Typ Γ} (t : Ter Δ (A [ σ ])) → Subst Δ (Γ ∙ A)
   < σ , t > = compr .isTerminal.! {_ , σ , t}  .fst
 
+  pp<>-inv : ∀ {Δ Γ} {σ : Subst Δ Γ} {A : Typ Γ} {t : Ter Δ (A [ σ ])} →
+           σ ~s pp ∘s < σ , t >
+  pp<>-inv {σ = σ} {t = t} = (compr .isTerminal.! {_ , σ , t} .snd .fst)
+
   pp<> : ∀ {Δ Γ} {σ : Subst Δ Γ} {A : Typ Γ} {t : Ter Δ (A [ σ ])} →
            pp ∘s < σ , t > ~s σ
-  pp<> {σ = σ} {t = t} = ~seq .sym (compr .isTerminal.! {_ , σ , t} .snd .fst)
+  pp<> = ~seq .sym pp<>-inv
 
-  qq<>' : ∀ {Δ Γ} {σ : Subst Δ Γ} {A : Typ Γ} {t : Ter Δ (A [ σ ])} →
+  qq<> : ∀ {Δ Γ} {σ : Subst Δ Γ} {A : Typ Γ} {t : Ter Δ (A [ σ ])} →
             t ~t ι (~eq .trans ([]-resp-r (compr .isTerminal.! {Δ , σ , t} .snd .fst))
                     (~eq .sym []-assoc))
                    (qq [ < σ , t > ]t)
-  qq<>' {σ = σ} {t = t} = compr .isTerminal.! {_ , σ , t} .snd .snd
+  qq<> {σ = σ} {t = t} = compr .isTerminal.! {_ , σ , t} .snd .snd
 
-  -- TODO: infer other rules of comprehension
+  -- TODO: double-check this definition!
+  <>-η-id : ∀ {Γ} {A : Typ Γ} → ids {Γ ∙ A} ~s < pp , qq >
+  <>-η-id {Γ} {A} = compr .isTerminal.!-η {_ , pp , qq} {id (cprInp Γ A)}
+
+  <>-comp : ∀ {Ξ Δ Γ σ} {A : Typ Γ} {t : Ter Δ (A [ σ ])} {τ : Subst Ξ Δ} →
+            < σ , t > ∘s τ ~s < σ ∘s τ , ι' []-assoc (t [ τ ]t) >
+  <>-comp {Ξ} {Δ} {Γ} {σ} {A} {t} {τ} =
+    compr .isTerminal.!-η {_ , σ ∘s τ , ι' []-assoc (t [ τ ]t)}
+      { < σ , t > ∘s τ
+      , (let open EqRelReason ~seq in
+         begin
+          σ ∘s τ
+         ≈⟨ comp-cong-l Ctx pp<>-inv ⟩
+          (pp ∘s < σ , t >) ∘s τ
+         ≈⟨ comp-assoc-inv Ctx ⟩
+          pp ∘s (< σ , t > ∘s τ)
+         ∎)
+      , (let open EqRelReason ~teq in
+         begin
+           ι _ (t [ τ ]t)
+         ≈⟨ ιresp ([]t-resp-l qq<>) ⟩
+           ι _ (ι _ (qq [ < σ , t > ]t) [ τ ]t)
+         -- ≈⟨ ιresp ([]t-resp-l ιirr) ⟩
+         --   ι _ (ι _ (qq [ < σ , t > ]t) [ τ ]t)
+         ≈⟨ ιresp (ιsubst _ _ _) ⟩
+           ι _ (ι _ (qq [ < σ , t > ]t [ τ ]t))
+         ≈⟨ ιtrans _ _ ⟩
+           ι _ (qq [ < σ , t > ]t [ τ ]t)
+         ≈⟨ ιresp []t-assoc ⟩
+           ι _ (ι _ (qq [ < σ , t > ∘s τ ]t))
+         ≈⟨ ιtrans _ _ ⟩
+           ι _ (qq [ < σ , t > ∘s τ ]t)
+         ≈⟨ ιirr ⟩
+           ι _ (qq [ < σ , t > ∘s τ ]t)
+         ∎)
+      }
+
+  <>-η : ∀ {Δ Γ} {A : Typ Γ} {σ : Subst Δ (Γ ∙ A)} →
+         σ ~s < pp ∘s σ , ι' []-assoc (qq [ σ ]t) >
+  <>-η {Δ} {Γ} {A} {σ} = let open EqRelReason ~seq in
+    begin
+      σ
+    ≈⟨ id-l-inv Ctx ⟩
+      ids ∘s σ
+    ≈⟨ comp-cong-l Ctx <>-η-id ⟩
+      < pp , qq > ∘s σ
+    ≈⟨ <>-comp ⟩
+      < pp ∘s σ , ι' []-assoc (qq [ σ ]t) >
+    ∎
+
 
 -- -}
 
