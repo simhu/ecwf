@@ -74,7 +74,7 @@ module eCwFNotation {lvs lvr lo lh lr} {Ctx : ECat {lo} {lh} {lr}}
   ~teq {Γ} {A} = eqr (fun Tm (Γ , A))
 
   _[_]t : ∀ {Γ Δ A} (t : Ter Γ A) (σ : Subst Δ Γ) → Ter Δ (A [ σ ])
-  u [ σ ]t = mor Tm (σ , eqr (fun Ty _) .refl) .ap u
+  u [ σ ]t = mor Tm (σ , ~eq .refl) .ap u
   infix 50 _[_]t
 
   []t-resp-l : ∀ {Δ Γ} {σ : Subst Δ Γ} {A : Typ Γ} {u v : Ter Γ A} →

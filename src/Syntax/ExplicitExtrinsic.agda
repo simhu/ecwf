@@ -1,3 +1,4 @@
+{-# OPTIONS --without-K #-}
 open import Basics
 open import Presheaves
 open import Cwf.Elem
