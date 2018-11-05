@@ -60,13 +60,21 @@ module eCwFNotation {lvs lvr lo lh lr} {Ctx : ECat {lo} {lh} {lr}}
              A [ σ ] [ τ ] ~ A [ σ ∘s τ ]
   []-assoc = []-assoc' (~eq .refl)
 
+  []-assoc-inv : ∀ {Θ Δ Γ} {τ : Subst Θ Δ} {σ : Subst Δ Γ} {A : Typ Γ} →
+             A [ σ ∘s τ ] ~ A [ σ ] [ τ ]
+  []-assoc-inv = ~eq .sym []-assoc
+
   []-resp' : ∀ {Δ Γ} {σ τ : Subst Δ Γ} {A B : Typ Γ} →
                A ~ B → σ ~s τ → A [ σ ] ~ B [ τ ]
   []-resp' q p = resp Ty p ` q
 
-  []-resp : ∀ {Δ Γ} {σ τ : Subst Δ Γ} {A : Typ Γ} →
+  []-resp-r : ∀ {Δ Γ} {σ τ : Subst Δ Γ} {A : Typ Γ} →
                σ ~s τ → A [ σ ] ~ A [ τ ]
-  []-resp = []-resp' (~eq .refl)
+  []-resp-r = []-resp' (~eq .refl)
+
+  []-resp-l : ∀ {Δ Γ} {σ : Subst Δ Γ} {A B : Typ Γ} →
+               A ~ B → A [ σ ] ~ B [ σ ]
+  []-resp-l q = []-resp' q (~seq .refl)
 
   Ter = λ Γ A → set (fun Tm (Γ , A))
   _~t_ = λ {Γ A} → rel (fun Tm (Γ , A))
@@ -159,9 +167,9 @@ module eCwFNotation {lvs lvr lo lh lr} {Ctx : ECat {lo} {lh} {lr}}
     obj cat = Σ λ Δ → Σ λ (σ : Subst Δ Γ) → Ter Δ (A [ σ ])
     hom cat (Δ , σ , v ) (Δ' , σ' , v' ) =
       Σ λ (τ : Subst Δ Δ') → Σ λ (q : σ ~s σ' ∘s τ) →
-        v ~t ι (~eq .trans ([]-resp q) (~eq .sym []-assoc)) (v' [ τ ]t)
+        v ~t ι (~eq .trans ([]-resp-r q) (~eq .sym []-assoc)) (v' [ τ ]t)
         -- Alternative definition (?):
-        -- ι (~eq .trans []-assoc (~eq .sym ([]-resp q))) v ~t v' [ τ ]t
+        -- ι (~eq .trans []-assoc (~eq .sym ([]-resp-r q))) v ~t v' [ τ ]t
     hom-rel cat (τ , _ , _) (τ' , _ , _) = τ ~s τ'
     refl (hom-eqr cat) = ~seq .refl
     sym (hom-eqr cat) = ~seq .sym
@@ -220,7 +228,7 @@ record eCwF {lvs lvr lo lh lr : Level} : Set (lsuc (lvs ⊔ lvr ⊔ lo ⊔ lh �
   pp<> {σ = σ} {t = t} = ~seq .sym (compr .isTerminal.! {_ , σ , t} .snd .fst)
 
   qq<>' : ∀ {Δ Γ} {σ : Subst Δ Γ} {A : Typ Γ} {t : Ter Δ (A [ σ ])} →
-            t ~t ι (~eq .trans ([]-resp (compr .isTerminal.! {Δ , σ , t} .snd .fst))
+            t ~t ι (~eq .trans ([]-resp-r (compr .isTerminal.! {Δ , σ , t} .snd .fst))
                     (~eq .sym []-assoc))
                    (qq [ < σ , t > ]t)
   qq<>' {σ = σ} {t = t} = compr .isTerminal.! {_ , σ , t} .snd .snd

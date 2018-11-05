@@ -1,3 +1,5 @@
+-- Can we also make this type-check w/o K?
+{-# OPTIONS --with-K #-}
 module Products where
 
 open import Basics
