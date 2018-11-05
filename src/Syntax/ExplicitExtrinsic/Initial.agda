@@ -19,7 +19,7 @@ module Elim {ks kr lo lh lr : Level}
   module Notation {ks kr lo lh lr} (H : eCwF {ks} {kr} {lo} {lh} {lr}) = eCwFNotation {Ctx = Ctx H} (Ty H) (Tm H)
 
   open Notation E renaming
-    ( _~_ to _~E_ ; ~eq to ~Eeq ; _~s_ to _~sE_ ; _~t_ to _~tE_ ; Typ to TypE
+    ( _~_ to _~E_ ; ~eq to ~Eeq ; _~s_ to _~sE_ ; _~t_ to _~tE_ ; Typ to TypE ; ~teq to ~tEeq
     ; Ter to TerE ; _[_] to _[_]E
     ; ids to idsE ; _[_]t to _[_]tE
     )
@@ -31,8 +31,9 @@ module Elim {ks kr lo lh lr : Level}
         o : ∀ {Γ} → Γ ⊢ → obj (Ctx E)
         o {Γ} pΓ = {!!}
 
-        o# : ∀ {Γ} (pΓ pΓ' :  Γ ⊢) → o pΓ ≡ o pΓ'
-        o# {Γ} pΓ pΓ' = {!!}
+        -- ??
+        -- o# : ∀ {Γ} (pΓ pΓ' :  Γ ⊢) → o pΓ ≡ o pΓ'
+        -- o# {Γ} pΓ pΓ' = {!!}
 
         m : ∀ {Δ Γ σ} (pΔ : Δ ⊢) (pΓ : Γ ⊢) (pσ : σ ∈ Δ ⇒ Γ) →
             hom (Ctx E) (o pΔ) (o pΓ)
@@ -48,6 +49,10 @@ module Elim {ks kr lo lh lr : Level}
 
         ty : ∀ {Γ A} (pΓ : Γ ⊢) (pA : Γ ⊢ A) → TypE (o pΓ)
         ty = {!!}
+
+        -- ??
+        -- ty# : ∀ {Γ A} (pΓ : Γ ⊢) (pA pA' : Γ ⊢ A) → ty pΓ pA ~E ty pΓ pA'
+        -- ty# = {!!}
 
         ty-cong : ∀ {Γ A B} (pΓ : Γ ⊢) (pA : Γ ⊢ A) (pB : Γ ⊢ B)
                   (pAB : Γ ⊢ A ~ B) → ty pΓ pA ~E ty pΓ pB
@@ -67,13 +72,20 @@ module Elim {ks kr lo lh lr : Level}
 
         subst-ter : ∀ {Γ Δ A σ t} (pΔ : Δ ⊢) (pΓ : Γ ⊢) (pσ : σ ∈ Δ ⇒ Γ)
                     (pA : Γ ⊢ A) (pt : Γ ⊢ t ∈ A) →
-                    let pAσ = ap (ty-map pσ) (A , pA) .snd
+                    let pAσ = ty-subst pA pσ  -- aka: ap (ty-map pσ) (A , pA) .snd
                         ptσ = ter-subst pt pσ
-                        eq : (ty pΓ pA [ m pΔ pΓ pσ ]E) ~E
-                               ty pΔ (ap (ty-map pσ) (A , pA) .snd)
+                        eq : (ty pΓ pA [ m pΔ pΓ pσ ]E) ~E ty pΔ pAσ
                         eq = subst-ty pΔ pΓ pσ pA
                     in ter pΓ pA pt [ m pΔ pΓ pσ ]tE ~tE ι eq (ter pΔ pAσ ptσ)
-        subst-ter = {!!}
+        subst-ter {Γ} {Δ} {A} {σ} {t} pΔ pΓ pσ pA pt = {!!}
+
+        -- does this make sense?
+        ι-ter : ∀ {Γ A B t} (pΓ : Γ ⊢) (pA : Γ ⊢ A) (pB : Γ ⊢ B)
+                  (pAB : Γ ⊢ A ~ B) (pt : Γ ⊢ t ∈ B) →
+                  ι (ty-cong pΓ pA pB pAB) (ter pΓ pB pt)
+                  ~tE ter pΓ pA (ter-ty-eq pt (ty-eq-sym pAB))
+        ι-ter = {!!}
+
 
 --------------------------------------------------------------------------------
 
@@ -105,52 +117,52 @@ module Elim {ks kr lo lh lr : Level}
             .ap (ter pΓ pA pt))
         (ter pΔ pB (ter-ty-eq (ter-subst ps pσ) (ty-eq-sym q)))
     subst-ter-cong {Γ} {Δ} {A} {B} {σ} {t} {s} pΓ pΔ pA pB pσ q pt ps pts =
-      let open EqRelReason (~teq {o pΔ} {ty pΔ pB})
+      let open EqRelReason (~tEeq {o pΔ} {ty pΔ pB})
           pAσ = ap (ty-map pσ) (A , pA) .snd -- aka: ty-subst pA pσ
-          -- ptσ = ter-subst pt pσ
-          one : ty pΔ pB ~E ty pΔ (ty-subst pA pσ)
-          one = ty-cong pΔ pB (ty-subst pA pσ) q
-          two : ty pΓ pA [ m pΔ pΓ pσ ]E ~E ty pΔ (ty-subst pA pσ)
-          two = subst-ty-cong pΔ pΓ pσ pA pA (ty-eq-refl pA)
+          psσ = ter-subst ps pσ
 
-          two' : ty pΓ pA [ m pΔ pΓ pσ ]E ~E ty pΔ (ty-subst pA pσ)
-          two' = subst-ty pΔ pΓ pσ pA
-
-
-          monster : ty pΔ pB ~E ty pΓ pA [ m pΔ pΓ pσ ]E
-          monster = ~Eeq .trans (ty-cong pΔ pB (ty-subst pA pσ) q)
+          tyeq : ty pΔ pB ~E ty pΓ pA [ m pΔ pΓ pσ ]E
+          tyeq = ~Eeq .trans (ty-cong pΔ pB (ty-subst pA pσ) q)
                     (~Eeq .trans (sym (eqr (fun (Ty E) (o pΔ)))
                       (subst-ty-cong pΔ pΓ pσ pA pA (ty-eq-refl pA)))
                     (~Eeq .refl))
-          monster2 : ty pΔ pB ~E ty pΓ pA [ m pΔ pΓ pσ ]E
-          monster2 = ~Eeq .trans one (~Eeq .sym two)
 
-          bla : Ctx E .hom (o pΔ) (o pΔ)
-          bla = idsE {o pΔ}
+          mσel : hom (∫ {C = Ctx E} (Ty E)) (o pΔ , ty pΓ pA [ m pΔ pΓ pσ ]E) (o pΓ , ty pΓ pA)
+          mσel = m pΔ pΓ pσ , ~Eeq .refl
 
-          bla2 : TypE (o pΓ) -- ????
-          bla2 = (mor (Ty E) idsE .ap (ty pΓ pA))
-
-          blabla : TypE (o pΔ)
-          blabla = ty pΔ pB
-
+          ιtyeqel : hom (∫ {C = Ctx E} (Ty E)) (o pΔ , ty pΔ pB) (o pΔ , ty pΓ pA [ m pΔ pΓ pσ ]E)
+          ιtyeqel = idsE , ~Eeq .trans tyeq (id-mor (Ty E) .map-resp (~Eeq .refl))
       in
       begin
         mor (Tm E)
-          (m pΔ pΓ pσ , monster) .ap (ter pΓ pA pt)
-      ≈⟨ {!!} ⟩
-        ter pΔ pB (ter-ty-eq (ter-subst ps pσ) (ty-eq-sym q))
+          (m pΔ pΓ pσ , tyeq) .ap (ter pΓ pA pt)
+      ≈⟨ mor (Tm E) _ .ap-cong (ter-cong pΓ pA pt ps pts) ⟩
+        mor (Tm E)
+          (m pΔ pΓ pσ , tyeq) .ap (ter pΓ pA ps)
+      ≈⟨ resp (Tm E) (id-r-inv (Ctx E)) .map-resp (~tEeq .refl) ⟩
+        mor (Tm E)
+          (mσel ∘el ιtyeqel) .ap (ter pΓ pA ps)
+      ≈⟨ comp-mor-inv (Tm E) .map-resp (~tEeq .refl) ⟩
+        mor (Tm E) ιtyeqel .ap (mor (Tm E) mσel .ap (ter pΓ pA ps))
+      ≈⟨⟩
+        ι tyeq ((ter pΓ pA ps) [ m pΔ pΓ pσ ]tE)
+      ≈⟨ ιresp (subst-ter pΔ pΓ pσ pA ps) ⟩
+        ι tyeq (ι (subst-ty pΔ pΓ pσ pA) (ter pΔ pAσ psσ))
+      ≈⟨ ιtrans _ _ ⟩
+        ι (~Eeq .trans tyeq (subst-ty pΔ pΓ pσ pA)) (ter pΔ pAσ psσ)
+      ≈⟨ ιirr (~tEeq .refl) ⟩
+        ι (ty-cong pΔ pB pAσ q) (ter pΔ pAσ psσ)
+      ≈⟨ ι-ter pΔ pB (ty-subst pA pσ) q (ter-subst ps pσ) ⟩
+        ter pΔ pB (ter-map pσ q .ap (s , ps) .snd)
       ∎
-
-
-
 
   elim-ctx : eFunctor (eCwF.Ctx SynCwf) (eCwF.Ctx E)
   elim-ctx = record
     { fun = λ { (Γ , pΓ) → o pΓ }
     ; mor = λ { {Δ , pΔ} {Γ , pΓ} (σ , pσ) → m pΔ pΓ pσ }
     ; resp = λ { {Δ , pΔ} {Γ , pΓ} {σ , pσ} {τ , pτ} pστ → m-resp pΔ pΓ pσ pτ pστ}
-    ; id-mor = {!!} ; comp-mor = {!!} }
+    ; id-mor = {!!}
+ ; comp-mor = {!!} }
 
   elim-ty-nat : (Γ : obj (Ctx SynCwf op)) →
                 eMap (fun (Ty SynCwf) Γ) (fun (Ty E ∘Func (elim-ctx op-fun)) Γ)
@@ -181,7 +193,7 @@ module Elim {ks kr lo lh lr : Level}
     { nat = elim-ter-nat
     ; nat-eq = λ
       { {(Γ , pΓ) , A , pA} {(Δ , pΔ) , B , pB} {(σ , pσ) , q} → map-rel λ
-        { {t , pt} {s , ps} pts → {!!} -- foo pΓ pΔ pA pB pσ q pt ps pts
+        { {t , pt} {s , ps} pts → subst-ter-cong pΓ pΔ pA pB pσ q pt ps pts
         }
       }
     }
