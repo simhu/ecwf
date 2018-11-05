@@ -43,7 +43,7 @@ data _⊢ where
 
   ctx-cons :
     ∀ {Γ A} →
-    -- Γ ⊢ →
+    Γ ⊢ →
     Γ ⊢ A →
     --------------
     Γ ∙ A ⊢
@@ -185,8 +185,8 @@ data _∈_⇒_ where
 
   subst-comp :
     ∀ {Ξ Δ Γ σ τ} →
-    σ ∈ Δ ⇒ Γ → τ ∈ Ξ ⇒ Δ →
-    -------------------------
+    Δ ⊢ → σ ∈ Δ ⇒ Γ → τ ∈ Ξ ⇒ Δ →
+    --------------------------------
     comps σ τ ∈ Ξ ⇒ Γ
 
 data _~_∈_⇒_ where
@@ -228,8 +228,8 @@ data _~_∈_⇒_ where
 
   subst-eq-comp :
     ∀ {Ξ Δ Γ σ σ' τ τ'} →
-    σ ~ σ' ∈ Δ ⇒ Γ → τ ~ τ' ∈ Ξ ⇒ Δ →
-    ------------------------------------
+    Δ ⊢ → σ ~ σ' ∈ Δ ⇒ Γ → τ ~ τ' ∈ Ξ ⇒ Δ →
+    ------------------------------------------
     comps σ τ ~ comps σ' τ' ∈ Ξ ⇒ Γ
 
   subst-eq-<> :
@@ -280,17 +280,17 @@ subst-cod : ∀ {Δ Γ σ} → σ ∈ Δ ⇒ Γ → Γ ⊢
 
 ty-ctx {Γ} {.(_ [ _ ])} (ty-subst pA pσ) = subst-dom pσ
 
-subst-dom (subst-pp pA) = ctx-cons pA
+subst-dom (subst-pp pA) = ctx-cons (ty-ctx pA) pA
 subst-dom (subst-! pΔ) = pΔ
 subst-dom (subst-<> pσ _ _) = subst-dom pσ
 subst-dom (subst-id pΔ) = pΔ
-subst-dom (subst-comp pσ pτ) = subst-dom pτ
+subst-dom (subst-comp pΔ pσ pτ) = subst-dom pτ
 
 subst-cod (subst-pp pA) = ty-ctx pA
 subst-cod (subst-! pΔ) = ctx-nil
-subst-cod (subst-<> pσ pA x₁) = ctx-cons pA
+subst-cod (subst-<> pσ pA x₁) = ctx-cons (ty-ctx pA) pA
 subst-cod (subst-id pΔ) = pΔ
-subst-cod (subst-comp pσ pτ) = subst-cod pσ
+subst-cod (subst-comp pΔ pσ pτ) = subst-cod pσ
 
 ------------------------------------------------------------------------------
 
@@ -303,9 +303,9 @@ hom-eqr ctx-cat = record
   ; sym = subst-eq-sym
   ; trans = subst-eq-trans
   }
-comp ctx-cat (σ , pσ) (τ , pτ) = comps σ τ , subst-comp pσ pτ
+comp ctx-cat {B = _ , pΔ} (σ , pσ) (τ , pτ) = comps σ τ , subst-comp pΔ pσ pτ
 comp-assoc ctx-cat {f = σ , pσ} {τ , pτ} {ξ , pξ} = subst-eq-assoc pσ pτ pξ
-comp-cong ctx-cat = subst-eq-comp
+comp-cong ctx-cat {B = _ , pΔ} = subst-eq-comp pΔ
 id ctx-cat {Γ , pΓ} = ids , subst-id pΓ
 id-l ctx-cat {f = σ , pσ} = subst-eq-id-l pσ
 id-r ctx-cat {f = σ , pσ} = subst-eq-id-r pσ
@@ -333,10 +333,10 @@ ty-psh = record
   ; mor =  λ { (σ , pσ) → ty-map pσ }
   ; resp = ty-resp
   ; id-mor = map-rel λ { {b = B , pB} AB → ty-eq-trans AB (ty-eq-id pB) }
-  ; comp-mor = λ { {f = σ , pσ} {g = τ , pτ} → map-rel
+  ; comp-mor = λ { {b = _ , pΔ} {f = σ , pσ} {g = τ , pτ} → map-rel
                    λ { {A , pA} {B , pB} AB →
                        ty-eq-trans (ty-eq-assoc pA pτ pσ)
-                         (ty-eq-subst AB (subst-eq-refl (subst-comp pτ pσ)))
+                         (ty-eq-subst AB (subst-eq-refl (subst-comp pΔ pτ pσ)))
                      }
                  }
   }
@@ -388,7 +388,7 @@ open eCwFNotation {Ctx = ctx-cat} ty-psh ter-psh
 
 -- context extension
 _◂_ : (Γ : obj ctx-cat) → Typ Γ → obj ctx-cat
-(Γ , pΓ) ◂ (A , pA) = Γ ∙ A , ctx-cons pA --  ctx-cons pΓ pA
+(Γ , pΓ) ◂ (A , pA) = Γ ∙ A , ctx-cons pΓ pA
 
 
 εS : obj ctx-cat
@@ -421,7 +421,7 @@ isTerminal.!-η (compr {Γ , pΓ} {A , pA}) {(Δ , pΔ) , (σ , pσ) , t , pt}
   subst-eq-trans
     (subst-eq-<>-η pτ)
     (subst-eq-<> pA
-      (subst-eq-refl (subst-comp (subst-pp pA) pτ))
+      (subst-eq-refl (subst-comp (ctx-cons pΓ pA) (subst-pp pA) pτ))
       (ter-eq-trans
         (ter-eq-id (ter-ty-eq (ter-subst (ter-qq pA) pτ)
           (ty-eq-assoc pA (subst-pp pA) pτ)))
