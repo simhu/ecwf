@@ -10,6 +10,10 @@ open import Products using (isTerminal)
 
 -- open import Equality renaming (refl to ≡-refl)
 
+-- to make type-checking faster
+postulate
+  BLOCK : ∀ {l} {A : Set l} → A
+
 -- TODO: is there any way to not require lzero?  (The syntax has to be
 -- generalized.)
 module Elim {ks kr lo lh lr : Level}
@@ -37,6 +41,7 @@ module Elim {ks kr lo lh lr : Level}
   mutual -- the interpretation
     -- NEEDED
     o : ∀ {Γ} → Γ ⊢ → obj (Ctx E)
+    -- Ind(Γ ⊢).
     o ctx-nil = <> E
     o (ctx-cons pΓ pA) = o pΓ ∙E ty pΓ pA
     -- I wonder if the termination checker would accept: (o (ty-ctx pA)) ∙E ..
@@ -52,6 +57,7 @@ module Elim {ks kr lo lh lr : Level}
     -- Maybe it is still feasible to formulate o# as an iso?
     -- But this has to be in a way compatible with ty# etc.
     o# : ∀ {Γ} (pΓ pΓ' :  Γ ⊢) → hom (Ctx E) (o pΓ) (o pΓ')
+    -- Ind(pΓ : Γ ⊢ , pΓ' : Γ ⊢).
     o# ctx-nil ctx-nil = id (Ctx E)
     o# (ctx-cons pΓ pA) (ctx-cons pΓ' pA') =
       < o# pΓ pΓ' ∘E ppE
@@ -68,73 +74,78 @@ module Elim {ks kr lo lh lr : Level}
 
     -- NEEDED (depending on what to do with independence of context derivations)
     o#id : ∀ {Γ} (pΓ : Γ ⊢) → idsE ~s o# pΓ pΓ
-    o#id ctx-nil = ~seq .refl
-    o#id (ctx-cons pΓ pA) =
-      let IH : idsE ~s o# pΓ pΓ
-          IH = o#id pΓ
-          left = let open EqRelReason ~seq in
-                 begin
-                   ppE
-                 ≈⟨ id-l-inv (Ctx E) ⟩
-                   idsE ∘E ppE
-                 ≈⟨ comp-cong-l (Ctx E) IH ⟩
-                   o# pΓ pΓ ∘E ppE
-                 ∎
-          right = let open EqRelReason ~teq in
-                  begin
-                    qqE
-                  ≈⟨ ιrefl ⟩
-                    ι _ qqE
-                  ≈⟨ ιirr ⟩
-                    ι _ qqE
-                  ≈⟨ ~teq .sym ιtrans ⟩
-                    ι _ (ι' _ qqE)
-                  ∎
-      in ~seq .trans (<>-η-id E) (<>-cong E left right)
+    -- Ind(pΓ : Γ ⊢).
+    o#id = BLOCK
+    -- o#id ctx-nil = ~seq .refl
+    -- o#id (ctx-cons pΓ pA) =
+    --   let IH : idsE ~s o# pΓ pΓ
+    --       IH = o#id pΓ
+    --       left = let open EqRelReason ~seq in
+    --              begin
+    --                ppE
+    --              ≈⟨ id-l-inv (Ctx E) ⟩
+    --                idsE ∘E ppE
+    --              ≈⟨ comp-cong-l (Ctx E) IH ⟩
+    --                o# pΓ pΓ ∘E ppE
+    --              ∎
+    --       right = let open EqRelReason ~teq in
+    --               begin
+    --                 qqE
+    --               ≈⟨ ιrefl ⟩
+    --                 ι _ qqE
+    --               ≈⟨ ιirr ⟩
+    --                 ι _ qqE
+    --               ≈⟨ ~teq .sym ιtrans ⟩
+    --                 ι _ (ι' _ qqE)
+    --               ∎
+    --   in ~seq .trans (<>-η-id E) (<>-cong E left right)
 
     -- we most likely also need:
     o#comp : ∀ {Γ} (pΓ pΓ' pΓ'' : Γ ⊢) → o# pΓ' pΓ'' ∘E o# pΓ pΓ' ~s o# pΓ pΓ''
-    o#comp ctx-nil ctx-nil ctx-nil = id-l (Ctx E)
-    o#comp (ctx-cons pΓ pA) (ctx-cons pΓ' pA') (ctx-cons pΓ'' pA'') =
-      let o#ΓAΓA' = o# (ctx-cons pΓ pA) (ctx-cons pΓ' pA')
-          lefteq = let open EqRelReason ~seq in
-                   begin
-                     (o# pΓ' pΓ'' ∘E ppE) ∘E o#ΓAΓA'
-                   ≈⟨ comp-assoc-inv (Ctx E) ⟩
-                     o# pΓ' pΓ'' ∘E (ppE ∘E o#ΓAΓA')
-                   ≈⟨ comp-cong-r (Ctx E) (pp<> E) ⟩
-                     o# pΓ' pΓ'' ∘E (o# pΓ pΓ' ∘E ppE)
-                   ≈⟨ comp-assoc (Ctx E) ⟩
-                     (o# pΓ' pΓ'' ∘E o# pΓ pΓ') ∘E ppE
-                   ≈⟨ comp-cong-l (Ctx E) (o#comp pΓ pΓ' pΓ'') ⟩ -- IH
-                     o# pΓ pΓ'' ∘E ppE
-                   ∎
-          righteq = let open EqRelReason ~teq in
-                    begin
-                      ι' []-assoc ((ι _ qqE) [ o#ΓAΓA' ]tE)
-                    ≈⟨ ιresp ιsubst ⟩
-                      ι' []-assoc (ι _ (qqE [ o#ΓAΓA' ]tE))
-                    ≈⟨ ιresp (ιresp (qq<> E)) ⟩
-                      ι' []-assoc (ι _ (ι _ (ι _ qqE)))
-                    ≈⟨ ~teq .trans ιtrans (~teq .trans ιtrans ιtrans) ⟩
-                      ι _ qqE
-                    ≈⟨ ιirr ⟩
-                      ι _ qqE
-                    ≈⟨ ιtrans-inv ⟩
-                      ι ([]-resp-r lefteq) (ι _ qqE)
-                    ∎
-          open EqRelReason ~seq
-      in begin
-        < o# pΓ' pΓ'' ∘E ppE , ι' _ qqE >E ∘E o#ΓAΓA'
-      ≈⟨ <>-comp E ⟩
-        < (o# pΓ' pΓ'' ∘E ppE) ∘E o#ΓAΓA' , ι' []-assoc ((ι' _ qqE) [ o#ΓAΓA' ]tE) >E
-      ≈⟨ <>-cong E lefteq righteq ⟩
-        < o# pΓ pΓ'' ∘E ppE , ι _ qqE >E
-      ∎
+    -- Ind(pΓ pΓ' pΓ'' : Γ ⊢).
+    o#comp = BLOCK
+    -- o#comp ctx-nil ctx-nil ctx-nil = id-l (Ctx E)
+    -- o#comp (ctx-cons pΓ pA) (ctx-cons pΓ' pA') (ctx-cons pΓ'' pA'') =
+    --   let o#ΓAΓA' = o# (ctx-cons pΓ pA) (ctx-cons pΓ' pA')
+    --       lefteq = let open EqRelReason ~seq in
+    --                begin
+    --                  (o# pΓ' pΓ'' ∘E ppE) ∘E o#ΓAΓA'
+    --                ≈⟨ comp-assoc-inv (Ctx E) ⟩
+    --                  o# pΓ' pΓ'' ∘E (ppE ∘E o#ΓAΓA')
+    --                ≈⟨ comp-cong-r (Ctx E) (pp<> E) ⟩
+    --                  o# pΓ' pΓ'' ∘E (o# pΓ pΓ' ∘E ppE)
+    --                ≈⟨ comp-assoc (Ctx E) ⟩
+    --                  (o# pΓ' pΓ'' ∘E o# pΓ pΓ') ∘E ppE
+    --                ≈⟨ comp-cong-l (Ctx E) (o#comp pΓ pΓ' pΓ'') ⟩ -- IH
+    --                  o# pΓ pΓ'' ∘E ppE
+    --                ∎
+    --       righteq = let open EqRelReason ~teq in
+    --                 begin
+    --                   ι' []-assoc ((ι _ qqE) [ o#ΓAΓA' ]tE)
+    --                 ≈⟨ ιresp ιsubst ⟩
+    --                   ι' []-assoc (ι _ (qqE [ o#ΓAΓA' ]tE))
+    --                 ≈⟨ ιresp (ιresp (qq<> E)) ⟩
+    --                   ι' []-assoc (ι _ (ι _ (ι _ qqE)))
+    --                 ≈⟨ ~teq .trans ιtrans (~teq .trans ιtrans ιtrans) ⟩
+    --                   ι _ qqE
+    --                 ≈⟨ ιirr ⟩
+    --                   ι _ qqE
+    --                 ≈⟨ ιtrans-inv ⟩
+    --                   ι ([]-resp-r lefteq) (ι _ qqE)
+    --                 ∎
+    --       open EqRelReason ~seq
+    --   in begin
+    --     < o# pΓ' pΓ'' ∘E ppE , ι' _ qqE >E ∘E o#ΓAΓA'
+    --   ≈⟨ <>-comp E ⟩
+    --     < (o# pΓ' pΓ'' ∘E ppE) ∘E o#ΓAΓA' , ι' []-assoc ((ι' _ qqE) [ o#ΓAΓA' ]tE) >E
+    --   ≈⟨ <>-cong E lefteq righteq ⟩
+    --     < o# pΓ pΓ'' ∘E ppE , ι _ qqE >E
+    --   ∎
 
     -- NEEDED
     m : ∀ {Δ Γ σ} (pΔ : Δ ⊢) (pΓ : Γ ⊢) (pσ : σ ∈ Δ ⇒ Γ) →
         hom (Ctx E) (o pΔ) (o pΓ)
+    -- Ind(pσ : σ ∈ Δ ⇒ Γ).
     m pΔ pΓ (subst-pp pA) = ppE ∘E o# pΔ (ctx-cons pΓ pA)
     m pΔ pΓ (subst-! pΔ') = o# ctx-nil pΓ ∘E !E
     m pΔ (ctx-cons pΓ pA') (subst-<> pσ pA pt) =
@@ -145,6 +156,7 @@ module Elim {ks kr lo lh lr : Level}
     -- note that this is also needed in the refl case of m-resp
     m# : ∀ {Δ Γ σ} (pΔ : Δ ⊢) (pΓ : Γ ⊢)
          (pσ pσ' : σ ∈ Δ ⇒ Γ) → m pΔ pΓ pσ ~s m pΔ pΓ pσ'
+    -- Ind(pσ pσ': σ ∈ Δ ⇒ Γ).
     m# pΔ pΓ (subst-! pΔ') (subst-! pΔ'') = ~seq .refl
     m# pΔ (ctx-cons pΓ pA) (subst-<> pσ pA'' pt'') (subst-<> pσ' pA' pt') =
       let right = let open EqRelReason ~teq in
@@ -170,67 +182,79 @@ module Elim {ks kr lo lh lr : Level}
     -- NEEDED
     m-resp : ∀ {Δ Γ σ τ} (pΔ : Δ ⊢) (pΓ : Γ ⊢) (pσ : σ ∈ Δ ⇒ Γ) (pτ : τ ∈ Δ ⇒ Γ)
            (pστ : σ ~ τ ∈ Δ ⇒ Γ) → m pΔ pΓ pσ ~s m pΔ pΓ pτ
-    m-resp pΔ pΓ pσ pτ (subst-eq-!-η x) = {!!}
-    m-resp pΔ pΓ pσ pτ (subst-eq-<>-η x) = {!!}
-    m-resp pΔ pΓ pσ pτ (subst-eq-pp<> x x₁ x₂) = {!!}
-    m-resp pΔ pΓ pσ pτ (subst-eq-assoc x x₁ x₂) = {!!}
-    m-resp pΔ pΓ pσ pτ (subst-eq-id-l x) = {!!}
-    m-resp pΔ pΓ pσ pτ (subst-eq-id-r x) = {!!}
-    m-resp pΔ pΓ pσ pτ (subst-eq-comp x pστ pστ₁) = {!!}
-    m-resp pΔ pΓ pσ pτ (subst-eq-<> x pστ x₁) = {!!}
-    m-resp pΔ pΓ pσ pτ (subst-eq-refl _) = m# pΔ pΓ pσ pτ
-    m-resp pΔ pΓ pσ pτ (subst-eq-sym pστ) = ~seq .sym (m-resp pΔ pΓ pτ pσ pστ)
-    m-resp pΔ pΓ pσ pτ (subst-eq-trans pσξ pξτ) = ~seq .trans (m-resp pΔ pΓ pσ {!!} pσξ) (m-resp pΔ pΓ {!!} pτ pξτ)
+    -- Ind(pστ : σ ~ τ ∈ Δ ⇒ Γ)
+    m-resp = {!!}
+    -- m-resp pΔ pΓ pσ pτ (subst-eq-!-η x) = {!!}
+    -- m-resp pΔ pΓ pσ pτ (subst-eq-<>-η x) = {!!}
+    -- m-resp pΔ pΓ pσ pτ (subst-eq-pp<> x x₁ x₂) = {!!}
+    -- m-resp pΔ pΓ pσ pτ (subst-eq-assoc x x₁ x₂) = {!!}
+    -- m-resp pΔ pΓ pσ pτ (subst-eq-id-l x) = {!!}
+    -- m-resp pΔ pΓ pσ pτ (subst-eq-id-r x) = {!!}
+    -- m-resp pΔ pΓ pσ pτ (subst-eq-comp x pστ pστ₁) = {!!}
+    -- m-resp pΔ pΓ pσ pτ (subst-eq-<> x pστ x₁) = {!!}
+    -- m-resp pΔ pΓ pσ pτ (subst-eq-refl _) = m# pΔ pΓ pσ pτ
+    -- m-resp pΔ pΓ pσ pτ (subst-eq-sym pστ) = ~seq .sym (m-resp pΔ pΓ pτ pσ pστ)
+    -- m-resp pΔ pΓ pσ pτ (subst-eq-trans pσξ pξτ) = {!!} -- ~seq .trans (m-resp pΔ pΓ pσ {!!} pσξ) (m-resp pΔ pΓ {!!} pτ pξτ)
 
     -- NEEDED
     ty : ∀ {Γ A} (pΓ : Γ ⊢) (pA : Γ ⊢ A) → TypE (o pΓ)
+    -- Ind(pA : Γ ⊢ A).
     ty {Δ} {Aσ} pΔ (ty-subst pA pσ) = {!!} -- here it would be
                                            -- convenient to have
                                            -- the codomain of σ
 
     -- maybe better to define ty#l and ty#r instead to prove ty#
     ty# : ∀ {Γ A} (pΓ pΓ' : Γ ⊢) (pA pA' : Γ ⊢ A) → ty pΓ pA ~E ty pΓ' pA' [ o# pΓ pΓ' ]E
+    -- Ind(pA pA' : Γ ⊢ A)?
     ty# = {!!}
 
     -- special case of ty#, using m#id (not sure if termination
     -- checker will grasp this)
     ty#r : ∀ {Γ A} (pΓ : Γ ⊢) (pA pA' : Γ ⊢ A) → ty pΓ pA ~E ty pΓ pA'
+    -- Ind(pA pA' : Γ ⊢ A)?
     ty#r = {!!}
 
     -- ditto
     ty#l : ∀ {Γ A} (pΓ pΓ' : Γ ⊢) (pA : Γ ⊢ A) → ty pΓ pA ~E ty pΓ' pA [ o# pΓ pΓ' ]E
-    ty#l = {!!}
+    -- Ind(pA : Γ ⊢ A)?
+    ty#l pΓ pΓ' (ty-subst pA pσ) = {!!}
 
     -- NEEDED
     ty-cong : ∀ {Γ A B} (pΓ : Γ ⊢) (pA : Γ ⊢ A) (pB : Γ ⊢ B)
               (pAB : Γ ⊢ A ~ B) → ty pΓ pA ~E ty pΓ pB
+    -- Ind(pAB : Γ ⊢ A ~ B).
     ty-cong = {!!}
 
     -- NEEDED
     subst-ty : ∀ {Γ Δ σ A} (pΔ : Δ ⊢) (pΓ : Γ ⊢)
                (pσ : σ ∈ Δ ⇒ Γ) (pA : Γ ⊢ A) →
                (ty pΓ pA [ m pΔ pΓ pσ ]E) ~E ty pΔ (ap (ty-map pσ) (A , pA) .snd)
+    -- Ind(pA : Γ ⊢ A)?
     subst-ty = {!!}
 
     -- NEEDED
     ter : ∀ {Γ A t} (pΓ : Γ ⊢) (pA : Γ ⊢ A) (pt : Γ ⊢ t ∈ A) → TerE (o pΓ) (ty pΓ pA)
+    -- Ind(pt : Γ ⊢ t ∈ A).
     ter = {!!}
 
     ter#r : ∀ {Γ A t} (pΓ : Γ ⊢) (pA : Γ ⊢ A) (pt pt' : Γ ⊢ t ∈ A) →
             ter pΓ pA pt ~t ter pΓ pA pt'
+    -- Ind(pt pt' : Γ ⊢ t ∈ A).
     ter#r = {!!}
 
     -- NEEDED
     ter-cong : ∀ {Γ A t s} (pΓ : Γ ⊢) (pA : Γ ⊢ A) (pt : Γ ⊢ t ∈ A) (ps : Γ ⊢ s ∈ A)
                (pts : Γ ⊢ t ~ s ∈ A) → ter pΓ pA pt ~t ter pΓ pA ps
-    ter-cong pΓ pA pt ps (ter-eq-qq<> x x₁ x₂) = {!!}
-    ter-cong pΓ pA pt ps (ter-eq-subst pts x) = {!!}
-    ter-cong pΓ pA pt ps (ter-eq-id x) = {!!}
-    ter-cong pΓ pA pt ps (ter-eq-assoc x x₁ x₂) = {!!}
-    ter-cong pΓ pA pt ps (ter-eq-ty-eq pts x) = {!!}
-    ter-cong pΓ pA pt ps (ter-eq-refl _) = ter#r pΓ pA pt ps
-    ter-cong pΓ pA pt ps (ter-eq-sym pst) = ~teq .sym (ter-cong pΓ pA ps pt pst)
-    ter-cong pΓ pA pt ps (ter-eq-trans pts pts₁) = {!!}
+    -- Ind(pts : Γ ⊢ t ~ s ∈ A).
+    ter-cong = {!!}
+    -- ter-cong pΓ pA pt ps (ter-eq-qq<> x x₁ x₂) = {!!}
+    -- ter-cong pΓ pA pt ps (ter-eq-subst pts x) = {!!}
+    -- ter-cong pΓ pA pt ps (ter-eq-id x) = {!!}
+    -- ter-cong pΓ pA pt ps (ter-eq-assoc x x₁ x₂) = {!!}
+    -- ter-cong pΓ pA pt ps (ter-eq-ty-eq pts x) = {!!}
+    -- ter-cong pΓ pA pt ps (ter-eq-refl _) = ter#r pΓ pA pt ps
+    -- ter-cong pΓ pA pt ps (ter-eq-sym pst) = ~teq .sym (ter-cong pΓ pA ps pt pst)
+    -- ter-cong pΓ pA pt ps (ter-eq-trans pts pts₁) = {!!}
 
     -- NEEDED
     subst-ter : ∀ {Γ Δ A σ t} (pΔ : Δ ⊢) (pΓ : Γ ⊢) (pσ : σ ∈ Δ ⇒ Γ)
@@ -240,6 +264,7 @@ module Elim {ks kr lo lh lr : Level}
                     eq : (ty pΓ pA [ m pΔ pΓ pσ ]E) ~E ty pΔ pAσ
                     eq = subst-ty pΔ pΓ pσ pA
                 in ter pΓ pA pt [ m pΔ pΓ pσ ]tE ~t ι eq (ter pΔ pAσ ptσ)
+    -- Ind(pt : Γ ⊢ t ∈ A)?
     subst-ter {Γ} {Δ} {A} {σ} {t} pΔ pΓ pσ pA pt = {!!}
 
     -- NEEDED
@@ -248,6 +273,7 @@ module Elim {ks kr lo lh lr : Level}
               (pAB : Γ ⊢ A ~ B) (pt : Γ ⊢ t ∈ B) →
               ι (ty-cong pΓ pA pB pAB) (ter pΓ pB pt)
               ~t ter pΓ pA (ter-ty-eq pt (ty-eq-sym pAB))
+    -- Ind(pt : Γ ⊢ t ∈ B)?
     ι-ter = {!!}
 
 
