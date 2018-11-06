@@ -253,6 +253,8 @@ module Elim {ks kr lo lh lr : Level}
 
 -------------------------------------------------------------------------------
 
+{-
+
   subst-ty-cong : ∀ {Γ Δ σ A B} (pΔ : Δ ⊢) (pΓ : Γ ⊢) (pσ : σ ∈ Δ ⇒ Γ)
           (pA : Γ ⊢ A) (pB : Γ ⊢ B) (pAB : Γ ⊢ A ~ B)
           → (ty pΓ pA [ m pΔ pΓ pσ ]E) ~E ty pΔ (ap (ty-map pσ) (B , pB) .snd)
@@ -366,3 +368,5 @@ module Elim {ks kr lo lh lr : Level}
   -- TODO: Still misses that structure is preserved
   elim : Mor SynCwf E
   elim = record { ctx = elim-ctx ; ty = elim-ty ; tm = elim-ter }
+
+-}
