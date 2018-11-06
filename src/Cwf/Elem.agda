@@ -116,9 +116,13 @@ module eCwFNotation {lvs lvr lo lh lr} {Ctx : ECat {lo} {lh} {lr}}
            ι p (ι q u) ~t ι (~eq .trans p q) u
   ιtrans = ~teq .trans (Tm .comp-mor ` (~teq .refl)) (Tm .resp (Ctx .id-l) ` (~teq .refl))
 
-  ιsubst : ∀ {Δ Γ} (σ : Subst Δ Γ) {A B : Typ Γ} (p : B ~ A) (u : Ter Γ A) →
+  ιtrans-inv : ∀ {Γ} {A B C : Typ Γ} {p : C ~ B} {q : B ~ A} {u : Ter Γ A} →
+               ι (~eq .trans p q) u ~t ι p (ι q u)
+  ιtrans-inv = ~teq .sym ιtrans
+
+  ιsubst : ∀ {Δ Γ} {σ : Subst Δ Γ} {A B : Typ Γ} {p : B ~ A} {u : Ter Γ A} →
            (ι p u) [ σ ]t ~t ι ([]-resp' p (~seq .refl)) (u [ σ ]t)
-  ιsubst σ p u =
+  ιsubst {σ = σ} {p = p} {u = u} =
     let open EqRelReason ~teq
         lem : (ids , trans ~eq p []-id) ∘el (σ ,  eqr (fun Ty _) .refl)
                 ~el (σ ,  eqr (fun Ty _) .refl) ∘el
@@ -137,6 +141,25 @@ module eCwFNotation {lvs lvr lo lh lr} {Ctx : ECat {lo} {lh} {lr}}
 
   ι' : ∀ {Γ} {A B : Typ Γ} → A ~ B → Ter Γ A → Ter Γ B
   ι' p = ι (~eq .sym p)
+
+  ι-left-irr : ∀ {Γ} {A B : Typ Γ} {p : B ~ A} {q : A ~ B} {u : Ter Γ A} {v : Ter Γ B} →
+              u ~t ι q v → ι p u ~t v
+  ι-left-irr {p = p} {q} {u} {v} r = let open EqRelReason ~teq in
+    begin
+      ι p u
+    ≈⟨ ιresp r ⟩
+      ι p (ι q v)
+    ≈⟨ ιtrans ⟩
+      ι _ v
+    ≈⟨ ιirr ⟩
+      ι _ v
+    ≈⟨ ~teq .sym ιrefl ⟩
+      v
+    ∎
+
+  ι-right-irr : ∀ {Γ} {A B : Typ Γ} {p : B ~ A} {q : A ~ B} {u : Ter Γ A} {v : Ter Γ B} →
+               ι q v ~t u → v ~t ι p u
+  ι-right-irr r = ~teq .sym (ι-left-irr (~teq .sym r))
 
   []t-assoc : ∀ {Θ Δ Γ} {τ : Subst Θ Δ} {σ : Subst Δ Γ} {A : Typ Γ} {u : Ter Γ A} →
                 u [ σ ]t [ τ ]t ~t ι []-assoc (u [ σ ∘s τ ]t)
@@ -191,7 +214,7 @@ module eCwFNotation {lvs lvr lo lh lr} {Ctx : ECat {lo} {lh} {lr}}
                σ'' ∘s (τ ∘s τ')
              ∎)
           , ~teq .trans α' (~teq .trans (ιresp ([]t-resp-l α))
-            (~teq .trans (ιresp (ιsubst _ _ _))
+            (~teq .trans (ιresp ιsubst)
             (~teq .trans ιtrans
             (~teq .trans (ιresp []t-assoc)
             (~teq .trans ιtrans ιirr)))))
@@ -234,11 +257,15 @@ record eCwF {lvs lvr lo lh lr : Level} : Set (lsuc (lvs ⊔ lvr ⊔ lo ⊔ lh �
            pp ∘s < σ , t > ~s σ
   pp<> = ~seq .sym pp<>-inv
 
-  qq<> : ∀ {Δ Γ} {σ : Subst Δ Γ} {A : Typ Γ} {t : Ter Δ (A [ σ ])} →
-            t ~t ι (~eq .trans ([]-resp-r (compr .isTerminal.! {Δ , σ , t} .snd .fst))
+  qq<>-inv : ∀ {Δ Γ} {σ : Subst Δ Γ} {A : Typ Γ} {t : Ter Δ (A [ σ ])} →
+            t ~t ι (~eq .trans ([]-resp-r pp<>-inv)
                     (~eq .sym []-assoc))
                    (qq [ < σ , t > ]t)
-  qq<> {σ = σ} {t = t} = compr .isTerminal.! {_ , σ , t} .snd .snd
+  qq<>-inv {σ = σ} {t = t} = compr .isTerminal.! {_ , σ , t} .snd .snd
+
+  qq<> : ∀ {Δ Γ} {σ : Subst Δ Γ} {A : Typ Γ} {t : Ter Δ (A [ σ ])} →
+             qq [ < σ , t > ]t ~t ι (~eq .trans []-assoc ([]-resp-r pp<>)) t
+  qq<> = ι-right-irr (~teq .sym qq<>-inv)
 
   -- TODO: double-check this definition!
   <>-η-id : ∀ {Γ} {A : Typ Γ} → ids {Γ ∙ A} ~s < pp , qq >
@@ -254,7 +281,7 @@ record eCwF {lvs lvr lo lh lr : Level} : Set (lsuc (lvs ⊔ lvr ⊔ lo ⊔ lh �
         t
       ≈⟨ q ⟩
         ι ([]-resp-r p) t'
-      ≈⟨ ιresp qq<> ⟩
+      ≈⟨ ιresp qq<>-inv ⟩
         ι _ (ι _ (qq [ < σ' , t' > ]t))
       ≈⟨ ιtrans ⟩
         ι _ (qq [ < σ' , t' > ]t)
@@ -279,11 +306,11 @@ record eCwF {lvs lvr lo lh lr : Level} : Set (lsuc (lvs ⊔ lvr ⊔ lo ⊔ lh �
       , (let open EqRelReason ~teq in
          begin
            ι _ (t [ τ ]t)
-         ≈⟨ ιresp ([]t-resp-l qq<>) ⟩
+         ≈⟨ ιresp ([]t-resp-l qq<>-inv) ⟩
            ι _ (ι _ (qq [ < σ , t > ]t) [ τ ]t)
          -- ≈⟨ ιresp ([]t-resp-l ιirr) ⟩
          --   ι _ (ι _ (qq [ < σ , t > ]t) [ τ ]t)
-         ≈⟨ ιresp (ιsubst _ _ _) ⟩
+         ≈⟨ ιresp ιsubst ⟩
            ι _ (ι _ (qq [ < σ , t > ]t [ τ ]t))
          ≈⟨ ιtrans ⟩
            ι _ (qq [ < σ , t > ]t [ τ ]t)

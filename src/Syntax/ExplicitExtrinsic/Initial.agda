@@ -96,17 +96,40 @@ module Elim {ks kr lo lh lr : Level}
     o#comp : ∀ {Γ} (pΓ pΓ' pΓ'' : Γ ⊢) → o# pΓ' pΓ'' ∘E o# pΓ pΓ' ~s o# pΓ pΓ''
     o#comp ctx-nil ctx-nil ctx-nil = id-l (Ctx E)
     o#comp (ctx-cons pΓ pA) (ctx-cons pΓ' pA') (ctx-cons pΓ'' pA'') =
-      let open EqRelReason ~seq
-          o#ΓAΓA' = o# (ctx-cons pΓ pA) (ctx-cons pΓ' pA')
+      let o#ΓAΓA' = o# (ctx-cons pΓ pA) (ctx-cons pΓ' pA')
+          lefteq = let open EqRelReason ~seq in
+                   begin
+                     (o# pΓ' pΓ'' ∘E ppE) ∘E o#ΓAΓA'
+                   ≈⟨ comp-assoc-inv (Ctx E) ⟩
+                     o# pΓ' pΓ'' ∘E (ppE ∘E o#ΓAΓA')
+                   ≈⟨ comp-cong-r (Ctx E) (pp<> E) ⟩
+                     o# pΓ' pΓ'' ∘E (o# pΓ pΓ' ∘E ppE)
+                   ≈⟨ comp-assoc (Ctx E) ⟩
+                     (o# pΓ' pΓ'' ∘E o# pΓ pΓ') ∘E ppE
+                   ≈⟨ comp-cong-l (Ctx E) (o#comp pΓ pΓ' pΓ'') ⟩ -- IH
+                     o# pΓ pΓ'' ∘E ppE
+                   ∎
+          righteq = let open EqRelReason ~teq in
+                    begin
+                      ι' []-assoc ((ι _ qqE) [ o#ΓAΓA' ]tE)
+                    ≈⟨ ιresp ιsubst ⟩
+                      ι' []-assoc (ι _ (qqE [ o#ΓAΓA' ]tE))
+                    ≈⟨ ιresp (ιresp (qq<> E)) ⟩
+                      ι' []-assoc (ι _ (ι _ (ι _ qqE)))
+                    ≈⟨ ~teq .trans ιtrans (~teq .trans ιtrans ιtrans) ⟩
+                      ι _ qqE
+                    ≈⟨ ιirr ⟩
+                      ι _ qqE
+                    ≈⟨ ιtrans-inv ⟩
+                      ι ([]-resp-r lefteq) (ι _ qqE)
+                    ∎
+          open EqRelReason ~seq
       in begin
         < o# pΓ' pΓ'' ∘E ppE , ι' _ qqE >E ∘E o#ΓAΓA'
       ≈⟨ <>-comp E ⟩
         < (o# pΓ' pΓ'' ∘E ppE) ∘E o#ΓAΓA' , ι' []-assoc ((ι' _ qqE) [ o#ΓAΓA' ]tE) >E
-      ≈⟨ <>-cong E (comp-assoc-inv (Ctx E)) {!!} ⟩
-        < o# pΓ' pΓ'' ∘E (ppE ∘E o#ΓAΓA') , {!!} -- ι' []-assoc ((ι' _ qqE) [ o#ΓAΓA' ]tE)
-        >E
-      ≈⟨ {!!} ⟩
-        {!!}
+      ≈⟨ <>-cong E lefteq righteq ⟩
+        < o# pΓ pΓ'' ∘E ppE , ι _ qqE >E
       ∎
 
     -- NEEDED
