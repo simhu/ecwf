@@ -1,3 +1,5 @@
+{-# OPTIONS --with-K #-}
+-- TODO: can we typecheck this w/o K?
 -- {-# OPTIONS --without-K #-}
 module Syntax.ExplicitExtrinsic.Initial where
 
@@ -6,7 +8,7 @@ open import Presheaves
 open import Cwf.Elem
 open import Products using (isTerminal)
 
-open import Equality renaming (refl to ≡-refl)
+-- open import Equality renaming (refl to ≡-refl)
 
 -- TODO: is there any way to not require lzero?  (The syntax has to be
 -- generalized.)
@@ -16,6 +18,9 @@ module Elim {ks kr lo lh lr : Level}
   open import Syntax.ExplicitExtrinsic {lzero}
 
   open eCwF
+  -- TODO This doesn't really work :-(
+  {-# DISPLAY eCwF.compr .isTerminal.! {_ , σ , t} .fst = eCwF.<_,_> σ t #-}
+
   module Notation {ks kr lo lh lr} (H : eCwF {ks} {kr} {lo} {lh} {lr}) =
     eCwFNotation {Ctx = Ctx H} (Ty H) (Tm H)
 
@@ -61,9 +66,31 @@ module Elim {ks kr lo lh lr : Level}
              in ι' eq qqE)
           >E
 
-        o#id : ∀ {Γ} (pΓ : Γ ⊢) → o# pΓ pΓ ~sE idsE
+        o#id : ∀ {Γ} (pΓ : Γ ⊢) → idsE ~sE o# pΓ pΓ
         o#id ctx-nil = ~seq .refl
-        o#id (ctx-cons pΓ pA) = {!!}
+        o#id (ctx-cons pΓ pA) =
+          let IH : idsE ~sE o# pΓ pΓ
+              IH = o#id pΓ
+              left = let open EqRelReason ~seq in
+                     begin
+                       ppE
+                     ≈⟨ id-l-inv (Ctx E) ⟩
+                       idsE ∘E ppE
+                     ≈⟨ comp-cong-l (Ctx E) IH ⟩
+                       o# pΓ pΓ ∘E ppE
+                     ∎
+              right = let open EqRelReason ~tEeq in
+                      begin
+                        qqE
+                      ≈⟨ ιrefl ⟩
+                        ι _ qqE
+                      ≈⟨ ιirr ⟩
+                        ι _ qqE
+                      ≈⟨ ~tEeq .sym (ιtrans _ _) ⟩
+                        ι _ (ι' _ qqE)
+                      ∎
+          in ~seq .trans (<>-η-id E) (<>-cong E left right)
+
 
         m : ∀ {Δ Γ σ} (pΔ : Δ ⊢) (pΓ : Γ ⊢) (pσ : σ ∈ Δ ⇒ Γ) →
             hom (Ctx E) (o pΔ) (o pΓ)
@@ -76,7 +103,7 @@ module Elim {ks kr lo lh lr : Level}
 
         m# : ∀ {Δ Γ σ} (pΔ : Δ ⊢) (pΓ : Γ ⊢)
              (pσ pσ' : σ ∈ Δ ⇒ Γ) → m pΔ pΓ pσ ~sE m pΔ pΓ pσ'
-        m# pΔ pΓ (subst-pp pA) pσ' = {!!}
+        m# pΔ pΓ (subst-pp pA) (subst-pp pA') = {!!}
         m# pΔ pΓ (subst-! x) pσ' = {!!}
         m# pΔ pΓ (subst-<> pσ x x₁) pσ' = {!!}
         m# pΔ pΓ (subst-id x) pσ' = {!!}
@@ -193,7 +220,7 @@ module Elim {ks kr lo lh lr : Level}
       ι tyeq (ι (subst-ty pΔ pΓ pσ pA) (ter pΔ pAσ psσ))
     ≈⟨ ιtrans _ _ ⟩
       ι (~Eeq .trans tyeq (subst-ty pΔ pΓ pσ pA)) (ter pΔ pAσ psσ)
-    ≈⟨ ιirr (~tEeq .refl) ⟩
+    ≈⟨ ιirr ⟩
       ι (ty-cong pΔ pB pAσ q) (ter pΔ pAσ psσ)
     ≈⟨ ι-ter pΔ pB (ty-subst pA pσ) q (ter-subst ps pσ) ⟩
       ter pΔ pB (ter-map pσ q .ap (s , ps) .snd)
@@ -204,8 +231,9 @@ module Elim {ks kr lo lh lr : Level}
     { fun = λ { (Γ , pΓ) → o pΓ }
     ; mor = λ { {Δ , pΔ} {Γ , pΓ} (σ , pσ) → m pΔ pΓ pσ }
     ; resp = λ { {Δ , pΔ} {Γ , pΓ} {σ , pσ} {τ , pτ} pστ → m-resp pΔ pΓ pσ pτ pστ}
-    ; id-mor = λ { {Γ , pΓ} → ~seq .sym (o#id pΓ) }
-    ; comp-mor = ~seq .refl }
+    ; id-mor = λ { {Γ , pΓ} → o#id pΓ }
+    ; comp-mor = ~seq .refl     -- a definitional equality!
+    }
 
   elim-ty-nat : (Γ : obj (Ctx SynCwf op)) →
                 eMap (fun (Ty SynCwf) Γ) (fun (Ty E ∘Func (elim-ctx op-fun)) Γ)
