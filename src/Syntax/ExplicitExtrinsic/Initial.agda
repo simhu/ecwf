@@ -150,7 +150,7 @@ module Elim {ks kr lo lh lr : Level}
       let right = let open EqRelReason ~teq in
                   begin
                     ι (subst-ty pΔ pΓ pσ pA) (ter pΔ (ty-subst pA pσ) pt'')
-                  ≈⟨ {!!} ⟩
+                  ≈⟨ {!!} ⟩ -- TODO: are we allowed to refer to ter-cong here?
                     ι ([]-resp-r (m# pΔ pΓ pσ pσ'))
                       (ι (subst-ty pΔ pΓ pσ' pA) (ter pΔ (ty-subst pA pσ') pt'))
                   ∎
@@ -208,8 +208,8 @@ module Elim {ks kr lo lh lr : Level}
 
     -- NEEDED
     subst-ty : ∀ {Γ Δ σ A} (pΔ : Δ ⊢) (pΓ : Γ ⊢)
-                      (pσ : σ ∈ Δ ⇒ Γ) (pA : Γ ⊢ A) →
-                      (ty pΓ pA [ m pΔ pΓ pσ ]E) ~E ty pΔ (ap (ty-map pσ) (A , pA) .snd)
+               (pσ : σ ∈ Δ ⇒ Γ) (pA : Γ ⊢ A) →
+               (ty pΓ pA [ m pΔ pΓ pσ ]E) ~E ty pΔ (ap (ty-map pσ) (A , pA) .snd)
     subst-ty = {!!}
 
     -- NEEDED
