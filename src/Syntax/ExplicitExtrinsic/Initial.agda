@@ -34,162 +34,184 @@ module Elim {ks kr lo lh lr : Level}
 
   open eCwF E using () renaming (_∙_ to _∙E_ ; <_,_> to <_,_>E ; pp to ppE ; qq to qqE ; ! to !E)
 
-  module _ where -- the interpretation
---    abstract
-      mutual
-        o : ∀ {Γ} → Γ ⊢ → obj (Ctx E)
-        o ctx-nil = <> E
-        o (ctx-cons pΓ pA) = o pΓ ∙E ty pΓ pA
-        -- I wonder if the termination checker would accept: (o (ty-ctx pA)) ∙E ..
+  mutual -- the interpretation
+    -- NEEDED
+    o : ∀ {Γ} → Γ ⊢ → obj (Ctx E)
+    o ctx-nil = <> E
+    o (ctx-cons pΓ pA) = o pΓ ∙E ty pΓ pA
+    -- I wonder if the termination checker would accept: (o (ty-ctx pA)) ∙E ..
 
-        -- ??
-        -- o# : ∀ {Γ} (pΓ pΓ' :  Γ ⊢) → o pΓ ≡ o pΓ'
-        -- o# ctx-nil ctx-nil = ≡-refl
-        -- o# (ctx-cons pΓ pA) (ctx-cons pΓ' pA') = {!!}
-        -- the problem with this is that type equality (~E) isn't
-        -- necessarily equality
-
-        -- Maybe it is still feasible to formulate o# as an iso?
-        -- But this has to be in a way compatible with ty# etc.
-        o# : ∀ {Γ} (pΓ pΓ' :  Γ ⊢) → hom (Ctx E) (o pΓ) (o pΓ')
-        o# ctx-nil ctx-nil = id (Ctx E)
-        o# (ctx-cons pΓ pA) (ctx-cons pΓ' pA') =
-          < o# pΓ pΓ' ∘E ppE
-          , (let open EqRelReason ~Eeq
-                 eq = begin
-                        ty pΓ pA [ ppE ]E
-                      ≈⟨ []-resp-l (ty# pΓ pΓ' pA pA') ⟩
-                        ty pΓ' pA' [ o# pΓ pΓ' ]E [ ppE ]E
-                      ≈⟨ []-assoc ⟩
-                        ty pΓ' pA' [ o# pΓ pΓ' ∘E ppE ]E
-                      ∎
-             in ι' eq qqE)
-          >E
-
-        o#id : ∀ {Γ} (pΓ : Γ ⊢) → idsE ~sE o# pΓ pΓ
-        o#id ctx-nil = ~seq .refl
-        o#id (ctx-cons pΓ pA) =
-          let IH : idsE ~sE o# pΓ pΓ
-              IH = o#id pΓ
-              left = let open EqRelReason ~seq in
-                     begin
-                       ppE
-                     ≈⟨ id-l-inv (Ctx E) ⟩
-                       idsE ∘E ppE
-                     ≈⟨ comp-cong-l (Ctx E) IH ⟩
-                       o# pΓ pΓ ∘E ppE
-                     ∎
-              right = let open EqRelReason ~tEeq in
-                      begin
-                        qqE
-                      ≈⟨ ιrefl ⟩
-                        ι _ qqE
-                      ≈⟨ ιirr ⟩
-                        ι _ qqE
-                      ≈⟨ ~tEeq .sym ιtrans ⟩
-                        ι _ (ι' _ qqE)
-                      ∎
-          in ~seq .trans (<>-η-id E) (<>-cong E left right)
+    -- ??
+    -- o# : ∀ {Γ} (pΓ pΓ' :  Γ ⊢) → o pΓ ≡ o pΓ'
+    -- o# ctx-nil ctx-nil = ≡-refl
+    -- o# (ctx-cons pΓ pA) (ctx-cons pΓ' pA') = {!!}
+    -- the problem with this is that type equality (~E) isn't
+    -- necessarily equality
 
 
-        m : ∀ {Δ Γ σ} (pΔ : Δ ⊢) (pΓ : Γ ⊢) (pσ : σ ∈ Δ ⇒ Γ) →
-            hom (Ctx E) (o pΔ) (o pΓ)
-        m pΔ pΓ (subst-pp pA) = ppE ∘E o# pΔ (ctx-cons pΓ pA)
-        m pΔ pΓ (subst-! pΔ') = o# ctx-nil pΓ ∘E !E
-        m pΔ (ctx-cons pΓ pA') (subst-<> pσ pA pt) =
-          < m pΔ pΓ pσ , ι (subst-ty pΔ pΓ pσ pA') (ter pΔ (ty-subst pA' pσ) pt) >E
-        m pΔ pΓ (subst-id pΔ') = o# pΔ pΓ -- hmm
-        m pΔ pΓ (subst-comp pΞ pσ pτ) = m pΞ pΓ pσ ∘E m pΔ pΞ pτ
+    -- Maybe it is still feasible to formulate o# as an iso?
+    -- But this has to be in a way compatible with ty# etc.
+    o# : ∀ {Γ} (pΓ pΓ' :  Γ ⊢) → hom (Ctx E) (o pΓ) (o pΓ')
+    o# ctx-nil ctx-nil = id (Ctx E)
+    o# (ctx-cons pΓ pA) (ctx-cons pΓ' pA') =
+      < o# pΓ pΓ' ∘E ppE
+      , (let open EqRelReason ~Eeq
+             eq = begin
+                    ty pΓ pA [ ppE ]E
+                  ≈⟨ []-resp-l (ty# pΓ pΓ' pA pA') ⟩
+                    ty pΓ' pA' [ o# pΓ pΓ' ]E [ ppE ]E
+                  ≈⟨ []-assoc ⟩
+                    ty pΓ' pA' [ o# pΓ pΓ' ∘E ppE ]E
+                  ∎
+         in ι' eq qqE)
+      >E
 
-        -- note that this is also needed in the refl caes of m-resp
-        m# : ∀ {Δ Γ σ} (pΔ : Δ ⊢) (pΓ : Γ ⊢)
-             (pσ pσ' : σ ∈ Δ ⇒ Γ) → m pΔ pΓ pσ ~sE m pΔ pΓ pσ'
-        m# pΔ pΓ (subst-! pΔ') (subst-! pΔ'') = ~seq .refl
-        m# pΔ (ctx-cons pΓ pA) (subst-<> pσ pA'' pt'') (subst-<> pσ' pA' pt') =
-          let right = let open EqRelReason ~tEeq in {!!}
-          in <>-cong E (m# pΔ pΓ pσ pσ') right
-        m# pΔ pΓ (subst-id x) pσ' = {!!}
-        m# pΔ pΓ (subst-comp x pσ pσ₁) pσ' = {!!}
-        m# (ctx-cons pΓ' pA'') pΓ (subst-pp pA) (subst-pp pA') = -- TODO: needs K?
-          let open EqRelReason ~seq in
-          begin
-            ppE ∘E < o# pΓ' pΓ ∘E ppE , _ >E
-          ≈⟨ pp<> E ⟩
-            o# pΓ' pΓ ∘E ppE
-          ≈⟨ pp<>-inv E ⟩
-            ppE ∘E < o# pΓ' pΓ ∘E eCwF.pp E , _ >E
-          ∎
+    -- NEEDED (depending on what to do with independence of context derivations)
+    o#id : ∀ {Γ} (pΓ : Γ ⊢) → idsE ~sE o# pΓ pΓ
+    o#id ctx-nil = ~seq .refl
+    o#id (ctx-cons pΓ pA) =
+      let IH : idsE ~sE o# pΓ pΓ
+          IH = o#id pΓ
+          left = let open EqRelReason ~seq in
+                 begin
+                   ppE
+                 ≈⟨ id-l-inv (Ctx E) ⟩
+                   idsE ∘E ppE
+                 ≈⟨ comp-cong-l (Ctx E) IH ⟩
+                   o# pΓ pΓ ∘E ppE
+                 ∎
+          right = let open EqRelReason ~tEeq in
+                  begin
+                    qqE
+                  ≈⟨ ιrefl ⟩
+                    ι _ qqE
+                  ≈⟨ ιirr ⟩
+                    ι _ qqE
+                  ≈⟨ ~tEeq .sym ιtrans ⟩
+                    ι _ (ι' _ qqE)
+                  ∎
+      in ~seq .trans (<>-η-id E) (<>-cong E left right)
 
-        m-resp : ∀ {Δ Γ σ τ} (pΔ : Δ ⊢) (pΓ : Γ ⊢) (pσ : σ ∈ Δ ⇒ Γ) (pτ : τ ∈ Δ ⇒ Γ)
-               (pστ : σ ~ τ ∈ Δ ⇒ Γ) → m pΔ pΓ pσ ~sE m pΔ pΓ pτ
-        m-resp pΔ pΓ pσ pτ (subst-eq-!-η x) = {!!}
-        m-resp pΔ pΓ pσ pτ (subst-eq-<>-η x) = {!!}
-        m-resp pΔ pΓ pσ pτ (subst-eq-pp<> x x₁ x₂) = {!!}
-        m-resp pΔ pΓ pσ pτ (subst-eq-assoc x x₁ x₂) = {!!}
-        m-resp pΔ pΓ pσ pτ (subst-eq-id-l x) = {!!}
-        m-resp pΔ pΓ pσ pτ (subst-eq-id-r x) = {!!}
-        m-resp pΔ pΓ pσ pτ (subst-eq-comp x pστ pστ₁) = {!!}
-        m-resp pΔ pΓ pσ pτ (subst-eq-<> x pστ x₁) = {!!}
-        m-resp pΔ pΓ pσ pτ (subst-eq-refl _) = m# pΔ pΓ pσ pτ
-        m-resp pΔ pΓ pσ pτ (subst-eq-sym pστ) = ~seq .sym (m-resp pΔ pΓ pτ pσ pστ)
-        m-resp pΔ pΓ pσ pτ (subst-eq-trans pσξ pξτ) = ~seq .trans (m-resp pΔ pΓ pσ {!!} pσξ) (m-resp pΔ pΓ {!!} pτ pξτ)
+    -- NEEDED
+    m : ∀ {Δ Γ σ} (pΔ : Δ ⊢) (pΓ : Γ ⊢) (pσ : σ ∈ Δ ⇒ Γ) →
+        hom (Ctx E) (o pΔ) (o pΓ)
+    m pΔ pΓ (subst-pp pA) = ppE ∘E o# pΔ (ctx-cons pΓ pA)
+    m pΔ pΓ (subst-! pΔ') = o# ctx-nil pΓ ∘E !E
+    m pΔ (ctx-cons pΓ pA') (subst-<> pσ pA pt) =
+      < m pΔ pΓ pσ , ι (subst-ty pΔ pΓ pσ pA') (ter pΔ (ty-subst pA' pσ) pt) >E
+    m pΔ pΓ (subst-id pΔ') = o# pΔ pΓ -- hmm
+    m pΔ pΓ (subst-comp pΞ pσ pτ) = m pΞ pΓ pσ ∘E m pΔ pΞ pτ
 
-        ty : ∀ {Γ A} (pΓ : Γ ⊢) (pA : Γ ⊢ A) → TypE (o pΓ)
-        ty {Δ} {Aσ} pΔ (ty-subst pA pσ) = {!!} -- here it would be
-                                               -- convenient to have
-                                               -- the codomain of σ
+    -- note that this is also needed in the refl caes of m-resp
+    m# : ∀ {Δ Γ σ} (pΔ : Δ ⊢) (pΓ : Γ ⊢)
+         (pσ pσ' : σ ∈ Δ ⇒ Γ) → m pΔ pΓ pσ ~sE m pΔ pΓ pσ'
+    m# pΔ pΓ (subst-! pΔ') (subst-! pΔ'') = ~seq .refl
+    m# pΔ (ctx-cons pΓ pA) (subst-<> pσ pA'' pt'') (subst-<> pσ' pA' pt') =
+      let right = let open EqRelReason ~tEeq in
+                  begin
+                    ι (subst-ty pΔ pΓ pσ pA) (ter pΔ (ty-subst pA pσ) pt'')
+                  ≈⟨ {!!} ⟩
+                    ι ([]-resp-r (m# pΔ pΓ pσ pσ'))
+                      (ι (subst-ty pΔ pΓ pσ' pA) (ter pΔ (ty-subst pA pσ') pt'))
+                  ∎
+      in <>-cong E (m# pΔ pΓ pσ pσ') right
+    m# pΔ pΓ (subst-id x) pσ' = {!!}
+    m# pΔ pΓ (subst-comp x pσ pσ₁) pσ' = {!!}
+    m# (ctx-cons pΓ' pA'') pΓ (subst-pp pA) (subst-pp pA') = -- TODO: needs K?
+      let open EqRelReason ~seq in
+      begin
+        ppE ∘E < o# pΓ' pΓ ∘E ppE , _ >E
+      ≈⟨ pp<> E ⟩
+        o# pΓ' pΓ ∘E ppE
+      ≈⟨ pp<>-inv E ⟩
+        ppE ∘E < o# pΓ' pΓ ∘E eCwF.pp E , _ >E
+      ∎
 
-        -- maybe better to define ty#l and ty#r instead to prove ty#
-        ty# : ∀ {Γ A} (pΓ pΓ' : Γ ⊢) (pA pA' : Γ ⊢ A) → ty pΓ pA ~E ty pΓ' pA' [ o# pΓ pΓ' ]E
-        ty# = {!!}
+    -- NEEDED
+    m-resp : ∀ {Δ Γ σ τ} (pΔ : Δ ⊢) (pΓ : Γ ⊢) (pσ : σ ∈ Δ ⇒ Γ) (pτ : τ ∈ Δ ⇒ Γ)
+           (pστ : σ ~ τ ∈ Δ ⇒ Γ) → m pΔ pΓ pσ ~sE m pΔ pΓ pτ
+    m-resp pΔ pΓ pσ pτ (subst-eq-!-η x) = {!!}
+    m-resp pΔ pΓ pσ pτ (subst-eq-<>-η x) = {!!}
+    m-resp pΔ pΓ pσ pτ (subst-eq-pp<> x x₁ x₂) = {!!}
+    m-resp pΔ pΓ pσ pτ (subst-eq-assoc x x₁ x₂) = {!!}
+    m-resp pΔ pΓ pσ pτ (subst-eq-id-l x) = {!!}
+    m-resp pΔ pΓ pσ pτ (subst-eq-id-r x) = {!!}
+    m-resp pΔ pΓ pσ pτ (subst-eq-comp x pστ pστ₁) = {!!}
+    m-resp pΔ pΓ pσ pτ (subst-eq-<> x pστ x₁) = {!!}
+    m-resp pΔ pΓ pσ pτ (subst-eq-refl _) = m# pΔ pΓ pσ pτ
+    m-resp pΔ pΓ pσ pτ (subst-eq-sym pστ) = ~seq .sym (m-resp pΔ pΓ pτ pσ pστ)
+    m-resp pΔ pΓ pσ pτ (subst-eq-trans pσξ pξτ) = ~seq .trans (m-resp pΔ pΓ pσ {!!} pσξ) (m-resp pΔ pΓ {!!} pτ pξτ)
 
-        -- special case of ty#, using m#id (not sure if termination
-        -- checker will grasp this)
-        ty#r : ∀ {Γ A} (pΓ : Γ ⊢) (pA pA' : Γ ⊢ A) → ty pΓ pA ~E ty pΓ pA'
-        ty#r = {!!}
+    -- NEEDED
+    ty : ∀ {Γ A} (pΓ : Γ ⊢) (pA : Γ ⊢ A) → TypE (o pΓ)
+    ty {Δ} {Aσ} pΔ (ty-subst pA pσ) = {!!} -- here it would be
+                                           -- convenient to have
+                                           -- the codomain of σ
 
-        -- ditto
-        ty#l : ∀ {Γ A} (pΓ pΓ' : Γ ⊢) (pA : Γ ⊢ A) → ty pΓ pA ~E ty pΓ' pA [ o# pΓ pΓ' ]E
-        ty#l = {!!}
+    -- maybe better to define ty#l and ty#r instead to prove ty#
+    ty# : ∀ {Γ A} (pΓ pΓ' : Γ ⊢) (pA pA' : Γ ⊢ A) → ty pΓ pA ~E ty pΓ' pA' [ o# pΓ pΓ' ]E
+    ty# = {!!}
 
-        ty-cong : ∀ {Γ A B} (pΓ : Γ ⊢) (pA : Γ ⊢ A) (pB : Γ ⊢ B)
-                  (pAB : Γ ⊢ A ~ B) → ty pΓ pA ~E ty pΓ pB
-        ty-cong = {!!}
+    -- special case of ty#, using m#id (not sure if termination
+    -- checker will grasp this)
+    ty#r : ∀ {Γ A} (pΓ : Γ ⊢) (pA pA' : Γ ⊢ A) → ty pΓ pA ~E ty pΓ pA'
+    ty#r = {!!}
 
-        subst-ty : ∀ {Γ Δ σ A} (pΔ : Δ ⊢) (pΓ : Γ ⊢)
-                          (pσ : σ ∈ Δ ⇒ Γ) (pA : Γ ⊢ A) →
-                          (ty pΓ pA [ m pΔ pΓ pσ ]E) ~E ty pΔ (ap (ty-map pσ) (A , pA) .snd)
-        subst-ty = {!!}
+    -- ditto
+    ty#l : ∀ {Γ A} (pΓ pΓ' : Γ ⊢) (pA : Γ ⊢ A) → ty pΓ pA ~E ty pΓ' pA [ o# pΓ pΓ' ]E
+    ty#l = {!!}
 
-        ter : ∀ {Γ A t} (pΓ : Γ ⊢) (pA : Γ ⊢ A) (pt : Γ ⊢ t ∈ A) → TerE (o pΓ) (ty pΓ pA)
-        ter = {!!}
+    -- NEEDED
+    ty-cong : ∀ {Γ A B} (pΓ : Γ ⊢) (pA : Γ ⊢ A) (pB : Γ ⊢ B)
+              (pAB : Γ ⊢ A ~ B) → ty pΓ pA ~E ty pΓ pB
+    ty-cong = {!!}
 
-        ter#r : ∀ {Γ A t} (pΓ : Γ ⊢) (pA : Γ ⊢ A) (pt pt' : Γ ⊢ t ∈ A) →
-                ter pΓ pA pt ~tE ter pΓ pA pt'
-        ter#r = {!!}
+    -- NEEDED
+    subst-ty : ∀ {Γ Δ σ A} (pΔ : Δ ⊢) (pΓ : Γ ⊢)
+                      (pσ : σ ∈ Δ ⇒ Γ) (pA : Γ ⊢ A) →
+                      (ty pΓ pA [ m pΔ pΓ pσ ]E) ~E ty pΔ (ap (ty-map pσ) (A , pA) .snd)
+    subst-ty = {!!}
 
-        ter-cong : ∀ {Γ A t s} (pΓ : Γ ⊢) (pA : Γ ⊢ A) (pt : Γ ⊢ t ∈ A) (ps : Γ ⊢ s ∈ A)
-                   (pts : Γ ⊢ t ~ s ∈ A) → ter pΓ pA pt ~tE ter pΓ pA ps
-        ter-cong = {!!}
+    -- NEEDED
+    ter : ∀ {Γ A t} (pΓ : Γ ⊢) (pA : Γ ⊢ A) (pt : Γ ⊢ t ∈ A) → TerE (o pΓ) (ty pΓ pA)
+    ter = {!!}
 
-        subst-ter : ∀ {Γ Δ A σ t} (pΔ : Δ ⊢) (pΓ : Γ ⊢) (pσ : σ ∈ Δ ⇒ Γ)
-                    (pA : Γ ⊢ A) (pt : Γ ⊢ t ∈ A) →
-                    let pAσ = ty-subst pA pσ  -- aka: ap (ty-map pσ) (A , pA) .snd
-                        ptσ = ter-subst pt pσ
-                        eq : (ty pΓ pA [ m pΔ pΓ pσ ]E) ~E ty pΔ pAσ
-                        eq = subst-ty pΔ pΓ pσ pA
-                    in ter pΓ pA pt [ m pΔ pΓ pσ ]tE ~tE ι eq (ter pΔ pAσ ptσ)
-        subst-ter {Γ} {Δ} {A} {σ} {t} pΔ pΓ pσ pA pt = {!!}
+    ter#r : ∀ {Γ A t} (pΓ : Γ ⊢) (pA : Γ ⊢ A) (pt pt' : Γ ⊢ t ∈ A) →
+            ter pΓ pA pt ~tE ter pΓ pA pt'
+    ter#r = {!!}
 
-        -- does this make sense?
-        ι-ter : ∀ {Γ A B t} (pΓ : Γ ⊢) (pA : Γ ⊢ A) (pB : Γ ⊢ B)
-                  (pAB : Γ ⊢ A ~ B) (pt : Γ ⊢ t ∈ B) →
-                  ι (ty-cong pΓ pA pB pAB) (ter pΓ pB pt)
-                  ~tE ter pΓ pA (ter-ty-eq pt (ty-eq-sym pAB))
-        ι-ter = {!!}
+    -- NEEDED
+    ter-cong : ∀ {Γ A t s} (pΓ : Γ ⊢) (pA : Γ ⊢ A) (pt : Γ ⊢ t ∈ A) (ps : Γ ⊢ s ∈ A)
+               (pts : Γ ⊢ t ~ s ∈ A) → ter pΓ pA pt ~tE ter pΓ pA ps
+    ter-cong pΓ pA pt ps (ter-eq-qq<> x x₁ x₂) = {!!}
+    ter-cong pΓ pA pt ps (ter-eq-subst pts x) = {!!}
+    ter-cong pΓ pA pt ps (ter-eq-id x) = {!!}
+    ter-cong pΓ pA pt ps (ter-eq-assoc x x₁ x₂) = {!!}
+    ter-cong pΓ pA pt ps (ter-eq-ty-eq pts x) = {!!}
+    ter-cong pΓ pA pt ps (ter-eq-refl _) = ter#r pΓ pA pt ps
+    ter-cong pΓ pA pt ps (ter-eq-sym pst) = ~tEeq .sym (ter-cong pΓ pA ps pt pst)
+    ter-cong pΓ pA pt ps (ter-eq-trans pts pts₁) = {!!}
+
+    -- NEEDED
+    subst-ter : ∀ {Γ Δ A σ t} (pΔ : Δ ⊢) (pΓ : Γ ⊢) (pσ : σ ∈ Δ ⇒ Γ)
+                (pA : Γ ⊢ A) (pt : Γ ⊢ t ∈ A) →
+                let pAσ = ty-subst pA pσ  -- aka: ap (ty-map pσ) (A , pA) .snd
+                    ptσ = ter-subst pt pσ
+                    eq : (ty pΓ pA [ m pΔ pΓ pσ ]E) ~E ty pΔ pAσ
+                    eq = subst-ty pΔ pΓ pσ pA
+                in ter pΓ pA pt [ m pΔ pΓ pσ ]tE ~tE ι eq (ter pΔ pAσ ptσ)
+    subst-ter {Γ} {Δ} {A} {σ} {t} pΔ pΓ pσ pA pt = {!!}
+
+    -- NEEDED
+    -- does this make sense?
+    ι-ter : ∀ {Γ A B t} (pΓ : Γ ⊢) (pA : Γ ⊢ A) (pB : Γ ⊢ B)
+              (pAB : Γ ⊢ A ~ B) (pt : Γ ⊢ t ∈ B) →
+              ι (ty-cong pΓ pA pB pAB) (ter pΓ pB pt)
+              ~tE ter pΓ pA (ter-ty-eq pt (ty-eq-sym pAB))
+    ι-ter = {!!}
 
 
---------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 
   subst-ty-cong : ∀ {Γ Δ σ A B} (pΔ : Δ ⊢) (pΓ : Γ ⊢) (pσ : σ ∈ Δ ⇒ Γ)
           (pA : Γ ⊢ A) (pB : Γ ⊢ B) (pAB : Γ ⊢ A ~ B)
