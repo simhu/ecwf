@@ -112,9 +112,9 @@ module eCwFNotation {lvs lvr lo lh lr} {Ctx : ECat {lo} {lh} {lr}}
         lem = Tm .id-mor ` (~teq .refl)
     in ~teq .trans lem (Tm .resp (~seq .refl) ` (~teq .refl))
 
-  ιtrans : ∀ {Γ} {A B C : Typ Γ} (p : C ~ B) (q : B ~ A) {u : Ter Γ A} →
+  ιtrans : ∀ {Γ} {A B C : Typ Γ} {p : C ~ B} {q : B ~ A} {u : Ter Γ A} →
            ι p (ι q u) ~t ι (~eq .trans p q) u
-  ιtrans p q = ~teq .trans (Tm .comp-mor ` (~teq .refl)) (Tm .resp (Ctx .id-l) ` (~teq .refl))
+  ιtrans = ~teq .trans (Tm .comp-mor ` (~teq .refl)) (Tm .resp (Ctx .id-l) ` (~teq .refl))
 
   ιsubst : ∀ {Δ Γ} (σ : Subst Δ Γ) {A B : Typ Γ} (p : B ~ A) (u : Ter Γ A) →
            (ι p u) [ σ ]t ~t ι ([]-resp' p (~seq .refl)) (u [ σ ]t)
@@ -192,9 +192,9 @@ module eCwFNotation {lvs lvr lo lh lr} {Ctx : ECat {lo} {lh} {lr}}
              ∎)
           , ~teq .trans α' (~teq .trans (ιresp ([]t-resp-l α))
             (~teq .trans (ιresp (ιsubst _ _ _))
-            (~teq .trans (ιtrans _ _)
+            (~teq .trans ιtrans
             (~teq .trans (ιresp []t-assoc)
-            (~teq .trans (ιtrans _ _) ιirr)))))
+            (~teq .trans ιtrans ιirr)))))
 
     comp-assoc cat = Ctx .comp-assoc
     comp-cong cat = Ctx .comp-cong
@@ -256,7 +256,7 @@ record eCwF {lvs lvr lo lh lr : Level} : Set (lsuc (lvs ⊔ lvr ⊔ lo ⊔ lh �
         ι ([]-resp-r p) t'
       ≈⟨ ιresp qq<> ⟩
         ι _ (ι _ (qq [ < σ' , t' > ]t))
-      ≈⟨ ιtrans _ _ ⟩
+      ≈⟨ ιtrans ⟩
         ι _ (qq [ < σ' , t' > ]t)
       ≈⟨ ιirr ⟩
         ι _ (qq [ < σ' , t' > ]t)
@@ -285,11 +285,11 @@ record eCwF {lvs lvr lo lh lr : Level} : Set (lsuc (lvs ⊔ lvr ⊔ lo ⊔ lh �
          --   ι _ (ι _ (qq [ < σ , t > ]t) [ τ ]t)
          ≈⟨ ιresp (ιsubst _ _ _) ⟩
            ι _ (ι _ (qq [ < σ , t > ]t [ τ ]t))
-         ≈⟨ ιtrans _ _ ⟩
+         ≈⟨ ιtrans ⟩
            ι _ (qq [ < σ , t > ]t [ τ ]t)
          ≈⟨ ιresp []t-assoc ⟩
            ι _ (ι _ (qq [ < σ , t > ∘s τ ]t))
-         ≈⟨ ιtrans _ _ ⟩
+         ≈⟨ ιtrans ⟩
            ι _ (qq [ < σ , t > ∘s τ ]t)
          ≈⟨ ιirr ⟩
            ι _ (qq [ < σ , t > ∘s τ ]t)
