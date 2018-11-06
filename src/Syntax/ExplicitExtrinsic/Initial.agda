@@ -92,6 +92,10 @@ module Elim {ks kr lo lh lr : Level}
                   ∎
       in ~seq .trans (<>-η-id E) (<>-cong E left right)
 
+    -- we most likely also need:
+    o#comp : ∀ {Γ} (pΓ pΓ' pΓ'' : Γ ⊢) → o# pΓ' pΓ'' ∘E o# pΓ pΓ' ~sE o# pΓ pΓ''
+    o#comp = ?
+
     -- NEEDED
     m : ∀ {Δ Γ σ} (pΔ : Δ ⊢) (pΓ : Γ ⊢) (pσ : σ ∈ Δ ⇒ Γ) →
         hom (Ctx E) (o pΔ) (o pΓ)
@@ -323,5 +327,6 @@ module Elim {ks kr lo lh lr : Level}
       }
     }
 
+  -- TODO: Still misses that structure is preserved
   elim : Mor SynCwf E
   elim = record { ctx = elim-ctx ; ty = elim-ty ; tm = elim-ter }
