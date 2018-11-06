@@ -244,6 +244,25 @@ record eCwF {lvs lvr lo lh lr : Level} : Set (lsuc (lvs ⊔ lvr ⊔ lo ⊔ lh �
   <>-η-id : ∀ {Γ} {A : Typ Γ} → ids {Γ ∙ A} ~s < pp , qq >
   <>-η-id {Γ} {A} = compr .isTerminal.!-η {_ , pp , qq} {id (cprInp Γ A)}
 
+  <>-cong : ∀ {Δ Γ} {σ σ' : Subst Δ Γ} {A : Typ Γ} {t : Ter Δ (A [ σ ])} {t' : Ter Δ (A [ σ' ])} →
+    (p : σ ~s σ') (q : t ~t ι ([]-resp-r p) t') → < σ , t > ~s < σ' , t' >
+  <>-cong {Δ} {Γ} {σ} {σ'} {A} {t} {t'} p q = ~seq .sym (compr .isTerminal.!-η {_ , σ , t}
+    { < σ' , t' >
+    , ~seq .trans p pp<>-inv
+    , let open EqRelReason ~teq in
+      begin
+        t
+      ≈⟨ q ⟩
+        ι ([]-resp-r p) t'
+      ≈⟨ ιresp qq<> ⟩
+        ι _ (ι _ (qq [ < σ' , t' > ]t))
+      ≈⟨ ιtrans _ _ ⟩
+        ι _ (qq [ < σ' , t' > ]t)
+      ≈⟨ ιirr ⟩
+        ι _ (qq [ < σ' , t' > ]t)
+      ∎
+    })
+
   <>-comp : ∀ {Ξ Δ Γ σ} {A : Typ Γ} {t : Ter Δ (A [ σ ])} {τ : Subst Ξ Δ} →
             < σ , t > ∘s τ ~s < σ ∘s τ , ι' []-assoc (t [ τ ]t) >
   <>-comp {Ξ} {Δ} {Γ} {σ} {A} {t} {τ} =
@@ -289,6 +308,8 @@ record eCwF {lvs lvr lo lh lr : Level} : Set (lsuc (lvs ⊔ lvr ⊔ lo ⊔ lh �
     ≈⟨ <>-comp ⟩
       < pp ∘s σ , ι' []-assoc (qq [ σ ]t) >
     ∎
+
+{-# DISPLAY eCwF.compr .isTerminal.! {_ , σ , t} .fst = eCwF.<_,_> σ t #-}
 
 
 -- -}
