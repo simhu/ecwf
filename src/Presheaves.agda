@@ -133,7 +133,7 @@ module _ {ks kr lco lch lcr ldo ldh ldr : Level}
   ∫base : eFunctor (∫ {C = C} P) (∫ {C = D} Q)
   fun ∫base (I , u) = fun F I , nat α I .ap u
   mor ∫base {J , v} {I , u} (f , p) = mor F f ,
-    let open EqRelReason (eqr (fun Q (fun F J))) in 
+    let open EqRelReason (eqr (fun Q (fun F J))) in
     begin
       nat α J .ap v
     ≈⟨ nat α J .ap-cong p ⟩
