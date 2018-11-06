@@ -94,7 +94,20 @@ module Elim {ks kr lo lh lr : Level}
 
     -- we most likely also need:
     o#comp : ∀ {Γ} (pΓ pΓ' pΓ'' : Γ ⊢) → o# pΓ' pΓ'' ∘E o# pΓ pΓ' ~s o# pΓ pΓ''
-    o#comp = {!!}
+    o#comp ctx-nil ctx-nil ctx-nil = id-l (Ctx E)
+    o#comp (ctx-cons pΓ pA) (ctx-cons pΓ' pA') (ctx-cons pΓ'' pA'') =
+      let open EqRelReason ~seq
+          o#ΓAΓA' = o# (ctx-cons pΓ pA) (ctx-cons pΓ' pA')
+      in begin
+        < o# pΓ' pΓ'' ∘E ppE , ι' _ qqE >E ∘E o#ΓAΓA'
+      ≈⟨ <>-comp E ⟩
+        < (o# pΓ' pΓ'' ∘E ppE) ∘E o#ΓAΓA' , ι' []-assoc ((ι' _ qqE) [ o#ΓAΓA' ]tE) >E
+      ≈⟨ <>-cong E (comp-assoc-inv (Ctx E)) {!!} ⟩
+        < o# pΓ' pΓ'' ∘E (ppE ∘E o#ΓAΓA') , {!!} -- ι' []-assoc ((ι' _ qqE) [ o#ΓAΓA' ]tE)
+        >E
+      ≈⟨ {!!} ⟩
+        {!!}
+      ∎
 
     -- NEEDED
     m : ∀ {Δ Γ σ} (pΔ : Δ ⊢) (pΓ : Γ ⊢) (pσ : σ ∈ Δ ⇒ Γ) →
