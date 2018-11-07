@@ -232,7 +232,8 @@ module Elim {ks kr lo lh lr : Level}
     m-resp pΔ pΓ pσ pτ (subst-eq-<> x pστ x₁) = {!!}
     m-resp pΔ pΓ pσ pτ (subst-eq-refl _) = m# pΔ pΓ pσ pτ
     m-resp pΔ pΓ pσ pτ (subst-eq-sym pστ) = ~seq .sym (m-resp pΔ pΓ pτ pσ pστ)
-    m-resp pΔ pΓ pσ pτ (subst-eq-trans pσξ pξτ) = ~seq .trans (m-resp pΔ pΓ pσ {!!} pσξ) (m-resp pΔ pΓ {!!} pτ pξτ)
+    m-resp pΔ pΓ pσ pτ (subst-eq-trans pσξ pξτ) =
+      ~seq .trans (m-resp pΔ pΓ pσ {!!} pσξ) (m-resp pΔ pΓ {!!} pτ pξτ)
     m-resp pΔ ctx-nil pσ pτ (subst-eq-!-η _) = !-η' E
     m-resp pΔ (ctx-cons pΓ pA) pσ pτ (subst-eq-<>-η x) = {!!}
 

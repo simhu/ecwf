@@ -292,6 +292,11 @@ subst-cod (subst-<> pσ pA x₁) = ctx-cons (ty-ctx pA) pA
 subst-cod (subst-id pΔ) = pΔ
 subst-cod (subst-comp pΔ pσ pτ) = subst-cod pσ
 
+-- These also need the corresponding inversions for judgmental
+-- equality on terms, which might be problematic once we add Pi-types.
+-- Alternatively, we could try adding term derivations in the
+-- subst-eq-<> rule.
+
 -- subst-eq-lhs : ∀ {Δ Γ σ τ} → σ ~ τ ∈ Δ ⇒ Γ → σ ∈ Δ ⇒ Γ
 -- subst-eq-rhs : ∀ {Δ Γ σ τ} → σ ~ τ ∈ Δ ⇒ Γ → τ ∈ Δ ⇒ Γ
 -- subst-eq-lhs (subst-eq-!-η pσ) = pσ
