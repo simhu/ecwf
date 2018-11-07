@@ -246,6 +246,9 @@ record eCwF {lvs lvr lo lh lr : Level} : Set (lsuc (lvs ⊔ lvr ⊔ lo ⊔ lh �
     qq : ∀ {Γ A} → Ter (Γ ∙ A) (A [ pp ])
     compr : ∀ {Γ A} → isTerminal (cprInp Γ A) (Γ ∙ A , pp , qq)
 
+  !-η' : ∀ {Γ} {σ τ : Subst Γ <>} → σ ~s τ
+  !-η' = ~seq .trans !-unique (~seq .sym !-unique)
+
   <_,_> : ∀ {Δ Γ} → (σ : Subst Δ Γ) {A : Typ Γ} (t : Ter Δ (A [ σ ])) → Subst Δ (Γ ∙ A)
   < σ , t > = compr .isTerminal.! {_ , σ , t}  .fst
 

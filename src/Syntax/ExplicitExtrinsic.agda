@@ -15,7 +15,7 @@ data Raw : Set l where
   qq : Raw                      -- variables
   _[_] : Raw → Raw → Raw         -- substitution in terms
   -- raw substitutions
-  comps : Raw → Raw → Raw       -- TODO: Ctx? for mediating object
+  comps : Raw → Raw → Raw → Raw
   ids : Raw
   ! : Raw
   pp : Raw
@@ -73,7 +73,7 @@ data _⊢_~_ where
     Γ ⊢ A →
     σ ∈ Δ ⇒ Γ → τ ∈ Ξ ⇒ Δ →
     ------------------------------------
-    Ξ ⊢ A [ σ ] [ τ ] ~ A [ comps σ τ ]
+    Ξ ⊢ A [ σ ] [ τ ] ~ A [ comps Δ σ τ ]
 
   ty-eq-refl :
     ∀ {Γ A} →
@@ -134,7 +134,7 @@ data _⊢_~_∈_ where
     Γ ⊢ t ∈ A →
     σ ∈ Δ ⇒ Γ → τ ∈ Ξ ⇒ Δ →
     -----------------------------------------------------
-    Ξ ⊢ t [ σ ] [ τ ] ~ t [ comps σ τ ] ∈ A [ σ ] [ τ ]
+    Ξ ⊢ t [ σ ] [ τ ] ~ t [ comps Δ σ τ ] ∈ A [ σ ] [ τ ]
 
   ter-eq-ty-eq :
     ∀ {Γ A B t s} →
@@ -187,7 +187,7 @@ data _∈_⇒_ where
     ∀ {Ξ Δ Γ σ τ} →
     Δ ⊢ → σ ∈ Δ ⇒ Γ → τ ∈ Ξ ⇒ Δ →
     --------------------------------
-    comps σ τ ∈ Ξ ⇒ Γ
+    comps Δ σ τ ∈ Ξ ⇒ Γ
 
 data _~_∈_⇒_ where
   subst-eq-!-η :
@@ -200,37 +200,37 @@ data _~_∈_⇒_ where
     ∀ {Δ Γ σ A} →
     σ ∈ Δ ⇒ Γ ∙ A →
     -------------------------------------------
-    σ ~ < comps pp σ , qq [ σ ] > ∈ Δ ⇒ Γ ∙ A
+    σ ~ < comps (Γ ∙ A) pp σ , qq [ σ ] > ∈ Δ ⇒ Γ ∙ A
 
   subst-eq-pp<> :
     ∀ {Δ Γ σ t A} →
     σ ∈ Δ ⇒ Γ → Γ ⊢ A → Δ ⊢ t ∈ A [ σ ] →
     ---------------------------------------
-    comps pp < σ , t > ~ σ ∈ Δ ⇒ Γ
+    comps (Γ ∙ A) pp < σ , t > ~ σ ∈ Δ ⇒ Γ
 
   subst-eq-assoc :
     ∀ {Θ Ξ Δ Γ σ τ ξ} →
     σ ∈ Δ ⇒ Γ → τ ∈ Ξ ⇒ Δ → ξ ∈ Θ ⇒ Ξ →
     ---------------------------------------------------
-    comps σ (comps τ ξ) ~ comps (comps σ τ) ξ ∈ Θ ⇒ Γ
+    comps Δ σ (comps Ξ τ ξ) ~ comps Ξ (comps Δ σ τ) ξ ∈ Θ ⇒ Γ
 
   subst-eq-id-l :
     ∀ {Δ Γ σ} →
     σ ∈ Δ ⇒ Γ →
     ------------------------
-    comps ids σ ~ σ ∈ Δ ⇒ Γ
+    comps Γ ids σ ~ σ ∈ Δ ⇒ Γ
 
   subst-eq-id-r :
     ∀ {Δ Γ σ} →
     σ ∈ Δ ⇒ Γ →
     ------------------------
-    comps σ ids ~ σ ∈ Δ ⇒ Γ
+    comps Δ σ ids ~ σ ∈ Δ ⇒ Γ
 
   subst-eq-comp :
     ∀ {Ξ Δ Γ σ σ' τ τ'} →
     Δ ⊢ → σ ~ σ' ∈ Δ ⇒ Γ → τ ~ τ' ∈ Ξ ⇒ Δ →
     ------------------------------------------
-    comps σ τ ~ comps σ' τ' ∈ Ξ ⇒ Γ
+    comps Δ σ τ ~ comps Δ σ' τ' ∈ Ξ ⇒ Γ
 
   subst-eq-<> :
     ∀ {Δ Γ σ σ' A t t'} →
@@ -292,6 +292,27 @@ subst-cod (subst-<> pσ pA x₁) = ctx-cons (ty-ctx pA) pA
 subst-cod (subst-id pΔ) = pΔ
 subst-cod (subst-comp pΔ pσ pτ) = subst-cod pσ
 
+-- subst-eq-lhs : ∀ {Δ Γ σ τ} → σ ~ τ ∈ Δ ⇒ Γ → σ ∈ Δ ⇒ Γ
+-- subst-eq-rhs : ∀ {Δ Γ σ τ} → σ ~ τ ∈ Δ ⇒ Γ → τ ∈ Δ ⇒ Γ
+-- subst-eq-lhs (subst-eq-!-η pσ) = pσ
+-- subst-eq-lhs (subst-eq-<>-η pσ) = pσ
+-- subst-eq-lhs (subst-eq-pp<> pσ pA pt) =
+--   subst-comp (ctx-cons (ty-ctx pA) pA) (subst-pp pA) (subst-<> pσ pA pt)
+-- subst-eq-lhs (subst-eq-assoc pσ pτ pξ) =
+--   subst-comp (subst-dom pσ) pσ (subst-comp (subst-dom pτ) pτ pξ)
+-- subst-eq-lhs (subst-eq-id-l pσ) =
+--   subst-comp (subst-cod pσ) (subst-id (subst-cod pσ)) pσ
+-- subst-eq-lhs (subst-eq-id-r pσ) =
+--   subst-comp (subst-dom pσ) pσ (subst-id (subst-dom pσ))
+-- subst-eq-lhs (subst-eq-comp pΔ pστ pστ') =
+--   subst-comp pΔ (subst-eq-lhs pστ) (subst-eq-lhs pστ')
+-- subst-eq-lhs (subst-eq-<> pA pστ x₁) = {!!}
+-- subst-eq-lhs (subst-eq-refl x) = {!!}
+-- subst-eq-lhs (subst-eq-sym pστ) = {!!}
+-- subst-eq-lhs (subst-eq-trans pστ pστ₁) = {!!}
+
+-- subst-eq-rhs pστ = {!!}
+
 ------------------------------------------------------------------------------
 
 ctx-cat : ECat
@@ -303,7 +324,7 @@ hom-eqr ctx-cat = record
   ; sym = subst-eq-sym
   ; trans = subst-eq-trans
   }
-comp ctx-cat {B = _ , pΔ} (σ , pσ) (τ , pτ) = comps σ τ , subst-comp pΔ pσ pτ
+comp ctx-cat {B = Δ , pΔ} (σ , pσ) (τ , pτ) = comps Δ σ τ , subst-comp pΔ pσ pτ
 comp-assoc ctx-cat {f = σ , pσ} {τ , pτ} {ξ , pξ} = subst-eq-assoc pσ pτ pξ
 comp-cong ctx-cat {B = _ , pΔ} = subst-eq-comp pΔ
 id ctx-cat {Γ , pΓ} = ids , subst-id pΓ
