@@ -5,7 +5,13 @@ open import Cwf.Elem
 open import Products using (isTerminal)
 
 -- Type theory presented with an extrinsic explicit syntax
-module Syntax.ExplicitExtrinsic {l : Level} where
+-- module Syntax.ExplicitExtrinsic {l : Level} where
+
+-- For now fix the level to don't have the annoying constructor name
+-- issue when using C-c C-c.
+module Syntax.ExplicitExtrinsic where
+
+l = lzero
 
 data Raw : Set l where
   -- raw contexts
