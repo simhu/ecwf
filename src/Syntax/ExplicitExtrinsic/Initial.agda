@@ -445,7 +445,7 @@ module Elim {ks kr lo lh lr : Level}
 
   -- TODO: Still misses that structure is preserved
   elim : Mor SynCwf E
-  elim = record { ctx = elim-ctx ; ty = elim-ty ; tm = elim-ter }
+  elim = record { ctx = elim-ctx ; ty = elim-ty ; tm = elim-ter ; <>-pres = {!!} ; pair-pres = {!!} }
 
 -- -}
 -- -}

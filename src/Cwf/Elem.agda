@@ -344,6 +344,7 @@ record eCwF {lvs lvr lo lh lr : Level} : Set (lsuc (lvs ⊔ lvr ⊔ lo ⊔ lh �
 
 -- -}
 
+-- (Weak) Cwf-morphisms
 record Mor {ks kr : Level}
            {lao lah lar : Level}
            {lbo lbh lbr : Level}
@@ -351,10 +352,17 @@ record Mor {ks kr : Level}
            (B : eCwF {ks} {kr} {lbo} {lbh} {lbr}) :
        Set (lao ⊔ lah ⊔ lar ⊔ lbo ⊔ lbh ⊔ lbr ⊔ lsuc (ks ⊔ kr)) where
   no-eta-equality
-  open eCwF A using () renaming (Ctx to CtxA ; Ty to TyA ; Tm to TmA)
-  open eCwF B using () renaming (Ctx to CtxB ; Ty to TyB ; Tm to TmB)
+  open eCwF A using () renaming
+    (Ctx to CtxA ; Ty to TyA ; Tm to TmA ; <> to <>A ; pp to ppA ; qq to qqA ; _∙_ to _∙A_)
+  open eCwF B using () renaming
+    (Ctx to CtxB ; Ty to TyB ; Tm to TmB ; ! to !B ; <> to <>B ; <_,_> to <_,_>B)
+  open eCwFNotation {Ctx = CtxB} TyB TmB
   field
     ctx : eFunctor CtxA CtxB
     ty : eNat TyA (TyB ∘Func (ctx op-fun))
     tm : eNat TmA (TmB ∘Func ((∫base ctx ty) op-fun))
-  -- TODO: preserving terminal objects and comprehension
+    <>-pres : isIso {C = CtxB} (!B {ctx .fun <>A})
+  ctx-qqA : ∀ {Γ A} → Ter (ctx .fun (Γ ∙A A)) (ty .nat Γ .ap A [ ctx .mor ppA ] )
+  ctx-qqA {Γ} {A} = ι (ty .nat-eq {f = ppA {Γ} {A}} ` fun TyA Γ .refl) (tm .nat _ .ap (qqA {Γ} {A}))
+  field
+    pair-pres : ∀ {Γ A} → isIso {C = CtxB} < ctx .mor (ppA {Γ} {A}) , ctx-qqA {Γ} {A} >B
