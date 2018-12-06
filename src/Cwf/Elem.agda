@@ -183,10 +183,6 @@ module eCwFNotation {lvs lvr lo lh lr} {Ctx : ECat {lo} {lh} {lr}}
   -- have terminal objects, witnessing the structure of context
   -- extension.  Probably it would make more sense to formalize slices
   -- first..
-
-  -- TODO: we really should have a more abstract definition, so that
-  -- it is apparent the functor and natural transformation data of a
-  -- cwf morphism induce a functor on the respective cprInp's
   cprInp : (Γ : obj Ctx) (A : Typ Γ) → ECat
   cprInp Γ A = cat where
     cat : ECat
