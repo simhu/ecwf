@@ -139,6 +139,10 @@ module eCwFNotation {lvs lvr lo lh lr} {Ctx : ECat {lo} {lh} {lr}}
        ι ([]-resp' p (~seq .refl)) (u [ σ ]t)
     ∎
 
+  ιsubst-inv : ∀ {Δ Γ} {σ : Subst Δ Γ} {A B : Typ Γ} {p : B ~ A} {u : Ter Γ A} →
+               ι ([]-resp' p (~seq .refl)) (u [ σ ]t) ~t (ι p u) [ σ ]t
+  ιsubst-inv = ~teq .sym ιsubst
+
   ι' : ∀ {Γ} {A B : Typ Γ} → A ~ B → Ter Γ A → Ter Γ B
   ι' p = ι (~eq .sym p)
 
@@ -334,6 +338,74 @@ record eCwF {lvs lvr lo lh lr : Level} : Set (lsuc (lvs ⊔ lvr ⊔ lo ⊔ lh �
     ≈⟨ <>-comp ⟩
       < pp ∘s σ , ι' []-assoc (qq [ σ ]t) >
     ∎
+
+  _↑_ : ∀ {Δ Γ} (σ : Subst Δ Γ) (A : Typ Γ) → Subst (Δ ∙ A [ σ ]) (Γ ∙ A)
+  σ ↑ A = < σ ∘s pp , ι' []-assoc qq >
+
+  _⁺ : ∀ {Δ Γ} (σ : Subst Δ Γ) {A : Typ Γ} → Subst (Δ ∙ A [ σ ]) (Γ ∙ A)
+  _⁺ σ {A} = σ ↑ A
+
+  infixl 90 _⁺
+
+
+  [[_]] : ∀ {Γ} {A : Typ Γ} (t : Ter Γ A) → Subst Γ (Γ ∙ A)
+  [[ t ]] = < ids , ι' []-id t >
+
+  [[]]-subst' : ∀ {Δ Γ} {σ : Subst Δ Γ} {A : Typ Γ} {t : Ter Γ A} →
+               [[ t ]] ∘s σ ~s < σ , t [ σ ]t >
+  [[]]-subst' {σ = σ} {t = t} = let open EqRelReason ~seq in
+    begin
+      [[ t ]] ∘s σ
+    ≈⟨ <>-comp ⟩
+      < ids ∘s σ , ι' []-assoc (ι' []-id t [ σ ]t) >
+    ≈⟨ <>-cong (id-l Ctx)
+               (~teq .trans (ιresp ιsubst) (~teq .trans ιtrans ιirr)) ⟩
+      < σ , t [ σ ]t >
+    ∎
+
+  lift-lemma : ∀ {Ξ Δ Γ} {σ : Subst Δ Γ} {A : Typ Γ} {τ : Subst Ξ Δ} {s : Ter Ξ (A [ σ ] [ τ ])} →
+                σ ⁺ ∘s < τ , s > ~s < σ ∘s τ , ι' []-assoc s >
+  lift-lemma {σ = σ} {τ = τ} {s = s} = let open EqRelReason ~seq in
+    begin
+      σ ⁺ ∘s < τ , s >
+    ≈⟨ <>-comp ⟩
+      < (σ ∘s pp) ∘s < τ , s > , ι' []-assoc ((ι' []-assoc qq) [ < τ , s > ]t) >
+    ≈⟨ <>-cong (comp-assoc-inv Ctx)
+         (~teq .trans (ιresp ιsubst) (~teq .trans ιtrans (~teq .trans ιirr ιtrans-inv))) ⟩
+      < σ ∘s (pp ∘s < τ , s >), ι' (~eq .trans []-assoc []-assoc) (qq [ < τ , s > ]t) >
+    ≈⟨ <>-cong (comp-cong-r Ctx pp<>)
+          (~teq .trans (ιresp qq<>) (~teq .trans ιtrans (~teq .trans ιirr ιtrans-inv))) ⟩
+      < σ ∘s τ , ι' []-assoc s >
+    ∎
+
+
+  [[]]-subst : ∀ {Δ Γ} {σ : Subst Δ Γ} {A : Typ Γ} {t : Ter Γ A} →
+               [[ t ]] ∘s σ ~s σ ⁺ ∘s [[ t [ σ ]t ]]
+  [[]]-subst {σ = σ} {t = t} = let open EqRelReason ~seq in
+    begin
+      [[ t ]] ∘s σ
+    ≈⟨ [[]]-subst' ⟩
+      < σ , t [ σ ]t >
+    ≈⟨ <>-cong (id-r-inv Ctx)
+       (~teq .trans ιrefl (~teq .trans ιirr (~teq .trans ιtrans-inv ιtrans-inv))) ⟩
+      < σ ∘s ids , ι' []-assoc (ι' []-id (t [ σ ]t)) >
+    ≈⟨ ~seq .sym lift-lemma ⟩
+      σ ⁺ ∘s [[ t [ σ ]t ]]
+    ∎
+
+  lift-id : ∀ {Γ A} → ids ~s pp {Γ} {A} ⁺ ∘s [[ qq ]]
+  lift-id = let open EqRelReason ~seq in
+    begin
+      ids
+    ≈⟨ <>-η-id ⟩
+      < pp , qq >
+    ≈⟨ <>-cong (id-r-inv Ctx) (~teq .trans ιrefl (~teq .trans
+                                    (~teq .trans ιirr ιtrans-inv) ιtrans-inv)) ⟩
+      < pp ∘s ids , ι' []-assoc (ι' []-id qq) >
+    ≈⟨ ~seq .sym lift-lemma ⟩
+      pp ⁺ ∘s [[ qq ]]
+    ∎
+
 
 {-# DISPLAY eCwF.compr .isTerminal.! {_ , σ , t} .fst = eCwF.<_,_> σ t #-}
 
