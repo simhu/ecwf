@@ -19,6 +19,7 @@ data Exp : (n : ℕ) → Set l where
   uni : {n : ℕ} → Exp n
   el  : {n : ℕ} → Exp n → Exp n
 
+-- TODO: rename into something like 'weakenings' (Wk)
 data Ren : (n m : ℕ) → Set l where
    idR : {n : ℕ} → Ren n n
    wkR : {n m : ℕ} → Ren n m → Ren (suc n) m
@@ -49,6 +50,29 @@ _r⋆r_ : {k m n : ℕ} → Ren m n → Ren k m → Ren k n
 idR   r⋆r upR η = upR η
 wkR ρ r⋆r upR η = wkR (ρ r⋆r η)
 upR ρ r⋆r upR η = upR (ρ r⋆r η)
+
+r⋆r-id-l : {m n : ℕ} {ρ : Ren m n} → ρ ≡ idR r⋆r ρ
+r⋆r-id-l {ρ = idR}   = _≡_.refl
+r⋆r-id-l {ρ = wkR ρ} = cong wkR r⋆r-id-l
+r⋆r-id-l {ρ = upR ρ} = _≡_.refl
+
+lookR-assoc : {k m n : ℕ} {ρ : Ren m n} {η : Ren k m} {i : Fin n} →
+              lookR (lookR i ρ) η ≡ lookR i (ρ r⋆r η)
+lookR-assoc {ρ = ρ}     {idR}   {i}     = _≡_.refl
+lookR-assoc {ρ = ρ}     {wkR η} {i}     = cong suc (lookR-assoc {ρ = ρ} {η})
+lookR-assoc {ρ = idR}   {upR η} {i}     = _≡_.refl
+lookR-assoc {ρ = wkR ρ} {upR η} {i}     = cong suc (lookR-assoc {ρ = ρ} {η})
+lookR-assoc {ρ = upR ρ} {upR η} {zero}  = _≡_.refl
+lookR-assoc {ρ = upR ρ} {upR η} {suc i} = cong suc (lookR-assoc {ρ = ρ} {η})
+
+[]R-assoc : {k m n : ℕ} {ρ : Ren m n} {η : Ren k m} {t : Exp n} →
+            t [ ρ ]R [ η ]R ≡ t [ ρ r⋆r η ]R
+[]R-assoc {ρ = ρ} {η} {var i}   = cong var (lookR-assoc {ρ = ρ} {η})
+[]R-assoc {ρ = ρ} {η} {pi a b}  = cong₂ pi []R-assoc []R-assoc
+[]R-assoc {ρ = ρ} {η} {app r s} = cong₂ app []R-assoc []R-assoc
+[]R-assoc {ρ = ρ} {η} {lam t}   = cong lam []R-assoc
+[]R-assoc {ρ = ρ} {η} {uni}     = _≡_.refl
+[]R-assoc {ρ = ρ} {η} {el t}    = cong el []R-assoc
 
 data Subst : (m n : ℕ) → Set l where
   !     : {m : ℕ} → Subst m zero
@@ -91,6 +115,16 @@ app r s [ σ ] = app (r [ σ ]) (s [ σ ])
 lam t   [ σ ] = lam (t [ upS σ ])
 uni     [ σ ] = uni
 el t    [ σ ] = el (t [ σ ])
+
+-- [][]R-assoc : {k m n : ℕ} {σ : Subst m n} { ρ : Ren k m} {t : Exp n} →
+--               t [ σ ] [ ρ ]R ≡ t [ σ ⋆r ρ ]
+-- [][]R-assoc {σ = σ} {ρ} {var i} = {!!}
+-- [][]R-assoc {σ = σ} {ρ} {pi a b} = cong₂ pi [][]R-assoc [][]R-assoc
+-- [][]R-assoc {σ = σ} {ρ} {app r s} = cong₂ app [][]R-assoc [][]R-assoc
+-- [][]R-assoc {σ = σ} {ρ} {lam t} = cong lam {!([][]R-assoc  {σ = upS σ} {ρ = upR ρ} {t = t})!} -- ([][]R-assoc  {σ = upS σ} {ρ = upR ρ} {t = t})
+-- [][]R-assoc {σ = σ} {ρ} {uni} = _≡_.refl
+-- [][]R-assoc {σ = σ} {ρ} {el t} = cong el [][]R-assoc
+
 
 _⋆_ : {k m n : ℕ} → Subst m n → Subst k m → Subst k n
 !         ⋆ τ = !
@@ -139,6 +173,7 @@ data _⊢_ where
     --------------------
     Γ ⊢ pi A B
 
+
 data _⊢_~_ where
 
   ty-eq-univ :
@@ -154,6 +189,7 @@ data _⊢_~_ where
 
   ty-eq-pi :
     ∀ {n} {Γ : Ctx n} {A B C D} →
+    Γ ⊢ A → -- similar as in Abel, Öhmann, Vezzosi (POPL2018)
     Γ ⊢ A ~ C → Γ ∙ A ⊢ B ~ D →
     ----------------------------
     Γ ⊢ pi A B ~ pi C D
@@ -164,6 +200,7 @@ data _⊢_~_ where
     Γ ⊢ A ~ B →
     ------------
     Γ ⊢ B ~ A
+
   ty-eq-trans :
     ∀ {n} {Γ : Ctx n} {A B C} →
     Γ ⊢ A ~ B → Γ ⊢ B ~ C →
@@ -194,6 +231,7 @@ data _⊢_∈_ where
 
   ter-lam :
     ∀ {n} {Γ : Ctx n} {A B t} →
+    Γ ⊢ A →
     Γ ∙ A ⊢ t ∈ B →
     ----------------
     Γ ⊢ lam t ∈ pi A B
@@ -265,7 +303,7 @@ data _⊢_~_∈_ where
 
 
 --------------------------------------------------------------------------------
--- Some admissible rules
+-- Reflexivity is admissible
 
 ty-eq-refl :
   ∀ {n} {Γ : Ctx n} {A} →
@@ -281,12 +319,12 @@ ter-eq-refl :
 
 ty-eq-refl ty-univ       = ty-eq-univ
 ty-eq-refl (ty-el pa)    = ty-eq-el (ter-eq-refl pa)
-ty-eq-refl (ty-pi pA pB) = ty-eq-pi (ty-eq-refl pA) (ty-eq-refl pB)
+ty-eq-refl (ty-pi pA pB) = ty-eq-pi pA (ty-eq-refl pA) (ty-eq-refl pB)
 
 ter-eq-refl (ter-ty-eq pu pAB) = ter-eq-ty-eq (ter-eq-refl pu) pAB
 ter-eq-refl (ter-var-zero pA)  = ter-eq-var-zero pA
 ter-eq-refl (ter-var-suc pu)   = ter-eq-var-suc (ter-eq-refl pu)
-ter-eq-refl (ter-lam pu)       = ter-eq-lam (ter-eq-refl pu)
+ter-eq-refl (ter-lam pA pu)    = ter-eq-lam (ter-eq-refl pu)
 ter-eq-refl (ter-app pu pv)    = ter-eq-app (ter-eq-refl pu) (ter-eq-refl pv)
 
 --------------------------------------------------------------------------------
@@ -333,6 +371,43 @@ data _~_∈_⇒_ : {m n : ℕ} (σ τ : Subst m n) (Δ : Ctx m) (Γ : Ctx n) →
     ------------------------------------------------
     < σ , u > ~ < τ , v > ∈ Δ ⇒ Γ ∙ A
 
+subst-eq-refl :
+  ∀ {m n} {Δ : Ctx m} {Γ : Ctx n} {σ} →
+  σ ∈ Δ ⇒ Γ →
+  --------------
+  σ ~ σ ∈ Δ ⇒ Γ
+
+subst-eq-refl subst-! = subst-eq-!
+subst-eq-refl (subst-<> pσ pA pt) = subst-eq-<> (subst-eq-refl pσ) pA (ter-eq-refl pt)
+
+-- TODO: this relies on ter-eq-subst
+-- subst-eq-sym :
+--   ∀ {m n} {Δ : Ctx m} {Γ : Ctx n} {σ τ} →
+--   σ ~ τ ∈ Δ ⇒ Γ →
+--   --------------
+--   τ ~ σ ∈ Δ ⇒ Γ
+
+-- subst-eq-sym subst-eq-! = subst-eq-!
+-- subst-eq-sym (subst-eq-<> pστ pA pst) = subst-eq-<> (subst-eq-sym pστ) pA (ter-eq-sym {!pst!})
+
+-- ter-eq-subst :
+--   ∀ {m n} {Δ : Ctx m} {Γ : Ctx n} {σ σ' A t t'} →
+--   Γ ⊢ t ~ t' ∈ A → σ ~ σ' ∈ Δ ⇒ Γ →
+--   ------------------------------------
+--   Δ ⊢ t [ σ ] ~ t' [ σ' ] ∈ A [ σ ]
+
+-- ter-subst :
+--   ∀ {m n} {Δ : Ctx m} {Γ : Ctx n} {σ A t} →
+--   Γ ⊢ t ∈ A → σ ∈ Δ ⇒ Γ →
+--   -------------------------
+--   Δ ⊢ t [ σ ] ∈ A [ σ ]
+
+
+
+-- subst-pp : ∀ {n} {Γ : Ctx n} {A} → Γ ⊢ → pp ∈ Γ ∙ A ⇒ Γ
+-- subst-pp ctx-nil = subst-!
+-- subst-pp (ctx-cons pΓ x) = subst-<> {!!} {!!} {!!}
+
 
 --------------------------------------------------------------------------------
 -- Derived judgment: renamings
@@ -357,9 +432,54 @@ data _∈_≤_ : {m n : ℕ} (ρ : Ren m n) (Δ : Ctx m) (Γ : Ctx n) → Set l 
     ------------------------------
     upR ρ ∈ Δ ∙ A [ ρ ]R ≤ Γ ∙ A
 
+-- {-
 
--- subst-pp : ∀ {n} {Γ : Ctx n} {A} → Γ ⊢ → pp ∈ Γ ∙ A ⇒ Γ
--- subst-pp ctx-nil = subst-!
--- subst-pp (ctx-cons pΓ x) = subst-<> {!!} {!!} {!!}
+ty-ren :
+  ∀ {m n} {Δ : Ctx m} {Γ : Ctx n} {ρ A} →
+  Γ ⊢ A → ρ ∈ Δ ≤ Γ →
+  ---------------------
+  Δ ⊢ A [ ρ ]R
 
+ty-eq-ren :
+  ∀ {m n} {Δ : Ctx m} {Γ : Ctx n} {ρ A B} →
+  Γ ⊢ A ~ B → ρ ∈ Δ ≤ Γ →
+  -------------------------
+  Δ ⊢ A [ ρ ]R ~ B [ ρ ]R
 
+ter-ren :
+  ∀ {m n} {Δ : Ctx m} {Γ : Ctx n} {ρ A t} →
+  Γ ⊢ t ∈ A → ρ ∈ Δ ≤ Γ →
+  -------------------------
+  Δ ⊢ t [ ρ ]R ∈ A [ ρ ]R
+
+ter-eq-ren :
+  ∀ {m n} {Δ : Ctx m} {Γ : Ctx n} {ρ A t s} →
+  Γ ⊢ t ~ s ∈ A → ρ ∈ Δ ≤ Γ →
+  -----------------------------------
+  Δ ⊢ t [ ρ ]R ~ s [ ρ ]R ∈ A [ ρ ]R
+
+ty-ren ty-univ pρ       = ty-univ
+ty-ren (ty-el pa) pρ    = ty-el (ter-ren pa pρ)
+ty-ren (ty-pi pA pB) pρ = ty-pi (ty-ren pA pρ) (ty-ren pB (ren-upr pρ pA))
+
+ty-eq-ren ty-eq-univ pρ            = ty-eq-univ
+ty-eq-ren (ty-eq-el pab) pρ        = ty-eq-el (ter-eq-ren pab pρ)
+ty-eq-ren (ty-eq-pi pA pAC pBD) pρ =
+  ty-eq-pi (ty-ren pA pρ) (ty-eq-ren pAC pρ) (ty-eq-ren pBD (ren-upr pρ pA))
+ty-eq-ren (ty-eq-sym pAB) pρ       = ty-eq-sym (ty-eq-ren pAB pρ)
+ty-eq-ren (ty-eq-trans pAB pBC) pρ =
+  ty-eq-trans (ty-eq-ren pAB pρ) (ty-eq-ren pBC pρ)
+
+ter-ren (ter-ty-eq pt pAB) pρ = ter-ty-eq (ter-ren pt pρ) (ty-eq-ren pAB pρ)
+ter-ren (ter-var-zero {A = A} pA) (ren-id pΓ)
+  rewrite []R-assoc {ρ = pR} {η = idR}{t = A} = ter-var-zero pA
+ter-ren (ter-var-zero {A = A} pA) (ren-wk {ρ = ρ} pρ)
+  rewrite []R-assoc {ρ = pR} {η = wkR ρ} {t = A} = {!ter-var-suc!}
+ter-ren (ter-var-zero x) (ren-upr pρ pA) = {!!}
+ter-ren (ter-var-suc pt) pρ = {!!}
+ter-ren (ter-lam pA pt) pρ = ter-lam (ty-ren pA pρ) (ter-ren pt (ren-upr pρ pA))
+ter-ren (ter-app pr ps) pρ = {!!} -- ter-app {!ter-ren pr pρ!} {!!}
+
+ter-eq-ren pts pρ = {!!}
+
+-- -}
