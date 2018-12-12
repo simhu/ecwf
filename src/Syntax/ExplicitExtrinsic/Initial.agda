@@ -372,9 +372,20 @@ module Elim {ks kr lo lh lr : Level}
     -- NEEDED
     ter : ∀ {Γ A t} (pΓ : Γ ⊢) (pA : Γ ⊢ A) (pt : Γ ⊢ t ∈ A) → TerE (o pΓ) (ty pΓ pA)
     -- Ind(pt : Γ ⊢ t ∈ A).
-    ter pΓ pA (ter-qq x) = {!!}
     ter pΓ pA (ter-subst pt x) = {!!}
     ter pΓ pA (ter-ty-eq pt x) = {!!}
+    ter pΓA (ty-subst pΓ' pA' (subst-pp pA'')) (ter-qq pA''') =
+      let
+        qq' : TerE _ (ty pΓ' pA' [ ppE ]E) -- or take pA'' here??
+        qq' = qqE
+        open EqRelReason ~eq
+        eq = begin -- Look at o# first..
+               ty pΓ' pA' [ ppE ∘E o# pΓA (ctx-cons pΓ' pA'') ]E
+             ≈⟨ {!!} ⟩
+               ty pΓ' pA' [ ppE ]E [ o# pΓA (ctx-cons pΓ' pA') ]E
+             ∎
+      in
+      ι eq (qq' [ o# pΓA (ctx-cons pΓ' pA') ]tE)
 
     ter#r : ∀ {Γ A t} (pΓ : Γ ⊢) (pA : Γ ⊢ A) (pt pt' : Γ ⊢ t ∈ A) →
             ter pΓ pA pt ~t ter pΓ pA pt'
