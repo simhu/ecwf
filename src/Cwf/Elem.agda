@@ -52,6 +52,9 @@ module eCwFNotation {lvs lvr lo lh lr} {Ctx : ECat {lo} {lh} {lr}}
   []-id : ∀ {Γ} {A : Typ Γ} → A ~ A [ ids ]
   []-id = []-id' (~eq .refl)
 
+  []-id-inv : ∀ {Γ} {A : Typ Γ} → A [ ids ] ~ A
+  []-id-inv = ~eq .sym []-id
+
   []-assoc' : ∀ {Θ Δ Γ} {τ : Subst Θ Δ} {σ : Subst Δ Γ} {A B : Typ Γ} →
              A ~ B → A [ σ ] [ τ ] ~ B [ σ ∘s τ ]
   []-assoc' = comp-mor Ty .map-resp
@@ -228,6 +231,7 @@ module eCwFNotation {lvs lvr lo lh lr} {Ctx : ECat {lo} {lh} {lr}}
   -- ιswap : ∀ {Γ A B} {u : Ter Γ B} {v : Ter Γ A} (p : B ~ A) (e : u ~t ι p v) → ι (~eq .sym p) u ~t v
   -- ιswap p e = ~teq .trans {!!} {!!}
 
+
 record eCwF {lvs lvr lo lh lr : Level} : Set (lsuc (lvs ⊔ lvr ⊔ lo ⊔ lh ⊔ lr)) where
   no-eta-equality
   field
@@ -250,11 +254,11 @@ record eCwF {lvs lvr lo lh lr : Level} : Set (lsuc (lvs ⊔ lvr ⊔ lo ⊔ lh �
   !-η' = ~seq .trans !-unique (~seq .sym !-unique)
 
   <_,_> : ∀ {Δ Γ} → (σ : Subst Δ Γ) {A : Typ Γ} (t : Ter Δ (A [ σ ])) → Subst Δ (Γ ∙ A)
-  < σ , t > = compr .isTerminal.! {_ , σ , t}  .fst
+  < σ , t > = isTerminal.!-explicit compr (_ , σ , t)  .fst
 
   pp<>-inv : ∀ {Δ Γ} {σ : Subst Δ Γ} {A : Typ Γ} {t : Ter Δ (A [ σ ])} →
            σ ~s pp ∘s < σ , t >
-  pp<>-inv {σ = σ} {t = t} = (compr .isTerminal.! {_ , σ , t} .snd .fst)
+  pp<>-inv {σ = σ} {t = t} = isTerminal.! compr {_ , σ , t} .snd .fst
 
   pp<> : ∀ {Δ Γ} {σ : Subst Δ Γ} {A : Typ Γ} {t : Ter Δ (A [ σ ])} →
            pp ∘s < σ , t > ~s σ
@@ -264,7 +268,7 @@ record eCwF {lvs lvr lo lh lr : Level} : Set (lsuc (lvs ⊔ lvr ⊔ lo ⊔ lh �
             t ~t ι (~eq .trans ([]-resp-r pp<>-inv)
                     (~eq .sym []-assoc))
                    (qq [ < σ , t > ]t)
-  qq<>-inv {σ = σ} {t = t} = compr .isTerminal.! {_ , σ , t} .snd .snd
+  qq<>-inv {σ = σ} {t = t} = isTerminal.! compr {_ , σ , t} .snd .snd
 
   qq<> : ∀ {Δ Γ} {σ : Subst Δ Γ} {A : Typ Γ} {t : Ter Δ (A [ σ ])} →
              qq [ < σ , t > ]t ~t ι (~eq .trans []-assoc ([]-resp-r pp<>)) t
@@ -407,7 +411,7 @@ record eCwF {lvs lvr lo lh lr : Level} : Set (lsuc (lvs ⊔ lvr ⊔ lo ⊔ lh �
     ∎
 
 
-{-# DISPLAY eCwF.compr .isTerminal.! {_ , σ , t} .fst = eCwF.<_,_> σ t #-}
+-- {-# DISPLAY eCwF.compr .isTerminal.! {_ , σ , t} .fst = eCwF.<_,_> σ t #-}
 
 
 -- -}

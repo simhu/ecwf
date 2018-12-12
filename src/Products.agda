@@ -12,8 +12,11 @@ module _ {lo lh lr : Level} (C : ECat {lo} {lh} {lr}) where
   record isTerminal (a : obj C) : Set lmax where
     no-eta-equality
     field
-      ! : {b : obj C} → hom C b a
-      !-η : {b : obj C} {f : hom C b a} → f ~c !
+      !-explicit : (b : obj C) → hom C b a
+      !-η : {b : obj C} {f : hom C b a} → f ~c !-explicit b
+    ! : {b : obj C} → hom C b a
+    ! {b} = !-explicit b
+--    !-explicit b = ! {b}
     !-η' : {b : obj C} {f g : hom C b a} → f ~c g
     !-η' {f = f} {g} = ceq .trans !-η (ceq .sym !-η)
 

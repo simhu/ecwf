@@ -19,7 +19,7 @@ data Raw : Set l where
   _∙_ : Raw → Raw → Raw
   -- raw term
   qq : Raw                      -- variables
-  _[_] : Raw → Raw → Raw         -- substitution in terms
+  _[_to_] : Raw → Raw → Raw → Raw         -- substitution in terms
   -- raw substitutions
   comps : Raw → Raw → Raw → Raw
   ids : Raw
@@ -28,7 +28,7 @@ data Raw : Set l where
   <_,_> : Raw → Raw → Raw
 
 infixl 30 _∙_
-infixl 60 _[_]
+infixl 60 _[_to_]
 
 data _⊢ : (Γ : Raw) → Set l
 data _⊢_ : (Γ A : Raw) → Set l
@@ -57,29 +57,30 @@ data _⊢ where
 data _⊢_ where
   ty-subst :
     ∀ {σ Δ Γ A} →
+    Γ ⊢ →
     Γ ⊢ A → σ ∈ Δ ⇒ Γ →
     ---------------------
-    Δ ⊢ A [ σ ]
+    Δ ⊢ A [ σ to Γ ]
 
 data _⊢_~_ where
   ty-eq-subst :
     ∀ {σ σ' Δ Γ A A'} →
     Γ ⊢ A ~ A' → σ ~ σ' ∈ Δ ⇒ Γ →
     -------------------------------
-    Δ ⊢ A [ σ ] ~ A' [ σ' ]
+    Δ ⊢ A [ σ to Γ ] ~ A' [ σ' to Γ ]
 
   ty-eq-id :
     ∀ {Γ A} →
     Γ ⊢ A →
     -----------------
-    Γ ⊢ A ~ A [ ids ]
+    Γ ⊢ A ~ A [ ids to Γ ]
 
   ty-eq-assoc :
     ∀ {Ξ Δ Γ σ τ A} →
     Γ ⊢ A →
     σ ∈ Δ ⇒ Γ → τ ∈ Ξ ⇒ Δ →
     ------------------------------------
-    Ξ ⊢ A [ σ ] [ τ ] ~ A [ comps Δ σ τ ]
+    Ξ ⊢ A [ σ to Γ ] [ τ to Δ ] ~ A [ comps Δ σ τ to Γ ]
 
   ty-eq-refl :
     ∀ {Γ A} →
@@ -93,6 +94,7 @@ data _⊢_~_ where
     Γ ⊢ B ~ A
   ty-eq-trans :
     ∀ {Γ A B C} →
+    Γ ⊢ B →
     Γ ⊢ A ~ B → Γ ⊢ B ~ C →
     ------------------------
     Γ ⊢ A ~ C
@@ -102,13 +104,13 @@ data _⊢_∈_ where
     ∀ {Γ A} →
     Γ ⊢ A →
     ----------------------
-    Γ ∙ A ⊢ qq ∈ A [ pp ]
+    Γ ∙ A ⊢ qq ∈ A [ pp to Γ ]
 
   ter-subst :
     ∀ {σ Δ Γ A t} →
     Γ ⊢ t ∈ A → σ ∈ Δ ⇒ Γ →
     -------------------------
-    Δ ⊢ t [ σ ] ∈ A [ σ ]
+    Δ ⊢ t [ σ to Γ ] ∈ A [ σ to Γ ]
 
   ter-ty-eq :
     ∀ {Γ A B t} →
@@ -119,28 +121,28 @@ data _⊢_∈_ where
 data _⊢_~_∈_ where
   ter-eq-qq<> :
     ∀ {Δ Γ σ t A } →
-    σ ∈ Δ ⇒ Γ → Γ ⊢ A → Δ ⊢ t ∈ A [ σ ] →
+    σ ∈ Δ ⇒ Γ → Γ ⊢ A → Δ ⊢ t ∈ A [ σ to Γ ] →
     ---------------------------------------
-    Δ ⊢ qq [ < σ , t > ] ~ t ∈ A [ σ ] -- use lhs for type?
+    Δ ⊢ qq [ < σ , t > to Γ ∙ A ] ~ t ∈ A [ σ to Γ ] -- use lhs for type?
 
   ter-eq-subst :
     ∀ {σ σ' Δ Γ A t t'} →
     Γ ⊢ t ~ t' ∈ A → σ ~ σ' ∈ Δ ⇒ Γ →
     -----------------------------------
-    Δ ⊢ t [ σ ] ~ t' [ σ' ] ∈ A [ σ ]
+    Δ ⊢ t [ σ to Γ ] ~ t' [ σ' to Γ ] ∈ A [ σ to Γ ]
 
   ter-eq-id :
     ∀ {Γ A t} →
     Γ ⊢ t ∈ A →
     ----------------------
-    Γ ⊢ t ~ t [ ids ] ∈ A
+    Γ ⊢ t ~ t [ ids to Γ ] ∈ A
 
   ter-eq-assoc :
     ∀ {Ξ Δ Γ σ τ A t} →
     Γ ⊢ t ∈ A →
     σ ∈ Δ ⇒ Γ → τ ∈ Ξ ⇒ Δ →
     -----------------------------------------------------
-    Ξ ⊢ t [ σ ] [ τ ] ~ t [ comps Δ σ τ ] ∈ A [ σ ] [ τ ]
+    Ξ ⊢ t [ σ to Γ ] [ τ to Δ ] ~ t [ comps Δ σ τ to Γ ] ∈ A [ σ to Γ ] [ τ to Δ ]
 
   ter-eq-ty-eq :
     ∀ {Γ A B t s} →
@@ -179,7 +181,7 @@ data _∈_⇒_ where
 
   subst-<> :
     ∀ {Δ Γ σ t A} →
-    σ ∈ Δ ⇒ Γ → Γ ⊢ A → Δ ⊢ t ∈ A [ σ ] →
+    σ ∈ Δ ⇒ Γ → Γ ⊢ A → Δ ⊢ t ∈ A [ σ to Γ ] →
     ----------------------------------------
     < σ , t > ∈ Δ ⇒ Γ ∙ A
 
@@ -206,11 +208,11 @@ data _~_∈_⇒_ where
     ∀ {Δ Γ σ A} →
     σ ∈ Δ ⇒ Γ ∙ A →
     -------------------------------------------
-    σ ~ < comps (Γ ∙ A) pp σ , qq [ σ ] > ∈ Δ ⇒ Γ ∙ A
+    σ ~ < comps (Γ ∙ A) pp σ , qq [ σ to Γ ∙ A ] > ∈ Δ ⇒ Γ ∙ A
 
   subst-eq-pp<> :
     ∀ {Δ Γ σ t A} →
-    σ ∈ Δ ⇒ Γ → Γ ⊢ A → Δ ⊢ t ∈ A [ σ ] →
+    σ ∈ Δ ⇒ Γ → Γ ⊢ A → Δ ⊢ t ∈ A [ σ to Γ ] →
     ---------------------------------------
     comps (Γ ∙ A) pp < σ , t > ~ σ ∈ Δ ⇒ Γ
 
@@ -240,7 +242,7 @@ data _~_∈_⇒_ where
 
   subst-eq-<> :
     ∀ {Δ Γ σ σ' A t t'} →
-    Γ ⊢ A → σ ~ σ ∈ Δ ⇒ Γ → Δ ⊢ t ~ t' ∈ A [ σ ] →
+    Γ ⊢ A → σ ~ σ ∈ Δ ⇒ Γ → Δ ⊢ t ~ t' ∈ A [ σ to Γ ] →
     -------------------------------------------------
     < σ , t > ~ < σ' , t' > ∈ Δ ⇒ Γ ∙ A
 
@@ -256,6 +258,7 @@ data _~_∈_⇒_ where
     τ ~ σ ∈ Δ ⇒ Γ
   subst-eq-trans :
     ∀ {Δ Γ σ τ ξ} →
+    τ ∈ Δ ⇒ Γ → -- ???
     σ ~ τ ∈ Δ ⇒ Γ → τ ~ ξ ∈ Δ ⇒ Γ →
     ---------------------------------
     σ ~ ξ ∈ Δ ⇒ Γ
@@ -266,63 +269,63 @@ ter-eq-subst' :
     ∀ {σ Δ Γ A t t'} →
     Γ ⊢ t ~ t' ∈ A → σ ∈ Δ ⇒ Γ →
     -----------------------------------
-    Δ ⊢ t [ σ ] ~ t' [ σ ] ∈ A [ σ ]
+    Δ ⊢ t [ σ to Γ ] ~ t' [ σ to Γ ] ∈ A [ σ to Γ ]
 ter-eq-subst' tt' pσ = ter-eq-subst tt' (subst-eq-refl pσ)
 
 ty-eq-subst' :
   ∀ {σ Δ Γ A A'} →
   Γ ⊢ A ~ A' → σ ∈ Δ ⇒ Γ →
   -------------------------------
-  Δ ⊢ A [ σ ] ~ A' [ σ ]
+  Δ ⊢ A [ σ to Γ ] ~ A' [ σ to Γ ]
 ty-eq-subst' aa' pσ = ty-eq-subst aa' (subst-eq-refl pσ)
 
--- Some admissible rules.
+-- -- Some admissible rules.
 
--- Inversion (fragile concerning possible extensions)
+-- -- Inversion (fragile concerning possible extensions)
 
-ty-ctx : ∀ {Γ A} → Γ ⊢ A → Γ ⊢
-subst-dom : ∀ {Δ Γ σ} → σ ∈ Δ ⇒ Γ → Δ ⊢
-subst-cod : ∀ {Δ Γ σ} → σ ∈ Δ ⇒ Γ → Γ ⊢
+-- ty-ctx : ∀ {Γ A} → Γ ⊢ A → Γ ⊢
+-- subst-dom : ∀ {Δ Γ σ} → σ ∈ Δ ⇒ Γ → Δ ⊢
+-- subst-cod : ∀ {Δ Γ σ} → σ ∈ Δ ⇒ Γ → Γ ⊢
 
-ty-ctx {Γ} {.(_ [ _ ])} (ty-subst pA pσ) = subst-dom pσ
+-- ty-ctx {Γ} {.(_ [ _ ])} (ty-subst  pA pσ) = subst-dom pσ
 
-subst-dom (subst-pp pA) = ctx-cons (ty-ctx pA) pA
-subst-dom (subst-! pΔ) = pΔ
-subst-dom (subst-<> pσ _ _) = subst-dom pσ
-subst-dom (subst-id pΔ) = pΔ
-subst-dom (subst-comp pΔ pσ pτ) = subst-dom pτ
+-- subst-dom (subst-pp pA) = ctx-cons (ty-ctx pA) pA
+-- subst-dom (subst-! pΔ) = pΔ
+-- subst-dom (subst-<> pσ _ _) = subst-dom pσ
+-- subst-dom (subst-id pΔ) = pΔ
+-- subst-dom (subst-comp pΔ pσ pτ) = subst-dom pτ
 
-subst-cod (subst-pp pA) = ty-ctx pA
-subst-cod (subst-! pΔ) = ctx-nil
-subst-cod (subst-<> pσ pA x₁) = ctx-cons (ty-ctx pA) pA
-subst-cod (subst-id pΔ) = pΔ
-subst-cod (subst-comp pΔ pσ pτ) = subst-cod pσ
+-- subst-cod (subst-pp pA) = ty-ctx pA
+-- subst-cod (subst-! pΔ) = ctx-nil
+-- subst-cod (subst-<> pσ pA x₁) = ctx-cons (ty-ctx pA) pA
+-- subst-cod (subst-id pΔ) = pΔ
+-- subst-cod (subst-comp pΔ pσ pτ) = subst-cod pσ
 
--- These also need the corresponding inversions for judgmental
--- equality on terms, which might be problematic once we add Pi-types.
--- Alternatively, we could try adding term derivations in the
--- subst-eq-<> rule.
+-- -- These also need the corresponding inversions for judgmental
+-- -- equality on terms, which might be problematic once we add Pi-types.
+-- -- Alternatively, we could try adding term derivations in the
+-- -- subst-eq-<> rule.
 
--- subst-eq-lhs : ∀ {Δ Γ σ τ} → σ ~ τ ∈ Δ ⇒ Γ → σ ∈ Δ ⇒ Γ
--- subst-eq-rhs : ∀ {Δ Γ σ τ} → σ ~ τ ∈ Δ ⇒ Γ → τ ∈ Δ ⇒ Γ
--- subst-eq-lhs (subst-eq-!-η pσ) = pσ
--- subst-eq-lhs (subst-eq-<>-η pσ) = pσ
--- subst-eq-lhs (subst-eq-pp<> pσ pA pt) =
---   subst-comp (ctx-cons (ty-ctx pA) pA) (subst-pp pA) (subst-<> pσ pA pt)
--- subst-eq-lhs (subst-eq-assoc pσ pτ pξ) =
---   subst-comp (subst-dom pσ) pσ (subst-comp (subst-dom pτ) pτ pξ)
--- subst-eq-lhs (subst-eq-id-l pσ) =
---   subst-comp (subst-cod pσ) (subst-id (subst-cod pσ)) pσ
--- subst-eq-lhs (subst-eq-id-r pσ) =
---   subst-comp (subst-dom pσ) pσ (subst-id (subst-dom pσ))
--- subst-eq-lhs (subst-eq-comp pΔ pστ pστ') =
---   subst-comp pΔ (subst-eq-lhs pστ) (subst-eq-lhs pστ')
--- subst-eq-lhs (subst-eq-<> pA pστ x₁) = {!!}
--- subst-eq-lhs (subst-eq-refl x) = {!!}
--- subst-eq-lhs (subst-eq-sym pστ) = {!!}
--- subst-eq-lhs (subst-eq-trans pστ pστ₁) = {!!}
+-- -- subst-eq-lhs : ∀ {Δ Γ σ τ} → σ ~ τ ∈ Δ ⇒ Γ → σ ∈ Δ ⇒ Γ
+-- -- subst-eq-rhs : ∀ {Δ Γ σ τ} → σ ~ τ ∈ Δ ⇒ Γ → τ ∈ Δ ⇒ Γ
+-- -- subst-eq-lhs (subst-eq-!-η pσ) = pσ
+-- -- subst-eq-lhs (subst-eq-<>-η pσ) = pσ
+-- -- subst-eq-lhs (subst-eq-pp<> pσ pA pt) =
+-- --   subst-comp (ctx-cons (ty-ctx pA) pA) (subst-pp pA) (subst-<> pσ pA pt)
+-- -- subst-eq-lhs (subst-eq-assoc pσ pτ pξ) =
+-- --   subst-comp (subst-dom pσ) pσ (subst-comp (subst-dom pτ) pτ pξ)
+-- -- subst-eq-lhs (subst-eq-id-l pσ) =
+-- --   subst-comp (subst-cod pσ) (subst-id (subst-cod pσ)) pσ
+-- -- subst-eq-lhs (subst-eq-id-r pσ) =
+-- --   subst-comp (subst-dom pσ) pσ (subst-id (subst-dom pσ))
+-- -- subst-eq-lhs (subst-eq-comp pΔ pστ pστ') =
+-- --   subst-comp pΔ (subst-eq-lhs pστ) (subst-eq-lhs pστ')
+-- -- subst-eq-lhs (subst-eq-<> pA pστ x₁) = {!!}
+-- -- subst-eq-lhs (subst-eq-refl x) = {!!}
+-- -- subst-eq-lhs (subst-eq-sym pστ) = {!!}
+-- -- subst-eq-lhs (subst-eq-trans pστ pστ₁) = {!!}
 
--- subst-eq-rhs pστ = {!!}
+-- -- subst-eq-rhs pστ = {!!}
 
 ------------------------------------------------------------------------------
 
@@ -333,7 +336,7 @@ hom-rel ctx-cat {Δ} {Γ} σ τ = fst σ ~ fst τ ∈ fst Δ ⇒ fst Γ
 hom-eqr ctx-cat = record
   { refl =  λ {σ} → subst-eq-refl (snd σ)
   ; sym = subst-eq-sym
-  ; trans = subst-eq-trans
+  ; trans = λ {_} {τpτ} {_} → subst-eq-trans (snd τpτ)
   }
 comp ctx-cat {B = Δ , pΔ} (σ , pσ) (τ , pτ) = comps Δ σ τ , subst-comp pΔ pσ pτ
 comp-assoc ctx-cat {f = σ , pσ} {τ , pτ} {ξ , pξ} = subst-eq-assoc pσ pτ pξ
@@ -347,31 +350,35 @@ set (ty-set Γ) = Σ (Γ ⊢_)
 rel (ty-set Γ) (A , pA) (B , pB) = Γ ⊢ A ~ B
 eqr (ty-set Γ) = record { refl = λ {ApA} → ty-eq-refl (snd ApA)
                         ; sym = ty-eq-sym
-                        ; trans = ty-eq-trans }
+                        ; trans = λ {_} {BpB} {_} → ty-eq-trans (snd BpB) }
 
-ty-map : ∀ {Δ Γ σ} (pσ : σ ∈ Δ ⇒ Γ) → eMap (ty-set Γ) (ty-set Δ)
-ty-map {Δ} {Γ} {σ} pσ = record
-  { ap = λ ApA → fst ApA [ σ ] , ty-subst (snd ApA) pσ
+ty-map : ∀ {Δ Γ σ} (pΓ : Γ ⊢) (pσ : σ ∈ Δ ⇒ Γ) → eMap (ty-set Γ) (ty-set Δ)
+ty-map {Δ} {Γ} {σ} pΓ pσ = record
+  { ap = λ ApA → fst ApA [ σ to _ ] , ty-subst pΓ (snd ApA) pσ
   ; ap-cong = λ AB → ty-eq-subst AB (subst-eq-refl pσ)
   }
 
-ty-resp : ∀ {Δ Γ σ τ} {pσ : σ ∈ Δ ⇒ Γ} {pτ : τ ∈ Δ ⇒ Γ} (p : σ ~ τ ∈ Δ ⇒ Γ) →
-          eMapRel (ty-map pσ) (ty-map pτ)
-ty-resp {Δ} {Γ} {σ} {τ} {pσ} {pτ} p = map-rel λ x → ty-eq-subst x p
+
+ty-resp : ∀ {Δ Γ σ τ} {pσ : σ ∈ Δ ⇒ Γ} {pτ : τ ∈ Δ ⇒ Γ} (pΓ : Γ ⊢) (p : σ ~ τ ∈ Δ ⇒ Γ) →
+          eMapRel (ty-map pΓ pσ) (ty-map pΓ pτ)
+ty-resp {Δ} {Γ} {σ} {τ} {pσ} {pτ} pΓ p = map-rel λ x → ty-eq-subst x p
+
 
 ty-psh : ePSh ctx-cat
 ty-psh = record
   { fun =  λ { (Γ , pΓ) → ty-set Γ }
-  ; mor =  λ { (σ , pσ) → ty-map pσ }
-  ; resp = ty-resp
-  ; id-mor = map-rel λ { {b = B , pB} AB → ty-eq-trans AB (ty-eq-id pB) }
-  ; comp-mor = λ { {b = _ , pΔ} {f = σ , pσ} {g = τ , pτ} → map-rel
+  ; mor =  λ { {Δ , pΔ} {Γ , pΓ} (σ , pσ) → ty-map pΔ pσ }
+  ; resp =  λ { {a = _ , pΓ} → ty-resp pΓ }
+  ; id-mor = map-rel λ { {b = B , pB} AB → ty-eq-trans pB AB (ty-eq-id pB) }
+  ; comp-mor = λ { {a = _ , pΓ} {b = _ , pΔ} {f = σ , pσ} {g = τ , pτ} → map-rel
                    λ { {A , pA} {B , pB} AB →
-                       ty-eq-trans (ty-eq-assoc pA pτ pσ)
+                       ty-eq-trans (ty-subst pΓ pA (subst-comp pΔ pτ pσ))
+                         (ty-eq-assoc pA pτ pσ)
                          (ty-eq-subst AB (subst-eq-refl (subst-comp pΔ pτ pσ)))
                      }
                  }
   }
+
 
 
 
@@ -385,10 +392,11 @@ ter-set Γ A = record
                  }
   }
 
-ter-map : ∀ {Γ Δ σ A B} (pσ : σ ∈ Δ ⇒ Γ) (q : Δ ⊢ B ~ A [ σ ]) →
+
+ter-map : ∀ {Γ Δ σ A B} (pσ : σ ∈ Δ ⇒ Γ) (q : Δ ⊢ B ~ A [ σ to Γ ]) →
           eMap (ter-set Γ A) (ter-set Δ B)
 ter-map {Γ} {Δ} {σ} {A} {B} pσ q = record
-  { ap = λ { (t , pt) → t [ σ ] , ter-ty-eq (ter-subst pt pσ) (ty-eq-sym q) }
+  { ap = λ { (t , pt) → t [ σ to _ ] , ter-ty-eq (ter-subst pt pσ) (ty-eq-sym q) }
   ; ap-cong = λ ts →
       ter-eq-ty-eq (ter-eq-subst ts (subst-eq-refl pσ)) (ty-eq-sym q)
   }
@@ -410,7 +418,7 @@ ter-psh = record
         { {t , pt} {s , ps} ts →
           ter-eq-ty-eq (ter-eq-trans (ter-eq-subst' (ter-eq-subst' ts pτ) pσ)
                          (ter-eq-assoc ps pτ pσ))
-          (ty-eq-trans (ty-eq-subst' (ty-eq-sym q) pσ) (ty-eq-sym p))
+          (ty-eq-trans (ty-subst pΔ pB pσ) (ty-eq-subst' (ty-eq-sym q) pσ) (ty-eq-sym p))
         }
     }
   }
@@ -442,15 +450,17 @@ qqS {Γ , pΓ} {A , pA} = qq , ter-qq {Γ} {A} pA
 
 -- TODO: refactor equational reasoning?
 compr : ∀ {Γ A} → isTerminal (cprInp Γ A) (Γ ◂ A , ppS {Γ} {A}, qqS {Γ} {A})
-isTerminal.! (compr {Γ , pΓ} {A , pA}) {(Δ , pΔ) , (σ , pσ) , (t , pt)} =
+isTerminal.!-explicit (compr {Γ , pΓ} {A , pA}) ((Δ , pΔ) , (σ , pσ) , (t , pt)) =
   (< σ , t > , (subst-<> pσ pA pt)) ,
   subst-eq-sym (subst-eq-pp<> pσ pA pt) ,
   ter-eq-trans (ter-eq-id pt) (ter-eq-ty-eq (ter-eq-subst'
     (ter-eq-sym (ter-eq-qq<> pσ pA pt)) (subst-id pΔ))
-      (ty-eq-sym (ty-eq-id (ty-subst pA pσ))))
+      (ty-eq-sym (ty-eq-id (ty-subst pΓ pA pσ))))
 isTerminal.!-η (compr {Γ , pΓ} {A , pA}) {(Δ , pΔ) , (σ , pσ) , t , pt}
   {(τ , pτ) , eq , q} =
   subst-eq-trans
+    (subst-<> (subst-comp (ctx-cons pΓ pA) (subst-pp pA) pτ) pA
+      (ter-ty-eq (ter-subst (ter-qq pA) pτ) (ty-eq-assoc pA (subst-pp pA) pτ)))
     (subst-eq-<>-η pτ)
     (subst-eq-<> pA
       (subst-eq-refl (subst-comp (ctx-cons pΓ pA) (subst-pp pA) pτ))
@@ -473,3 +483,6 @@ SynCwf = record
            ; qq = λ {Γ A} → qqS {Γ} {A}
            ; compr = compr
            }
+
+-- -}
+-- -}
