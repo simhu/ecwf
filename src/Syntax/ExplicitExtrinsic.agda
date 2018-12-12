@@ -114,6 +114,7 @@ data _⊢_∈_ where
 
   ter-ty-eq :
     ∀ {Γ A B t} →
+    Γ ⊢ A → -- ??
     Γ ⊢ t ∈ A → Γ ⊢ A ~ B →
     ------------------------
     Γ ⊢ t ∈ B
@@ -393,10 +394,11 @@ ter-set Γ A = record
   }
 
 
-ter-map : ∀ {Γ Δ σ A B} (pσ : σ ∈ Δ ⇒ Γ) (q : Δ ⊢ B ~ A [ σ to Γ ]) →
+ter-map : ∀ {Γ Δ σ A B} (pΓ : Γ ⊢) (pA : Γ ⊢ A) (pσ : σ ∈ Δ ⇒ Γ) (q : Δ ⊢ B ~ A [ σ to Γ ]) →
           eMap (ter-set Γ A) (ter-set Δ B)
-ter-map {Γ} {Δ} {σ} {A} {B} pσ q = record
-  { ap = λ { (t , pt) → t [ σ to _ ] , ter-ty-eq (ter-subst pt pσ) (ty-eq-sym q) }
+ter-map {Γ} {Δ} {σ} {A} {B} pΓ pA pσ q = record
+  { ap = λ { (t , pt) →
+      t [ σ to _ ] , ter-ty-eq (ty-subst pΓ pA pσ) (ter-subst pt pσ) (ty-eq-sym q) }
   ; ap-cong = λ ts →
       ter-eq-ty-eq (ter-eq-subst ts (subst-eq-refl pσ)) (ty-eq-sym q)
   }
@@ -404,7 +406,7 @@ ter-map {Γ} {Δ} {σ} {A} {B} pσ q = record
 ter-psh : ePSh (∫ {C = ctx-cat} ty-psh)
 ter-psh = record
   { fun = λ { ((Γ , pΓ) , (A , pA)) → ter-set Γ A }
-  ; mor = λ { ((σ , pσ) , p) → ter-map pσ p }
+  ; mor = λ { {a = (Γ , pΓ) , (A , pA)} ((σ , pσ) , p) → ter-map pΓ pA pσ p }
   ; resp =
     λ { {(Γ , pΓ) , A , pA} {(Δ , pΔ) , B , pB} {(σ , pσ) , p} {(τ , pτ) , q} στ →
         map-rel λ { {t , pt} {s , ps} ts →
@@ -457,15 +459,17 @@ isTerminal.!-explicit (compr {Γ , pΓ} {A , pA}) ((Δ , pΔ) , (σ , pσ) , (t 
     (ter-eq-sym (ter-eq-qq<> pσ pA pt)) (subst-id pΔ))
       (ty-eq-sym (ty-eq-id (ty-subst pΓ pA pσ))))
 isTerminal.!-η (compr {Γ , pΓ} {A , pA}) {(Δ , pΔ) , (σ , pσ) , t , pt}
-  {(τ , pτ) , eq , q} =
+  {(τ , pτ) , eq , q} = let pΓA = ctx-cons pΓ pA in
   subst-eq-trans
-    (subst-<> (subst-comp (ctx-cons pΓ pA) (subst-pp pA) pτ) pA
-      (ter-ty-eq (ter-subst (ter-qq pA) pτ) (ty-eq-assoc pA (subst-pp pA) pτ)))
+    (subst-<> (subst-comp pΓA (subst-pp pA) pτ) pA
+      (ter-ty-eq (ty-subst pΓA (ty-subst pΓ pA (subst-pp pA)) pτ)
+      (ter-subst (ter-qq pA) pτ) (ty-eq-assoc pA (subst-pp pA) pτ)))
     (subst-eq-<>-η pτ)
     (subst-eq-<> pA
-      (subst-eq-refl (subst-comp (ctx-cons pΓ pA) (subst-pp pA) pτ))
+      (subst-eq-refl (subst-comp pΓA (subst-pp pA) pτ))
       (ter-eq-trans
-        (ter-eq-id (ter-ty-eq (ter-subst (ter-qq pA) pτ)
+        (ter-eq-id (ter-ty-eq (ty-subst pΓA (ty-subst pΓ pA (subst-pp pA)) pτ)
+        (ter-subst (ter-qq pA) pτ)
           (ty-eq-assoc pA (subst-pp pA) pτ)))
         (ter-eq-ty-eq (ter-eq-sym q) (ty-eq-subst (ty-eq-refl pA) eq))))
 

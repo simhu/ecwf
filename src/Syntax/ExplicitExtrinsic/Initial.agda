@@ -373,8 +373,8 @@ module Elim {ks kr lo lh lr : Level}
     -- NEEDED
     ter : ∀ {Γ A t} (pΓ : Γ ⊢) (pA : Γ ⊢ A) (pt : Γ ⊢ t ∈ A) → TerE (o pΓ) (ty pΓ pA)
     -- Ind(pt : Γ ⊢ t ∈ A).
-    ter pΓ pA (ter-subst pt pσ) = {!!}
-    ter pΓ pA (ter-ty-eq pt pAB) = ι' {!!} (ter pΓ {!!} pt)
+    ter pΓ pA (ter-ty-eq pB pt pBA) = ι' (ty-cong pΓ pB pA pBA) (ter pΓ pB pt)
+    ter pΓ (ty-subst pΔ pA pσ) (ter-subst pt pσ') = ter pΔ pA pt [ m pΓ pΔ pσ ]tE
     ter (ctx-cons pΓ pA) (ty-subst pΓ' pA' (subst-pp pA'')) (ter-qq pA''') =
       let open EqRelReason ~eq
           eq = begin
@@ -429,7 +429,7 @@ module Elim {ks kr lo lh lr : Level}
     ι-ter : ∀ {Γ A B t} (pΓ : Γ ⊢) (pA : Γ ⊢ A) (pB : Γ ⊢ B)
               (pAB : Γ ⊢ A ~ B) (pt : Γ ⊢ t ∈ B) →
               ι (ty-cong pΓ pA pB pAB) (ter pΓ pB pt)
-              ~t ter pΓ pA (ter-ty-eq pt (ty-eq-sym pAB))
+              ~t ter pΓ pA (ter-ty-eq pB pt (ty-eq-sym pAB))
     -- Ind(pt : Γ ⊢ t ∈ B)?  On pAB?
     ι-ter = {!!}
 
