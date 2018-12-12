@@ -116,14 +116,14 @@ lam t   [ σ ] = lam (t [ upS σ ])
 uni     [ σ ] = uni
 el t    [ σ ] = el (t [ σ ])
 
--- [][]R-assoc : {k m n : ℕ} {σ : Subst m n} { ρ : Ren k m} {t : Exp n} →
---               t [ σ ] [ ρ ]R ≡ t [ σ ⋆r ρ ]
--- [][]R-assoc {σ = σ} {ρ} {var i} = {!!}
--- [][]R-assoc {σ = σ} {ρ} {pi a b} = cong₂ pi [][]R-assoc [][]R-assoc
--- [][]R-assoc {σ = σ} {ρ} {app r s} = cong₂ app [][]R-assoc [][]R-assoc
--- [][]R-assoc {σ = σ} {ρ} {lam t} = cong lam {!([][]R-assoc  {σ = upS σ} {ρ = upR ρ} {t = t})!} -- ([][]R-assoc  {σ = upS σ} {ρ = upR ρ} {t = t})
--- [][]R-assoc {σ = σ} {ρ} {uni} = _≡_.refl
--- [][]R-assoc {σ = σ} {ρ} {el t} = cong el [][]R-assoc
+[][]R-assoc : {k m n : ℕ} {σ : Subst m n} { ρ : Ren k m} {t : Exp n} →
+              t [ σ ] [ ρ ]R ≡ t [ σ ⋆r ρ ]
+[][]R-assoc {σ = σ} {ρ} {var i} = {!!}
+[][]R-assoc {σ = σ} {ρ} {pi a b} = cong₂ pi [][]R-assoc [][]R-assoc
+[][]R-assoc {σ = σ} {ρ} {app r s} = cong₂ app [][]R-assoc [][]R-assoc
+[][]R-assoc {σ = σ} {ρ} {lam t} = cong lam {!([][]R-assoc  {σ = upS σ} {ρ = upR ρ} {t = t})!} -- ([][]R-assoc  {σ = upS σ} {ρ = upR ρ} {t = t})
+[][]R-assoc {σ = σ} {ρ} {uni} = _≡_.refl
+[][]R-assoc {σ = σ} {ρ} {el t} = cong el [][]R-assoc
 
 
 _⋆_ : {k m n : ℕ} → Subst m n → Subst k m → Subst k n
@@ -278,6 +278,7 @@ data _⊢_~_∈_ where
 
   ter-eq-lam :
     ∀ {n} {Γ : Ctx n} {A B  u v} →
+    Γ ⊢ A →
     Γ ∙ A ⊢ u ~ v ∈ B →
     ---------------------------
     Γ ⊢ lam u ~ lam v ∈ pi A B
@@ -324,7 +325,7 @@ ty-eq-refl (ty-pi pA pB) = ty-eq-pi pA (ty-eq-refl pA) (ty-eq-refl pB)
 ter-eq-refl (ter-ty-eq pu pAB) = ter-eq-ty-eq (ter-eq-refl pu) pAB
 ter-eq-refl (ter-var-zero pA)  = ter-eq-var-zero pA
 ter-eq-refl (ter-var-suc pu)   = ter-eq-var-suc (ter-eq-refl pu)
-ter-eq-refl (ter-lam pA pu)    = ter-eq-lam (ter-eq-refl pu)
+ter-eq-refl (ter-lam pA pu)    = ter-eq-lam pA (ter-eq-refl pu)
 ter-eq-refl (ter-app pu pv)    = ter-eq-app (ter-eq-refl pu) (ter-eq-refl pv)
 
 --------------------------------------------------------------------------------
@@ -473,13 +474,21 @@ ty-eq-ren (ty-eq-trans pAB pBC) pρ =
 ter-ren (ter-ty-eq pt pAB) pρ = ter-ty-eq (ter-ren pt pρ) (ty-eq-ren pAB pρ)
 ter-ren (ter-var-zero {A = A} pA) (ren-id pΓ)
   rewrite []R-assoc {ρ = pR} {η = idR}{t = A} = ter-var-zero pA
-ter-ren (ter-var-zero {A = A} pA) (ren-wk {ρ = ρ} pρ)
-  rewrite []R-assoc {ρ = pR} {η = wkR ρ} {t = A} = {!ter-var-suc!}
+ter-ren (ter-var-zero {A = A} pA) (ren-wk {ρ = ρ} pρ) = {!!}
+--  rewrite []R-assoc {ρ = pR} {η = wkR ρ} {t = A} = {!ter-var-suc!}
 ter-ren (ter-var-zero x) (ren-upr pρ pA) = {!!}
 ter-ren (ter-var-suc pt) pρ = {!!}
 ter-ren (ter-lam pA pt) pρ = ter-lam (ty-ren pA pρ) (ter-ren pt (ren-upr pρ pA))
 ter-ren (ter-app pr ps) pρ = {!!} -- ter-app {!ter-ren pr pρ!} {!!}
 
-ter-eq-ren pts pρ = {!!}
+ter-eq-ren (ter-eq-ty-eq pts pAB) pρ = ter-eq-ty-eq (ter-eq-ren pts pρ) (ty-eq-ren pAB pρ)
+ter-eq-ren (ter-eq-beta x x₁) pρ = {!!}
+ter-eq-ren (ter-eq-eta x) pρ = {!!}
+ter-eq-ren (ter-eq-var-zero x) pρ = {!!}
+ter-eq-ren (ter-eq-var-suc pts) pρ = {!!}
+ter-eq-ren (ter-eq-lam pA pts) pρ = ter-eq-lam (ty-ren pA pρ) (ter-eq-ren pts (ren-upr pρ pA))
+ter-eq-ren (ter-eq-app pru psv) pρ = ter-eq-app (ter-eq-ren {!!} pρ) (ter-eq-ren psv pρ)
+ter-eq-ren (ter-eq-sym pts) pρ = ter-eq-sym (ter-eq-ren pts pρ)
+ter-eq-ren (ter-eq-trans pts psr) pρ = ter-eq-trans (ter-eq-ren pts pρ) (ter-eq-ren psr pρ)
 
 -- -}
