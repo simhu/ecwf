@@ -351,7 +351,32 @@ module Elim {ks kr lo lh lr : Level}
            (pστ : σ ~ τ ∈ Δ ⇒ Γ) → m pΔ pΓ pσ ~s m pΔ pΓ pτ
     -- Ind(pστ : σ ~ τ ∈ Δ ⇒ Γ)
     m-resp pΔ pΓ pσ pτ (subst-eq-pp<> x x₁ x₂) = {!!}
-    m-resp pΔ pΓ pσ pτ (subst-eq-assoc x x₁ x₂) = {!!}
+    m-resp pΔ pΓ (subst-comp pΞ pσ (subst-comp pΘ pτ pξ))
+                 (subst-comp pΘ' (subst-comp pΞ' pσ' pτ') pξ')
+                 (subst-eq-assoc pσ'' pτ'' pξ'') =
+      let open EqRelReason ~seq in
+      begin
+        m pΞ pΓ pσ ∘E (m pΘ pΞ pτ ∘E m pΔ pΘ pξ)
+      ≈⟨ comp-cong (Ctx E) (m# pΞ pΓ pσ pσ')
+           (comp-cong (Ctx E) (m# pΘ pΞ pτ pτ') (m# pΔ pΘ pξ pξ')) ⟩
+        m pΞ pΓ pσ' ∘E (m pΘ pΞ pτ' ∘E m pΔ pΘ pξ')
+      ≈⟨ comp-cong (Ctx E) (m-o#-r pΞ pΞ' pΓ pσ')
+           (comp-cong-r (Ctx E) (m-o#-l pΔ pΘ pΘ' pξ')) ⟩
+        (m pΞ' pΓ pσ' ∘E o# pΞ pΞ') ∘E (m pΘ pΞ pτ' ∘E (o# pΘ' pΘ ∘E m pΔ pΘ' pξ'))
+      ≈⟨ comp-cong-r (Ctx E) (comp-assoc (Ctx E)) ⟩
+        (m pΞ' pΓ pσ' ∘E o# pΞ pΞ') ∘E ((m pΘ pΞ pτ' ∘E o# pΘ' pΘ) ∘E m pΔ pΘ' pξ')
+      ≈⟨ comp-assoc-inv (Ctx E) ⟩
+        m pΞ' pΓ pσ' ∘E (o# pΞ pΞ' ∘E ((m pΘ pΞ pτ' ∘E o# pΘ' pΘ) ∘E m pΔ pΘ' pξ'))
+      ≈⟨ comp-cong-r (Ctx E) (comp-assoc (Ctx E)) ⟩
+        m pΞ' pΓ pσ' ∘E ((o# pΞ pΞ' ∘E (m pΘ pΞ pτ' ∘E o# pΘ' pΘ)) ∘E m pΔ pΘ' pξ')
+      ≈⟨ comp-assoc (Ctx E) ⟩
+        (m pΞ' pΓ pσ' ∘E (o# pΞ pΞ' ∘E (m pΘ pΞ pτ' ∘E o# pΘ' pΘ))) ∘E m pΔ pΘ' pξ'
+      ≈⟨ comp-cong-l (Ctx E) (comp-cong-r (Ctx E) (comp-assoc (Ctx E))) ⟩
+        m pΞ' pΓ pσ' ∘E (o# pΞ pΞ' ∘E m pΘ pΞ pτ' ∘E o# pΘ' pΘ) ∘E m pΔ pΘ' pξ'
+      ≈⟨ comp-cong-l (Ctx E) (comp-cong-r (Ctx E)
+           (~seq .sym (m-o#-lr pΘ' pΘ pΞ' pΞ pτ'))) ⟩
+        m pΞ' pΓ pσ' ∘E m pΘ' pΞ' pτ' ∘E m pΔ pΘ' pξ'
+      ∎
     m-resp pΔ pΓ (subst-comp pΓ' (subst-id pΓ'') pτ) pτ' (subst-eq-id-l pτ'') =
       let open EqRelReason ~seq in
       begin
