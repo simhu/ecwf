@@ -183,9 +183,7 @@ module Elim {ks kr lo lh lr : Level}
         o# pΓ' pΓ ∘E (o# ctx-nil pΓ' ∘E !E)
       ∎
     m-o# pΔ pΔ' (ctx-cons pΓ pA) (ctx-cons pΓ' pA') (subst-<> pσ pA'' pt) =
-      let open EqRelReason ~seq
-          eq = _
-      in
+      let open EqRelReason ~seq in
       begin
         < m pΔ pΓ pσ
         , ι (subst-ty pΔ pΓ pσ pA) (ter pΔ (ty-subst pΓ pA pσ) pt) >E ∘E o# pΔ' pΔ
@@ -220,7 +218,7 @@ module Elim {ks kr lo lh lr : Level}
         < o# pΓ' pΓ ∘E ppE ∘E
             < m pΔ' pΓ' pσ
             , ι (subst-ty pΔ' pΓ' pσ pA') (ter pΔ' (ty-subst pΓ' pA' pσ) pt) >E
-        , ι' []-assoc ((ι' eq qqE)
+        , ι' []-assoc ((ι' _ qqE)
             [ < m pΔ' pΓ' pσ
               , ι (subst-ty pΔ' pΓ' pσ pA') (ter pΔ' (ty-subst pΓ' pA' pσ) pt) >E ]tE)
         >E
