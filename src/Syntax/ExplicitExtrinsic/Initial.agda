@@ -412,7 +412,26 @@ module Elim {ks kr lo lh lr : Level}
       -- ≈⟨ m# pΔ pΓ pσ pσ' ⟩
       --   m pΔ pΓ pσ'
       -- ∎
-    m-resp pΔ pΓ (subst-comp pΞ pσ pσ') (subst-comp pΞ' pτ pτ') (subst-eq-comp pΞ'' pσσ' pττ') = {!!}
+    m-resp pΔ pΓ (subst-comp pΞ pσ pτ) (subst-comp pΞ' pσ' pτ') (subst-eq-comp pΞ'' pσσ' pττ') =
+      BLOCK
+      -- let open EqRelReason ~seq in
+      -- begin
+      --   m pΞ pΓ pσ ∘E m pΔ pΞ pτ
+      -- ≈⟨ comp-cong (Ctx E) (m-o#-r pΞ pΞ' pΓ pσ) (m-o#-l pΔ pΞ pΞ' pτ) ⟩
+      --   (m pΞ' pΓ pσ ∘E o# pΞ pΞ')∘E (o# pΞ' pΞ ∘E m pΔ pΞ' pτ)
+      -- ≈⟨ comp-assoc (Ctx E) ⟩
+      --   ((m pΞ' pΓ pσ ∘E o# pΞ pΞ')∘E o# pΞ' pΞ) ∘E m pΔ pΞ' pτ
+      -- ≈⟨ comp-cong-l (Ctx E) (comp-assoc-inv (Ctx E)) ⟩
+      --   m pΞ' pΓ pσ ∘E (o# pΞ pΞ' ∘E o# pΞ' pΞ) ∘E m pΔ pΞ' pτ
+      -- ≈⟨ comp-cong-l (Ctx E) (comp-cong-r (Ctx E) (o#comp pΞ' pΞ pΞ')) ⟩
+      --   m pΞ' pΓ pσ ∘E o# pΞ' pΞ' ∘E m pΔ pΞ' pτ
+      -- ≈⟨ comp-cong-l (Ctx E) (comp-cong-r (Ctx E) (~seq .sym (o#id pΞ'))) ⟩
+      --   m pΞ' pΓ pσ ∘E idsE ∘E m pΔ pΞ' pτ
+      -- ≈⟨ comp-cong-l (Ctx E) (id-r (Ctx E)) ⟩
+      --   m pΞ' pΓ pσ ∘E m pΔ pΞ' pτ
+      -- ≈⟨ comp-cong (Ctx E) (m-resp pΞ' pΓ pσ pσ' pσσ') (m-resp pΔ pΞ' pτ pτ' pττ') ⟩
+      --   m pΞ' pΓ pσ' ∘E m pΔ pΞ' pτ'
+      -- ∎
     m-resp pΔ pΓ pσ pτ (subst-eq-<> x pστ x₁) = {!!}
     m-resp pΔ pΓ pσ pτ (subst-eq-refl _) = m# pΔ pΓ pσ pτ
     m-resp pΔ pΓ pσ pτ (subst-eq-sym pστ) = ~seq .sym (m-resp pΔ pΓ pτ pσ pστ)
