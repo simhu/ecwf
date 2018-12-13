@@ -297,6 +297,10 @@ record eCwF {lvs lvr lo lh lr : Level} : Set (lsuc (lvs ⊔ lvr ⊔ lo ⊔ lh �
       ∎
     })
 
+  <>-cong-r : ∀ {Δ Γ} {σ : Subst Δ Γ} {A : Typ Γ} {t t' : Ter Δ (A [ σ ])} →
+    (q : t ~t t') → < σ , t > ~s < σ , t' >
+  <>-cong-r q = <>-cong (~seq .refl) (~teq .trans q (~teq .trans ιrefl ιirr))
+
   <>-comp : ∀ {Ξ Δ Γ σ} {A : Typ Γ} {t : Ter Δ (A [ σ ])} {τ : Subst Ξ Δ} →
             < σ , t > ∘s τ ~s < σ ∘s τ , ι' []-assoc (t [ τ ]t) >
   <>-comp {Ξ} {Δ} {Γ} {σ} {A} {t} {τ} =
