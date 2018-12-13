@@ -350,19 +350,34 @@ module Elim {ks kr lo lh lr : Level}
     m-resp : ∀ {Δ Γ σ τ} (pΔ : Δ ⊢) (pΓ : Γ ⊢) (pσ : σ ∈ Δ ⇒ Γ) (pτ : τ ∈ Δ ⇒ Γ)
            (pστ : σ ~ τ ∈ Δ ⇒ Γ) → m pΔ pΓ pσ ~s m pΔ pΓ pτ
     -- Ind(pστ : σ ~ τ ∈ Δ ⇒ Γ)
-    m-resp = BLOCK
-    -- m-resp pΔ pΓ pσ pτ (subst-eq-pp<> x x₁ x₂) = {!!}
-    -- m-resp pΔ pΓ pσ pτ (subst-eq-assoc x x₁ x₂) = {!!}
-    -- m-resp pΔ pΓ pσ pτ (subst-eq-id-l x) = {!!}
-    -- m-resp pΔ pΓ pσ pτ (subst-eq-id-r x) = {!!}
-    -- m-resp pΔ pΓ (subst-comp pΞ pσ pσ') (subst-comp pΞ' pτ pτ') (subst-eq-comp pΞ'' pσσ' pττ') = {!!}
-    -- m-resp pΔ pΓ pσ pτ (subst-eq-<> x pστ x₁) = {!!}
-    -- m-resp pΔ pΓ pσ pτ (subst-eq-refl _) = m# pΔ pΓ pσ pτ
-    -- m-resp pΔ pΓ pσ pτ (subst-eq-sym pστ) = ~seq .sym (m-resp pΔ pΓ pτ pσ pστ)
-    -- m-resp pΔ pΓ pσ pτ (subst-eq-trans pξ pσξ pξτ) =
-    --   ~seq .trans (m-resp pΔ pΓ pσ pξ pσξ) (m-resp pΔ pΓ pξ pτ pξτ)
-    -- m-resp pΔ ctx-nil pσ pτ (subst-eq-!-η _) = !-η' E
-    -- m-resp pΔ (ctx-cons pΓ pA) pσ (subst-<> (subst-comp x₃ pτ pτ₁) x₁ x₂) (subst-eq-<>-η x) = {!!}
+    m-resp pΔ pΓ pσ pτ (subst-eq-pp<> x x₁ x₂) = {!!}
+    m-resp pΔ pΓ pσ pτ (subst-eq-assoc x x₁ x₂) = {!!}
+    m-resp pΔ pΓ (subst-comp pΓ' (subst-id pΓ'') pτ) pτ' (subst-eq-id-l pτ'') =
+      let open EqRelReason ~seq in
+      begin
+        o# pΓ' pΓ ∘E m pΔ pΓ' pτ
+      ≈⟨ comp-cong-r (Ctx E) (m# pΔ pΓ' pτ pτ') ⟩
+        o# pΓ' pΓ ∘E m pΔ pΓ' pτ'
+      ≈⟨ ~seq .sym (m-o#-l pΔ pΓ pΓ' pτ') ⟩
+        m pΔ pΓ pτ'
+      ∎
+    m-resp pΔ pΓ (subst-comp pΔ' pσ (subst-id pΔ'')) pσ' (subst-eq-id-r pσ'') =
+      let open EqRelReason ~seq in
+      begin
+        m pΔ' pΓ pσ ∘E o# pΔ pΔ'
+      ≈⟨ ~seq .sym (m-o#-r pΔ pΔ' pΓ pσ) ⟩
+        m pΔ pΓ pσ
+      ≈⟨ m# pΔ pΓ pσ pσ' ⟩
+        m pΔ pΓ pσ'
+      ∎
+    m-resp pΔ pΓ (subst-comp pΞ pσ pσ') (subst-comp pΞ' pτ pτ') (subst-eq-comp pΞ'' pσσ' pττ') = {!!}
+    m-resp pΔ pΓ pσ pτ (subst-eq-<> x pστ x₁) = {!!}
+    m-resp pΔ pΓ pσ pτ (subst-eq-refl _) = m# pΔ pΓ pσ pτ
+    m-resp pΔ pΓ pσ pτ (subst-eq-sym pστ) = ~seq .sym (m-resp pΔ pΓ pτ pσ pστ)
+    m-resp pΔ pΓ pσ pτ (subst-eq-trans pξ pσξ pξτ) =
+      ~seq .trans (m-resp pΔ pΓ pσ pξ pσξ) (m-resp pΔ pΓ pξ pτ pξτ)
+    m-resp pΔ ctx-nil pσ pτ (subst-eq-!-η _) = !-η' E
+    m-resp pΔ (ctx-cons pΓ pA) pσ (subst-<> (subst-comp x₃ pτ pτ₁) x₁ x₂) (subst-eq-<>-η x) = {!!}
 
     -- NEEDED
     ty : ∀ {Γ A} (pΓ : Γ ⊢) (pA : Γ ⊢ A) → TypE (o pΓ)
