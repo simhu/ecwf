@@ -187,44 +187,46 @@ module Elim {ks kr lo lh lr : Level}
           eq = _
       in
       begin
-        < m pΔ pΓ pσ , ι (subst-ty pΔ pΓ pσ pA) (ter pΔ (ty-subst pΓ pA pσ) pt) >E ∘E o# pΔ' pΔ
+        < m pΔ pΓ pσ
+        , ι (subst-ty pΔ pΓ pσ pA) (ter pΔ (ty-subst pΓ pA pσ) pt) >E ∘E o# pΔ' pΔ
       ≈⟨ <>-comp E ⟩
         < m pΔ pΓ pσ ∘E o# pΔ' pΔ
-        , ι' []-assoc ((ι (subst-ty pΔ pΓ pσ pA) (ter pΔ (ty-subst pΓ pA pσ) pt)) [ o# pΔ' pΔ ]tE) >E
+        , ι' []-assoc ((ι (subst-ty pΔ pΓ pσ pA) (ter pΔ (ty-subst pΓ pA pσ) pt))
+                          [ o# pΔ' pΔ ]tE) >E
       ≈⟨ <>-cong E  (m-o# pΔ pΔ' pΓ pΓ' pσ)
-         (~teq .trans (ιresp ιsubst)
-           (~teq .trans ιtrans (~teq .sym (~teq .trans ιtrans ιirr)))) -- TODO: yellow :-( too many ιirrs
-       ⟩
+           (~teq .trans (ιresp ιsubst)
+             (~teq .trans ιtrans (~teq .sym (~teq .trans ιtrans ιirr)))) ⟩
         < o# pΓ' pΓ ∘E m pΔ' pΓ' pσ
-        , ι _ -- (~eq .trans ([]-resp-r (~seq .sym (m-o# pΔ pΔ' pΓ pΓ' pσ))) {!!})
-            (ter pΔ (ty-subst pΓ pA pσ) pt [ o# pΔ' pΔ ]tE) >E
+        , ι _ (ter pΔ (ty-subst pΓ pA pσ) pt [ o# pΔ' pΔ ]tE) >E
       ≈⟨ <>-cong-r E (~teq .sym (~teq .trans
            (ιresp (ter# pΔ' pΔ (ty-subst pΓ' pA' pσ) (ty-subst pΓ pA pσ) pt pt))
-           (~teq .trans ιtrans ιirr))) ⟩
+           ιtrans)) ⟩
         < o# pΓ' pΓ ∘E m pΔ' pΓ' pσ
-        , ι' _ (ter pΔ' (ty-subst pΓ' pA' pσ) pt)
+        , ι _ (ter pΔ' (ty-subst pΓ' pA' pσ) pt)
         >E
       ≈⟨ <>-cong E (comp-cong-r (Ctx E) (pp<>-inv E))
            (~teq .sym (~teq .trans (ιresp (ιresp (qq<> E)))
-             (~teq .trans ιtrans (~teq .trans ιtrans (~teq .trans ιtrans ιirr))))) ⟩
+             (~teq .trans ιtrans (~teq .trans ιtrans ιtrans)))) ⟩
         < o# pΓ' pΓ ∘E (ppE ∘E
-            < m pΔ' pΓ' pσ , ι (subst-ty pΔ' pΓ' pσ pA') (ter pΔ' (ty-subst pΓ' pA' pσ) pt) >E)
-        , ι' _
-             (qqE [ < m pΔ' pΓ' pσ
-                      , ι (subst-ty pΔ' pΓ' pσ pA') (ter pΔ' (ty-subst pΓ' pA' pσ) pt) >E ]tE)
+            < m pΔ' pΓ' pσ , ι (subst-ty pΔ' pΓ' pσ pA')
+                                (ter pΔ' (ty-subst pΓ' pA' pσ) pt) >E)
+        , ι _ (qqE [ < m pΔ' pΓ' pσ
+                     , ι (subst-ty pΔ' pΓ' pσ pA')
+                         (ter pΔ' (ty-subst pΓ' pA' pσ) pt) >E ]tE)
         >E
       ≈⟨ <>-cong E (comp-assoc (Ctx E))
-         (~teq .trans (~teq .trans (~teq .trans ιirr ιtrans-inv)
+         (~teq .trans (~teq .trans ιtrans-inv
            (~teq .sym (ιresp ιsubst))) ιtrans-inv) ⟩
         < o# pΓ' pΓ ∘E ppE ∘E
-            < m pΔ' pΓ' pσ , ι (subst-ty pΔ' pΓ' pσ pA') (ter pΔ' (ty-subst pΓ' pA' pσ) pt) >E
+            < m pΔ' pΓ' pσ
+            , ι (subst-ty pΔ' pΓ' pσ pA') (ter pΔ' (ty-subst pΓ' pA' pσ) pt) >E
         , ι' []-assoc ((ι' eq qqE)
             [ < m pΔ' pΓ' pσ
               , ι (subst-ty pΔ' pΓ' pσ pA') (ter pΔ' (ty-subst pΓ' pA' pσ) pt) >E ]tE)
         >E
       ≈⟨ ~seq .sym (<>-comp E) ⟩
         < o# pΓ' pΓ ∘E ppE , ι' _ qqE >E ∘E
-         < m pΔ' pΓ' pσ , ι (subst-ty pΔ' pΓ' pσ pA') (ter pΔ' (ty-subst pΓ' pA' pσ) pt) >E
+         < m pΔ' pΓ' pσ , ι _ (ter pΔ' (ty-subst pΓ' pA' pσ) pt) >E
       ∎
     m-o# pΔ pΔ' pΓ pΓ' (subst-id x) =
       let open EqRelReason ~seq in
@@ -243,7 +245,7 @@ module Elim {ks kr lo lh lr : Level}
         m pΞ pΓ pσ ∘E (m pΔ pΞ pτ ∘E o# pΔ' pΔ)
       ≈⟨ comp-cong-r (Ctx E) (m-o# pΔ pΔ' pΞ pΞ pτ) ⟩
         m pΞ pΓ pσ ∘E (o# pΞ pΞ ∘E m pΔ' pΞ pτ)
-      ≈⟨ {!comp-assoc (Ctx E)!} ⟩
+      ≈⟨ comp-assoc (Ctx E) ⟩
         (m pΞ pΓ pσ ∘E o# pΞ pΞ) ∘E m pΔ' pΞ pτ
       ≈⟨ comp-cong-l (Ctx E) (m-o# pΞ pΞ pΓ pΓ' pσ) ⟩
         (o# pΓ' pΓ ∘E m pΞ pΓ' pσ) ∘E m pΔ' pΞ pτ
@@ -290,7 +292,7 @@ module Elim {ks kr lo lh lr : Level}
     m# : ∀ {Δ Γ σ} (pΔ : Δ ⊢) (pΓ : Γ ⊢)
          (pσ pσ' : σ ∈ Δ ⇒ Γ) → m pΔ pΓ pσ ~s m pΔ pΓ pσ'
     -- Ind(pσ pσ': σ ∈ Δ ⇒ Γ).
-    m# pΔ pΓ pσ pσ' = BLOCK
+    m# = BLOCK
     -- m# pΔ pΓ (subst-! pΔ') (subst-! pΔ'') = ~seq .refl
     -- m# pΔ (ctx-cons pΓ pA) (subst-<> pσ pA'' pt'') (subst-<> pσ' pA' pt') =
     --   let right = let open EqRelReason ~teq in
@@ -424,7 +426,7 @@ module Elim {ks kr lo lh lr : Level}
     ty-cong : ∀ {Γ A B} (pΓ : Γ ⊢) (pA : Γ ⊢ A) (pB : Γ ⊢ B)
               (pAB : Γ ⊢ A ~ B) → ty pΓ pA ~E ty pΓ pB
     -- Ind(pAB : Γ ⊢ A ~ B).
-    ty-cong pΓ pA pB pAB = BLOCK
+    ty-cong = BLOCK
     -- ty-cong pΓ pA pB (ty-eq-refl _) = ty#r pΓ pA pB
     -- ty-cong pΓ pA pB (ty-eq-sym pBA) = ~eq .sym (ty-cong pΓ pB pA pBA)
     -- ty-cong pΓ pA pB (ty-eq-trans pC pAC pCB) =
@@ -473,7 +475,7 @@ module Elim {ks kr lo lh lr : Level}
     -- NEEDED
     ter : ∀ {Γ A t} (pΓ : Γ ⊢) (pA : Γ ⊢ A) (pt : Γ ⊢ t ∈ A) → TerE (o pΓ) (ty pΓ pA)
     -- Ind(pt : Γ ⊢ t ∈ A).
-    ter pΓ pA pt = BLOCK
+    ter = BLOCK
     -- ter pΓ pA (ter-ty-eq pB pt pBA) = ι' (ty-cong pΓ pB pA pBA) (ter pΓ pB pt)
     -- ter pΓ (ty-subst pΔ pA pσ) (ter-subst pt pσ') = ter pΔ pA pt [ m pΓ pΔ pσ ]tE
     -- ter (ctx-cons pΓ pA) (ty-subst pΓ' pA' (subst-pp pA'')) (ter-qq pA''') =
@@ -493,7 +495,7 @@ module Elim {ks kr lo lh lr : Level}
     -- ??? we should really generalize to a more general equality...
     ter# : ∀ {Γ A t} (pΓ pΓ' : Γ ⊢) (pA pA' : Γ ⊢ A) (pt pt' : Γ ⊢ t ∈ A) →
            ter pΓ pA pt ~t ι (ty# pΓ pΓ' pA pA') (ter pΓ' pA' pt' [ o# pΓ pΓ' ]tE)
-    ter# pΓ pΓ' pA pA' pt pt' = BLOCK
+    ter# = BLOCK
     -- ter# pΓA pΓA' pA pA' (ter-qq pA'') (ter-qq pA''') = {!!}
     -- ter# pΓ pΓ' pA pA' (ter-qq x) (ter-ty-eq x₁ pt' x₂) = {!!}
     -- ter# pΓ pΓ' pA pA' (ter-subst pt x) pt' = {!!}
