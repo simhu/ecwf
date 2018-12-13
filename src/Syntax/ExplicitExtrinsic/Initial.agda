@@ -432,7 +432,14 @@ module Elim {ks kr lo lh lr : Level}
       -- ≈⟨ comp-cong (Ctx E) (m-resp pΞ' pΓ pσ pσ' pσσ') (m-resp pΔ pΞ' pτ pτ' pττ') ⟩
       --   m pΞ' pΓ pσ' ∘E m pΔ pΞ' pτ'
       -- ∎
-    m-resp pΔ (ctx-cons pΓ pA) (subst-<> pσ pA' pt) (subst-<> pτ pA'' ps) (subst-eq-<> pA''' pστ pst) = <>-cong E {!m-resp pΔ pΓ pσ pτ pστ!} {!!}
+    m-resp pΔ (ctx-cons pΓ pA) (subst-<> pσ pA' pt) (subst-<> pτ pA'' ps) (subst-eq-<> pA''' pστ pst) =
+      let open EqRelReason ~teq  -- Maybe this is easier when splitting up subst-eq-<> into two rules?
+          eq = begin
+                 ι (subst-ty pΔ pΓ pσ pA) (ter pΔ (ty-subst pΓ pA pσ) pt)
+               ≈⟨ {!!} ⟩
+                 ι ([]-resp-r (m-resp pΔ pΓ pσ pτ pστ)) (ι (subst-ty pΔ pΓ pτ pA) (ter pΔ (ty-subst pΓ pA pτ) ps))
+               ∎
+      in <>-cong E (m-resp pΔ pΓ pσ pτ pστ) {!!}
     m-resp pΔ pΓ pσ pτ (subst-eq-refl _) = m# pΔ pΓ pσ pτ
     m-resp pΔ pΓ pσ pτ (subst-eq-sym pστ) = ~seq .sym (m-resp pΔ pΓ pτ pσ pστ)
     m-resp pΔ pΓ pσ pτ (subst-eq-trans pξ pσξ pξτ) =
@@ -600,6 +607,7 @@ module Elim {ks kr lo lh lr : Level}
     -- ter-cong pΓ pA pt ps (ter-eq-trans pts pts₁) = {!!}
 
     -- NEEDED
+    -- TODO: param by equation in E?
     subst-ter : ∀ {Γ Δ A σ t} (pΔ : Δ ⊢) (pΓ : Γ ⊢) (pσ : σ ∈ Δ ⇒ Γ)
                 (pA : Γ ⊢ A) (pt : Γ ⊢ t ∈ A) →
                 let pAσ = ty-subst pΓ pA pσ  -- aka: ap (ty-map pσ) (A , pA) .snd
@@ -610,20 +618,21 @@ module Elim {ks kr lo lh lr : Level}
     -- Ind(pt : Γ ⊢ t ∈ A)?
     subst-ter {Γ} {Δ} {A} {σ} {t} pΔ pΓ pσ pA pt = {!!}
 
-    -- NEEDED
-    -- does this make sense?
-    ι-ter : ∀ {Γ A B t} (pΓ : Γ ⊢) (pA : Γ ⊢ A) (pB : Γ ⊢ B)
-              (pAB : Γ ⊢ A ~ B) (pt : Γ ⊢ t ∈ B) →
-              ι (ty-cong pΓ pA pB pAB) (ter pΓ pB pt)
-              ~t ter pΓ pA (ter-ty-eq pB pt (ty-eq-sym pAB))
-    -- Ind(pt : Γ ⊢ t ∈ B)?  On pAB?
-    ι-ter = {!!}
 
 
 -------------------------------------------------------------------------------
 
 {-
 
+  -- does this make sense?  This actually seems like a trivial
+  -- consequence from how the rhs is defined?
+  -- NB: relies on the definition of ter of course..
+  ι-ter : ∀ {Γ A B t} (pΓ : Γ ⊢) (pA : Γ ⊢ A) (pB : Γ ⊢ B)
+            (pAB : Γ ⊢ A ~ B) (pt : Γ ⊢ t ∈ B) →
+            ι (ty-cong pΓ pA pB pAB) (ter pΓ pB pt)
+            ~t ter pΓ pA (ter-ty-eq pB pt (ty-eq-sym pAB))
+  -- Ind(pt : Γ ⊢ t ∈ B)?  On pAB?
+  ι-ter pΓ pA pB pAB pt = ιirr
 
   subst-ty-cong : ∀ {Γ Δ σ A B} (pΔ : Δ ⊢) (pΓ : Γ ⊢) (pσ : σ ∈ Δ ⇒ Γ)
           (pA : Γ ⊢ A) (pB : Γ ⊢ B) (pAB : Γ ⊢ A ~ B)
