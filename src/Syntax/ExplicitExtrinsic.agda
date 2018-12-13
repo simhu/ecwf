@@ -243,7 +243,7 @@ data _~_∈_⇒_ where
 
   subst-eq-<> :
     ∀ {Δ Γ σ σ' A t t'} →
-    Γ ⊢ A → σ ~ σ ∈ Δ ⇒ Γ → Δ ⊢ t ~ t' ∈ A [ σ to Γ ] →
+    Γ ⊢ A → σ ~ σ' ∈ Δ ⇒ Γ → Δ ⊢ t ~ t' ∈ A [ σ to Γ ] →
     -------------------------------------------------
     < σ , t > ~ < σ' , t' > ∈ Δ ⇒ Γ ∙ A
 
@@ -466,7 +466,7 @@ isTerminal.!-η (compr {Γ , pΓ} {A , pA}) {(Δ , pΔ) , (σ , pσ) , t , pt}
       (ter-subst (ter-qq pA) pτ) (ty-eq-assoc pA (subst-pp pA) pτ)))
     (subst-eq-<>-η pτ)
     (subst-eq-<> pA
-      (subst-eq-refl (subst-comp pΓA (subst-pp pA) pτ))
+      (subst-eq-sym eq)
       (ter-eq-trans
         (ter-eq-id (ter-ty-eq (ty-subst pΓA (ty-subst pΓ pA (subst-pp pA)) pτ)
         (ter-subst (ter-qq pA) pτ)

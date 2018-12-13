@@ -432,7 +432,7 @@ module Elim {ks kr lo lh lr : Level}
       -- ≈⟨ comp-cong (Ctx E) (m-resp pΞ' pΓ pσ pσ' pσσ') (m-resp pΔ pΞ' pτ pτ' pττ') ⟩
       --   m pΞ' pΓ pσ' ∘E m pΔ pΞ' pτ'
       -- ∎
-    m-resp pΔ pΓ pσ pτ (subst-eq-<> x pστ x₁) = {!!}
+    m-resp pΔ (ctx-cons pΓ pA) (subst-<> pσ pA' pt) (subst-<> pτ pA'' ps) (subst-eq-<> pA''' pστ pst) = <>-cong E {!m-resp pΔ pΓ pσ pτ pστ!} {!!}
     m-resp pΔ pΓ pσ pτ (subst-eq-refl _) = m# pΔ pΓ pσ pτ
     m-resp pΔ pΓ pσ pτ (subst-eq-sym pστ) = ~seq .sym (m-resp pΔ pΓ pτ pσ pστ)
     m-resp pΔ pΓ pσ pτ (subst-eq-trans pξ pσξ pξτ) =
@@ -457,37 +457,38 @@ module Elim {ks kr lo lh lr : Level}
     -- to proof is to fix Δ and Δ' by adding it to the substitution
     -- syntax as an additional argument to _[_] in the raw syntax.
 
-    ty# pΓ pΓ' (ty-subst pΔ pA pσ) (ty-subst pΔ' pA' pσ') =
-      let open EqRelReason ~eq in
-      begin
-        ty pΔ pA [ m pΓ pΔ pσ ]E
-      ≈⟨ []-resp-l (ty# pΔ pΔ' pA pA') ⟩
-        ty pΔ' pA' [ o# pΔ pΔ' ]E [ m pΓ pΔ pσ ]E
-      ≈⟨ []-assoc ⟩
-        ty pΔ' pA' [ o# pΔ pΔ' ∘E m pΓ pΔ pσ ]E
-      ≈⟨ []-resp-r (comp-cong-r (Ctx E) (m# pΓ pΔ pσ pσ')) ⟩
-        ty pΔ' pA' [ o# pΔ pΔ' ∘E m pΓ pΔ pσ' ]E
-      ≈⟨ []-resp-r (~seq .sym (m-o# pΓ' pΓ pΔ' pΔ pσ')) ⟩
-        ty pΔ' pA' [ m pΓ' pΔ' pσ' ∘E o# pΓ pΓ' ]E
-      ≈⟨ []-assoc-inv ⟩
-        ty pΔ' pA' [ m pΓ' pΔ' pσ' ]E [ o# pΓ pΓ' ]E
-      ∎
+    ty# pΓ pΓ' (ty-subst pΔ pA pσ) (ty-subst pΔ' pA' pσ') = BLOCK
+      -- let open EqRelReason ~eq in
+      -- begin
+      --   ty pΔ pA [ m pΓ pΔ pσ ]E
+      -- ≈⟨ []-resp-l (ty# pΔ pΔ' pA pA') ⟩
+      --   ty pΔ' pA' [ o# pΔ pΔ' ]E [ m pΓ pΔ pσ ]E
+      -- ≈⟨ []-assoc ⟩
+      --   ty pΔ' pA' [ o# pΔ pΔ' ∘E m pΓ pΔ pσ ]E
+      -- ≈⟨ []-resp-r (comp-cong-r (Ctx E) (m# pΓ pΔ pσ pσ')) ⟩
+      --   ty pΔ' pA' [ o# pΔ pΔ' ∘E m pΓ pΔ pσ' ]E
+      -- ≈⟨ []-resp-r (~seq .sym (m-o# pΓ' pΓ pΔ' pΔ pσ')) ⟩
+      --   ty pΔ' pA' [ m pΓ' pΔ' pσ' ∘E o# pΓ pΓ' ]E
+      -- ≈⟨ []-assoc-inv ⟩
+      --   ty pΔ' pA' [ m pΓ' pΔ' pσ' ]E [ o# pΓ pΓ' ]E
+      -- ∎
 
     -- special case of ty#, using m#id (not sure if termination
     -- checker will grasp this)
     -- TODO: really necessary?
     ty#r : ∀ {Γ A} (pΓ : Γ ⊢) (pA pA' : Γ ⊢ A) → ty pΓ pA ~E ty pΓ pA'
     -- Ind(pA pA' : Γ ⊢ A)?
-    ty#r pΓ pA pA' = let open EqRelReason ~eq in
-      begin
-        ty pΓ pA
-      ≈⟨ ty# pΓ pΓ pA pA' ⟩
-        ty pΓ pA' [ o# pΓ pΓ ]E
-      ≈⟨ []-resp-r (~seq .sym (o#id pΓ)) ⟩
-        ty pΓ pA' [ idsE ]E
-      ≈⟨ []-id-inv ⟩
-        ty pΓ pA'
-      ∎
+    ty#r pΓ pA pA' = BLOCK
+      -- let open EqRelReason ~eq in
+      -- begin
+      --   ty pΓ pA
+      -- ≈⟨ ty# pΓ pΓ pA pA' ⟩
+      --   ty pΓ pA' [ o# pΓ pΓ ]E
+      -- ≈⟨ []-resp-r (~seq .sym (o#id pΓ)) ⟩
+      --   ty pΓ pA' [ idsE ]E
+      -- ≈⟨ []-id-inv ⟩
+      --   ty pΓ pA'
+      -- ∎
 
     -- ditto
     -- ty#l : ∀ {Γ A} (pΓ pΓ' : Γ ⊢) (pA : Γ ⊢ A) → ty pΓ pA ~E ty pΓ' pA [ o# pΓ pΓ' ]E
