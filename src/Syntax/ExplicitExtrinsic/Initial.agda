@@ -350,51 +350,68 @@ module Elim {ks kr lo lh lr : Level}
     m-resp : ∀ {Δ Γ σ τ} (pΔ : Δ ⊢) (pΓ : Γ ⊢) (pσ : σ ∈ Δ ⇒ Γ) (pτ : τ ∈ Δ ⇒ Γ)
            (pστ : σ ~ τ ∈ Δ ⇒ Γ) → m pΔ pΓ pσ ~s m pΔ pΓ pτ
     -- Ind(pστ : σ ~ τ ∈ Δ ⇒ Γ)
-    m-resp pΔ pΓ pσ pτ (subst-eq-pp<> x x₁ x₂) = {!!}
+    m-resp pΔ pΓ
+      (subst-comp (ctx-cons pΓ' pA) (subst-pp pA') (subst-<> pσ pA'' pt))
+      pσ' (subst-eq-pp<> pσ'' pA''' pt') =
+      BLOCK
+      -- let open EqRelReason ~seq in
+      -- begin
+      --   ppE ∘E < o# pΓ' pΓ ∘E ppE , _ >E ∘E  < m pΔ pΓ' pσ , _ >E
+      -- ≈⟨ comp-cong-l (Ctx E) (pp<> E) ⟩
+      --   o# pΓ' pΓ ∘E ppE ∘E  < m pΔ pΓ' pσ , _ >E
+      -- ≈⟨ comp-assoc-inv (Ctx E) ⟩
+      --   o# pΓ' pΓ ∘E (ppE ∘E  < m pΔ pΓ' pσ , _ >E)
+      -- ≈⟨ comp-cong-r (Ctx E) (pp<> E) ⟩
+      --   o# pΓ' pΓ ∘E  m pΔ pΓ' pσ
+      -- ≈⟨ ~seq .sym (m-o#-l pΔ pΓ pΓ' pσ) ⟩
+      --   m pΔ pΓ pσ
+      -- ≈⟨ m# pΔ pΓ pσ pσ' ⟩
+      --   m pΔ pΓ pσ'
+      -- ∎
     m-resp pΔ pΓ (subst-comp pΞ pσ (subst-comp pΘ pτ pξ))
                  (subst-comp pΘ' (subst-comp pΞ' pσ' pτ') pξ')
-                 (subst-eq-assoc pσ'' pτ'' pξ'') =
-      let open EqRelReason ~seq in
-      begin
-        m pΞ pΓ pσ ∘E (m pΘ pΞ pτ ∘E m pΔ pΘ pξ)
-      ≈⟨ comp-cong (Ctx E) (m# pΞ pΓ pσ pσ')
-           (comp-cong (Ctx E) (m# pΘ pΞ pτ pτ') (m# pΔ pΘ pξ pξ')) ⟩
-        m pΞ pΓ pσ' ∘E (m pΘ pΞ pτ' ∘E m pΔ pΘ pξ')
-      ≈⟨ comp-cong (Ctx E) (m-o#-r pΞ pΞ' pΓ pσ')
-           (comp-cong-r (Ctx E) (m-o#-l pΔ pΘ pΘ' pξ')) ⟩
-        (m pΞ' pΓ pσ' ∘E o# pΞ pΞ') ∘E (m pΘ pΞ pτ' ∘E (o# pΘ' pΘ ∘E m pΔ pΘ' pξ'))
-      ≈⟨ comp-cong-r (Ctx E) (comp-assoc (Ctx E)) ⟩
-        (m pΞ' pΓ pσ' ∘E o# pΞ pΞ') ∘E ((m pΘ pΞ pτ' ∘E o# pΘ' pΘ) ∘E m pΔ pΘ' pξ')
-      ≈⟨ comp-assoc-inv (Ctx E) ⟩
-        m pΞ' pΓ pσ' ∘E (o# pΞ pΞ' ∘E ((m pΘ pΞ pτ' ∘E o# pΘ' pΘ) ∘E m pΔ pΘ' pξ'))
-      ≈⟨ comp-cong-r (Ctx E) (comp-assoc (Ctx E)) ⟩
-        m pΞ' pΓ pσ' ∘E ((o# pΞ pΞ' ∘E (m pΘ pΞ pτ' ∘E o# pΘ' pΘ)) ∘E m pΔ pΘ' pξ')
-      ≈⟨ comp-assoc (Ctx E) ⟩
-        (m pΞ' pΓ pσ' ∘E (o# pΞ pΞ' ∘E (m pΘ pΞ pτ' ∘E o# pΘ' pΘ))) ∘E m pΔ pΘ' pξ'
-      ≈⟨ comp-cong-l (Ctx E) (comp-cong-r (Ctx E) (comp-assoc (Ctx E))) ⟩
-        m pΞ' pΓ pσ' ∘E (o# pΞ pΞ' ∘E m pΘ pΞ pτ' ∘E o# pΘ' pΘ) ∘E m pΔ pΘ' pξ'
-      ≈⟨ comp-cong-l (Ctx E) (comp-cong-r (Ctx E)
-           (~seq .sym (m-o#-lr pΘ' pΘ pΞ' pΞ pτ'))) ⟩
-        m pΞ' pΓ pσ' ∘E m pΘ' pΞ' pτ' ∘E m pΔ pΘ' pξ'
-      ∎
-    m-resp pΔ pΓ (subst-comp pΓ' (subst-id pΓ'') pτ) pτ' (subst-eq-id-l pτ'') =
-      let open EqRelReason ~seq in
-      begin
-        o# pΓ' pΓ ∘E m pΔ pΓ' pτ
-      ≈⟨ comp-cong-r (Ctx E) (m# pΔ pΓ' pτ pτ') ⟩
-        o# pΓ' pΓ ∘E m pΔ pΓ' pτ'
-      ≈⟨ ~seq .sym (m-o#-l pΔ pΓ pΓ' pτ') ⟩
-        m pΔ pΓ pτ'
-      ∎
-    m-resp pΔ pΓ (subst-comp pΔ' pσ (subst-id pΔ'')) pσ' (subst-eq-id-r pσ'') =
-      let open EqRelReason ~seq in
-      begin
-        m pΔ' pΓ pσ ∘E o# pΔ pΔ'
-      ≈⟨ ~seq .sym (m-o#-r pΔ pΔ' pΓ pσ) ⟩
-        m pΔ pΓ pσ
-      ≈⟨ m# pΔ pΓ pσ pσ' ⟩
-        m pΔ pΓ pσ'
-      ∎
+                 (subst-eq-assoc pσ'' pτ'' pξ'') = BLOCK
+      -- let open EqRelReason ~seq in
+      -- begin
+      --   m pΞ pΓ pσ ∘E (m pΘ pΞ pτ ∘E m pΔ pΘ pξ)
+      -- ≈⟨ comp-cong (Ctx E) (m# pΞ pΓ pσ pσ')
+      --      (comp-cong (Ctx E) (m# pΘ pΞ pτ pτ') (m# pΔ pΘ pξ pξ')) ⟩
+      --   m pΞ pΓ pσ' ∘E (m pΘ pΞ pτ' ∘E m pΔ pΘ pξ')
+      -- ≈⟨ comp-cong (Ctx E) (m-o#-r pΞ pΞ' pΓ pσ')
+      --      (comp-cong-r (Ctx E) (m-o#-l pΔ pΘ pΘ' pξ')) ⟩
+      --   (m pΞ' pΓ pσ' ∘E o# pΞ pΞ') ∘E (m pΘ pΞ pτ' ∘E (o# pΘ' pΘ ∘E m pΔ pΘ' pξ'))
+      -- ≈⟨ comp-cong-r (Ctx E) (comp-assoc (Ctx E)) ⟩
+      --   (m pΞ' pΓ pσ' ∘E o# pΞ pΞ') ∘E ((m pΘ pΞ pτ' ∘E o# pΘ' pΘ) ∘E m pΔ pΘ' pξ')
+      -- ≈⟨ comp-assoc-inv (Ctx E) ⟩
+      --   m pΞ' pΓ pσ' ∘E (o# pΞ pΞ' ∘E ((m pΘ pΞ pτ' ∘E o# pΘ' pΘ) ∘E m pΔ pΘ' pξ'))
+      -- ≈⟨ comp-cong-r (Ctx E) (comp-assoc (Ctx E)) ⟩
+      --   m pΞ' pΓ pσ' ∘E ((o# pΞ pΞ' ∘E (m pΘ pΞ pτ' ∘E o# pΘ' pΘ)) ∘E m pΔ pΘ' pξ')
+      -- ≈⟨ comp-assoc (Ctx E) ⟩
+      --   (m pΞ' pΓ pσ' ∘E (o# pΞ pΞ' ∘E (m pΘ pΞ pτ' ∘E o# pΘ' pΘ))) ∘E m pΔ pΘ' pξ'
+      -- ≈⟨ comp-cong-l (Ctx E) (comp-cong-r (Ctx E) (comp-assoc (Ctx E))) ⟩
+      --   m pΞ' pΓ pσ' ∘E (o# pΞ pΞ' ∘E m pΘ pΞ pτ' ∘E o# pΘ' pΘ) ∘E m pΔ pΘ' pξ'
+      -- ≈⟨ comp-cong-l (Ctx E) (comp-cong-r (Ctx E)
+      --      (~seq .sym (m-o#-lr pΘ' pΘ pΞ' pΞ pτ'))) ⟩
+      --   m pΞ' pΓ pσ' ∘E m pΘ' pΞ' pτ' ∘E m pΔ pΘ' pξ'
+      -- ∎
+    m-resp pΔ pΓ (subst-comp pΓ' (subst-id pΓ'') pτ) pτ' (subst-eq-id-l pτ'') = BLOCK
+      -- let open EqRelReason ~seq in
+      -- begin
+      --   o# pΓ' pΓ ∘E m pΔ pΓ' pτ
+      -- ≈⟨ comp-cong-r (Ctx E) (m# pΔ pΓ' pτ pτ') ⟩
+      --   o# pΓ' pΓ ∘E m pΔ pΓ' pτ'
+      -- ≈⟨ ~seq .sym (m-o#-l pΔ pΓ pΓ' pτ') ⟩
+      --   m pΔ pΓ pτ'
+      -- ∎
+    m-resp pΔ pΓ (subst-comp pΔ' pσ (subst-id pΔ'')) pσ' (subst-eq-id-r pσ'') = BLOCK
+      -- let open EqRelReason ~seq in
+      -- begin
+      --   m pΔ' pΓ pσ ∘E o# pΔ pΔ'
+      -- ≈⟨ ~seq .sym (m-o#-r pΔ pΔ' pΓ pσ) ⟩
+      --   m pΔ pΓ pσ
+      -- ≈⟨ m# pΔ pΓ pσ pσ' ⟩
+      --   m pΔ pΓ pσ'
+      -- ∎
     m-resp pΔ pΓ (subst-comp pΞ pσ pσ') (subst-comp pΞ' pτ pτ') (subst-eq-comp pΞ'' pσσ' pττ') = {!!}
     m-resp pΔ pΓ pσ pτ (subst-eq-<> x pστ x₁) = {!!}
     m-resp pΔ pΓ pσ pτ (subst-eq-refl _) = m# pΔ pΓ pσ pτ
