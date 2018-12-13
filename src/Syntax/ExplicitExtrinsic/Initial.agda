@@ -193,10 +193,11 @@ module Elim {ks kr lo lh lr : Level}
         , ι' []-assoc ((ι (subst-ty pΔ pΓ pσ pA) (ter pΔ (ty-subst pΓ pA pσ) pt)) [ o# pΔ' pΔ ]tE) >E
       ≈⟨ <>-cong E  (m-o# pΔ pΔ' pΓ pΓ' pσ)
          (~teq .trans (ιresp ιsubst)
-           (~teq .trans ιtrans (~teq .sym (~teq .trans ιtrans ιirr)))) -- yellow :-(
+           (~teq .trans ιtrans (~teq .sym (~teq .trans ιtrans ιirr)))) -- TODO: yellow :-( too many ιirrs
        ⟩
         < o# pΓ' pΓ ∘E m pΔ' pΓ' pσ
-        , ι _ (ter pΔ (ty-subst pΓ pA pσ) pt [ o# pΔ' pΔ ]tE) >E
+        , ι _ -- (~eq .trans ([]-resp-r (~seq .sym (m-o# pΔ pΔ' pΓ pΓ' pσ))) {!!})
+            (ter pΔ (ty-subst pΓ pA pσ) pt [ o# pΔ' pΔ ]tE) >E
       ≈⟨ <>-cong-r E (~teq .sym (~teq .trans
            (ιresp (ter# pΔ' pΔ (ty-subst pΓ' pA' pσ) (ty-subst pΓ pA pσ) pt pt))
            (~teq .trans ιtrans ιirr))) ⟩
@@ -234,7 +235,21 @@ module Elim {ks kr lo lh lr : Level}
       ≈⟨ ~seq .sym (o#comp pΔ' pΓ' pΓ) ⟩
         o# pΓ' pΓ ∘E o# pΔ' pΓ'
       ∎
-    m-o# pΔ pΔ' pΓ pΓ' (subst-comp x pσ pσ₁) = {!!}
+    m-o# pΔ pΔ' pΓ pΓ' (subst-comp pΞ pσ pτ) =
+      let open EqRelReason ~seq in
+      begin
+        m pΞ pΓ pσ ∘E m pΔ pΞ pτ ∘E o# pΔ' pΔ
+      ≈⟨ comp-assoc-inv (Ctx E) ⟩
+        m pΞ pΓ pσ ∘E (m pΔ pΞ pτ ∘E o# pΔ' pΔ)
+      ≈⟨ comp-cong-r (Ctx E) (m-o# pΔ pΔ' pΞ pΞ pτ) ⟩
+        m pΞ pΓ pσ ∘E (o# pΞ pΞ ∘E m pΔ' pΞ pτ)
+      ≈⟨ {!comp-assoc (Ctx E)!} ⟩
+        (m pΞ pΓ pσ ∘E o# pΞ pΞ) ∘E m pΔ' pΞ pτ
+      ≈⟨ comp-cong-l (Ctx E) (m-o# pΞ pΞ pΓ pΓ' pσ) ⟩
+        (o# pΓ' pΓ ∘E m pΞ pΓ' pσ) ∘E m pΔ' pΞ pτ
+      ≈⟨ comp-assoc-inv (Ctx E) ⟩
+        o# pΓ' pΓ ∘E (m pΞ pΓ' pσ ∘E m pΔ' pΞ pτ)
+      ∎
     m-o# (ctx-cons pΔ pA) (ctx-cons pΔ' pA') pΓ pΓ' (subst-pp pA'') =
       let open EqRelReason ~seq in
       begin
@@ -478,7 +493,7 @@ module Elim {ks kr lo lh lr : Level}
     -- ??? we should really generalize to a more general equality...
     ter# : ∀ {Γ A t} (pΓ pΓ' : Γ ⊢) (pA pA' : Γ ⊢ A) (pt pt' : Γ ⊢ t ∈ A) →
            ter pΓ pA pt ~t ι (ty# pΓ pΓ' pA pA') (ter pΓ' pA' pt' [ o# pΓ pΓ' ]tE)
-    ter# = BLOCK
+    ter# pΓ pΓ' pA pA' pt pt' = BLOCK
     -- ter# pΓA pΓA' pA pA' (ter-qq pA'') (ter-qq pA''') = {!!}
     -- ter# pΓ pΓ' pA pA' (ter-qq x) (ter-ty-eq x₁ pt' x₂) = {!!}
     -- ter# pΓ pΓ' pA pA' (ter-subst pt x) pt' = {!!}
