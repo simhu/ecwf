@@ -445,7 +445,7 @@ module Elim {ks kr lo lh lr : Level}
     m-resp pΔ pΓ pσ pτ (subst-eq-trans pξ pσξ pξτ) =
       ~seq .trans (m-resp pΔ pΓ pσ pξ pσξ) (m-resp pΔ pΓ pξ pτ pξτ)
     m-resp pΔ ctx-nil pσ pτ (subst-eq-!-η _) = !-η' E
-    m-resp pΔ (ctx-cons pΓ pA) pσ (subst-<> (subst-comp x₃ pτ pτ₁) x₁ x₂) (subst-eq-<>-η x) = {!!}
+    m-resp pΔ (ctx-cons pΓ pA) pτ (subst-<> (subst-comp (ctx-cons pΓ' pA') (subst-pp pA'') pτ') pA''' pqq) (subst-eq-<>-η pτ'') = {!!}
 
     -- NEEDED
     ty : ∀ {Γ A} (pΓ : Γ ⊢) (pA : Γ ⊢ A) → TypE (o pΓ)
