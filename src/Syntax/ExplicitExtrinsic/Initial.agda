@@ -157,7 +157,11 @@ module Elim {ks kr lo lh lr : Level}
     m pΔ pΓ (subst-pp pA) = ppE ∘E o# pΔ (ctx-cons pΓ pA)
     m pΔ pΓ (subst-! pΔ') = o# ctx-nil pΓ ∘E !E
     m pΔ (ctx-cons pΓ pA') (subst-<> pσ pA pt) =
-       < m pΔ pΓ pσ , ι {!!} (ter pΔ (ty-subst pΓ pA' pσ) pt) >E
+      -- TODO: How is mutual type-checked here?  Why are the
+      -- definitional equalities not available?  Maybe we should add Δ
+      -- ⊢ A [ σ to Γ ] as premise to subst-<>?  (Doesn't help
+      -- probably..)
+       < m pΔ pΓ pσ , {!!} >E --  ter pΔ (ty-subst pΓ pA' pσ) pt >E -- ι {!!} (ter pΔ (ty-subst pΓ pA' pσ) pt) >E
     m pΔ pΓ (subst-id pΔ') = o# pΔ pΓ -- hmm
     m pΔ pΓ (subst-comp pΞ pσ pτ) = m pΞ pΓ pσ ∘E m pΔ pΞ pτ
 
@@ -450,7 +454,7 @@ module Elim {ks kr lo lh lr : Level}
     -- NEEDED
     ty : ∀ {Γ A} (pΓ : Γ ⊢) (pA : Γ ⊢ A) → TypE (o pΓ)
     -- Ind(pA : Γ ⊢ A).
-    {-# TERMINATING #-}
+    {-# TERMINATING #-} -- TODO
 
     -- Actually, this termination thing is not at all clear as why
     -- should the calls o pΔ in the *type* of m pΔ pΓ pσ be justified?
@@ -574,9 +578,10 @@ module Elim {ks kr lo lh lr : Level}
            ter pΓ pA pt ~t ι (ty# pΓ pΓ' pA pA') (ter pΓ' pA' pt' [ o# pΓ pΓ' ]tE)
     -- ter# = BLOCK
     ter# (ctx-cons pΓ pA) (ctx-cons pΓ' pA') (ty-subst x pA1 (subst-pp pA2)) (ty-subst x₂ pA3 (subst-pp pA4)) (ter-qq pA5) (ter-qq pA6) =
-      ~teq .trans {!!} {!ιtrans-inv!}
+      {!!}
     ter# pΓ pΓ' pA pA' (ter-qq x) (ter-ty-eq x₁ pt' x₂) = {!!}
-    ter# pΓ pΓ' pA pA' (ter-subst pt x) pt' = {!!}
+    ter# pΓ pΓ' pA pA' (ter-subst pt pσ) (ter-subst pt' pσ') = {!!}
+    ter# pΓ pΓ' pA pA' (ter-subst pt pσ) (ter-ty-eq x pt' x₁) = {!!}
     ter# pΓ pΓ' pA pA' (ter-ty-eq pB pt pBA) pt' = {!!}
 
     ter#r : ∀ {Γ A t} (pΓ : Γ ⊢) (pA : Γ ⊢ A) (pt pt' : Γ ⊢ t ∈ A) →
@@ -617,7 +622,7 @@ module Elim {ks kr lo lh lr : Level}
 
 -------------------------------------------------------------------------------
 
-{-
+
 
   -- NEEDED: this is by definition!!
   subst-ty : ∀ {Γ Δ σ A} (pΔ : Δ ⊢) (pΓ : Γ ⊢)
@@ -654,7 +659,7 @@ module Elim {ks kr lo lh lr : Level}
 
   subst-ty-cong : ∀ {Γ Δ σ A B} (pΔ : Δ ⊢) (pΓ : Γ ⊢) (pσ : σ ∈ Δ ⇒ Γ)
           (pA : Γ ⊢ A) (pB : Γ ⊢ B) (pAB : Γ ⊢ A ~ B)
-          → (ty pΓ pA [ m pΔ pΓ pσ ]E) ~E ty pΔ (ap (ty-map pσ) (B , pB) .snd)
+          → (ty pΓ pA [ m pΔ pΓ pσ ]E) ~E ty pΔ (ap (ty-map pΓ pσ) (B , pB) .snd)
                                           --  (snd ((B , pB) [ σ , pσ ]S))
   subst-ty-cong {Δ} {Γ} {σ} {A} {B} pΔ pΓ pσ pA pB pAB =
     let open EqRelReason ~eq in
@@ -663,29 +668,29 @@ module Elim {ks kr lo lh lr : Level}
     ≈⟨ []-resp' (ty-cong pΓ pA pB pAB) (~seq .refl) ⟩
       ty pΓ pB [ m pΔ pΓ pσ ]E
     ≈⟨ subst-ty pΔ pΓ pσ pB ⟩
-      ty pΔ (ap (ty-map pσ) (B , pB) .snd)
+      ty pΔ (ap (ty-map pΓ pσ) (B , pB) .snd)
     ∎
 
   subst-ter-cong : ∀ {Γ Δ A B σ t s}
     (pΓ : Γ ⊢) (pΔ : Δ ⊢) (pA : Γ ⊢ A) (pB : Δ ⊢ B) (pσ : σ ∈ Δ ⇒ Γ)
-    (q : Δ ⊢ B ~ A [ σ ]) (pt : Γ ⊢ t ∈ A) (ps : Γ ⊢ s ∈ A) (pts : Γ ⊢ t ~ s ∈ A) →
+    (q : Δ ⊢ B ~ A [ σ to Γ ]) (pt : Γ ⊢ t ∈ A) (ps : Γ ⊢ s ∈ A) (pts : Γ ⊢ t ~ s ∈ A) →
     _~t_  -- fun (Tm E) (o pΔ , ty pΔ pB) .rel
       (mor (Tm E)
         (m pΔ pΓ pσ ,
-          eqr (fun (Ty E) (o pΔ)) .trans (ty-cong pΔ pB (ty-subst pA pσ) q)
+          eqr (fun (Ty E) (o pΔ)) .trans (ty-cong pΔ pB (ty-subst pΓ pA pσ) q)
            (eqr (fun (Ty E) (o pΔ)) .trans
             (sym (eqr (fun (Ty E) (o pΔ)))
               (subst-ty-cong pΔ pΓ pσ pA pA (ty-eq-refl pA)))
             (eqr (fun (Ty E) (o pΔ)) .EqRel.refl)))
           .ap (ter pΓ pA pt))
-      (ter pΔ pB (ter-ty-eq (ter-subst ps pσ) (ty-eq-sym q)))
+      (ter pΔ pB (ter-ty-eq (ty-subst pΓ pA pσ) (ter-subst ps pσ) (ty-eq-sym q)))
   subst-ter-cong {Γ} {Δ} {A} {B} {σ} {t} {s} pΓ pΔ pA pB pσ q pt ps pts =
     let open EqRelReason (~teq {o pΔ} {ty pΔ pB})
-        pAσ = ap (ty-map pσ) (A , pA) .snd -- aka: ty-subst pA pσ
+        pAσ = ap (ty-map pΓ pσ) (A , pA) .snd -- aka: ty-subst pA pσ
         psσ = ter-subst ps pσ
 
         tyeq : ty pΔ pB ~E ty pΓ pA [ m pΔ pΓ pσ ]E
-        tyeq = ~eq .trans (ty-cong pΔ pB (ty-subst pA pσ) q)
+        tyeq = ~eq .trans (ty-cong pΔ pB (ty-subst pΓ pA pσ) q)
                   (~eq .trans (sym (eqr (fun (Ty E) (o pΔ)))
                     (subst-ty-cong pΔ pΓ pσ pA pA (ty-eq-refl pA)))
                   (~eq .refl))
@@ -715,8 +720,8 @@ module Elim {ks kr lo lh lr : Level}
       ι (~eq .trans tyeq (subst-ty pΔ pΓ pσ pA)) (ter pΔ pAσ psσ)
     ≈⟨ ιirr ⟩
       ι (ty-cong pΔ pB pAσ q) (ter pΔ pAσ psσ)
-    ≈⟨ ι-ter pΔ pB (ty-subst pA pσ) q (ter-subst ps pσ) ⟩
-      ter pΔ pB (ter-map pσ q .ap (s , ps) .snd)
+    ≈⟨ ι-ter pΔ pB (ty-subst pΓ pA pσ) q (ter-subst ps pσ) ⟩
+      ter pΔ pB (ter-map pΓ pA pσ q .ap (s , ps) .snd)
     ∎
 
   elim-ctx : eFunctor (eCwF.Ctx SynCwf) (eCwF.Ctx E)
