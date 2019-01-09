@@ -92,15 +92,11 @@ module eCwFNotation {lvs lvr lo lh lr} {Ctx : ECat {lo} {lh} {lr}}
                 u ~t v → u [ σ ]t ~t v [ σ ]t
   []t-resp-l = Tm .resp (~seq .refl) .map-resp
 
-
   ι : ∀ {Γ} {A B : Typ Γ} → B ~ A → Ter Γ A → Ter Γ B
   ι {Γ} {A} {B} p u = Tm .mor (ids , trans ~eq p []-id) .ap u
 
   ιirr' : ∀ {Γ} {A B : Typ Γ} {p q : B ~ A} {u v : Ter Γ A} → u ~t v → ι p u ~t ι q v
-  ιirr' {p = p} {q = q} r =
-    let lem : (ids , trans ~eq p []-id) ~el (ids , trans ~eq q []-id)
-        lem = ~seq .refl
-    in Tm .resp lem .map-resp r
+  ιirr' = Tm .resp (~seq .refl) .map-resp
 
   ιirr : ∀ {Γ} {A B : Typ Γ} {p q : B ~ A} {u : Ter Γ A} → ι p u ~t ι q u
   ιirr = ιirr' (~teq .refl)
@@ -114,6 +110,9 @@ module eCwFNotation {lvs lvr lo lh lr} {Ctx : ECat {lo} {lh} {lr}}
     let lem : u ~t Tm .mor (∫ {C = Ctx} Ty .id) .ap u
         lem = Tm .id-mor ` (~teq .refl)
     in ~teq .trans lem (Tm .resp (~seq .refl) ` (~teq .refl))
+
+  ιrefl-irr : ∀ {Γ} {A : Typ Γ} {u : Ter Γ A} {p : A ~ A} → u ~t ι p u
+  ιrefl-irr = ~teq .trans ιrefl ιirr
 
   ιtrans : ∀ {Γ} {A B C : Typ Γ} {p : C ~ B} {q : B ~ A} {u : Ter Γ A} →
            ι p (ι q u) ~t ι (~eq .trans p q) u
@@ -164,9 +163,17 @@ module eCwFNotation {lvs lvr lo lh lr} {Ctx : ECat {lo} {lh} {lr}}
       v
     ∎
 
+  ι-left : ∀ {Γ} {A B : Typ Γ} {q : A ~ B} {u : Ter Γ A} {v : Ter Γ B} →
+           u ~t ι q v → ι' q u ~t v
+  ι-left = ι-left-irr
+
   ι-right-irr : ∀ {Γ} {A B : Typ Γ} {p : B ~ A} {q : A ~ B} {u : Ter Γ A} {v : Ter Γ B} →
                ι q v ~t u → v ~t ι p u
   ι-right-irr r = ~teq .sym (ι-left-irr (~teq .sym r))
+
+  ι-right : ∀ {Γ} {A B : Typ Γ} {q : A ~ B} {u : Ter Γ A} {v : Ter Γ B} →
+            ι q v ~t u → v ~t ι' q u
+  ι-right = ι-right-irr
 
   []t-assoc : ∀ {Θ Δ Γ} {τ : Subst Θ Δ} {σ : Subst Δ Γ} {A : Typ Γ} {u : Ter Γ A} →
                 u [ σ ]t [ τ ]t ~t ι []-assoc (u [ σ ∘s τ ]t)
@@ -185,6 +192,17 @@ module eCwFNotation {lvs lvr lo lh lr} {Ctx : ECat {lo} {lh} {lr}}
   []t-id {u = u} = ~teq .trans (Tm .id-mor ` (~teq .refl))
                      (~teq .sym (~teq .trans (Tm .comp-mor ` (~teq .refl))
                                   (Tm .resp (Ctx .id-l) ` (~teq .refl))))
+
+  []t-resp-r : ∀ {Δ Γ} {σ τ : Subst Δ Γ} {A : Typ Γ} {u : Ter Γ A} →
+                (eq : σ ~s τ) → u [ σ ]t ~t ι ([]-resp-r eq) (u [ τ ]t)
+  []t-resp-r {σ = σ} {τ = τ} {u = u} eq = let open EqRelReason ~teq in
+    begin
+      u [ σ ]t
+    ≈⟨ Tm .resp (~seq .trans eq (id-r-inv Ctx)) .map-resp (~teq .refl) ⟩
+      _
+    ≈⟨ ~teq .sym (Tm .comp-mor ` ~teq .refl ) ⟩
+      ι ([]-resp-r eq) (u [ τ ]t)
+    ∎
 
   -- In an eCwf we will require all of the following categories to
   -- have terminal objects, witnessing the structure of context
