@@ -570,34 +570,39 @@ module Elim {ks kr lo lh lr : Level}
     -- ??? we should really formulate with a general equality other than ty#?
     ter# : ∀ {Γ A t} (pΓ pΓ' : Γ ⊢) (pA pA' : Γ ⊢ A) (pt pt' : Γ ⊢ t ∈ A) →
            ter pΓ pA pt ~t ι (ty# pΓ pΓ' pA pA') (ter pΓ' pA' pt' [ o# pΓ pΓ' ]tE)
-    ter# = BLOCK
-    -- ter# (ctx-cons pΓ pA) (ctx-cons pΓ' pA') (ty-subst x pA1 (subst-pp pA2)) (ty-subst x₂ pA3 (subst-pp pA4)) (ter-qq pA5) (ter-qq pA6) =
-    --   {!!}
-    -- ter# pΓ pΓ' pA pA' (ter-qq x) (ter-ty-eq x₁ pt' x₂) = {!!}
-    -- ter# pΓ pΓ' (ty-subst pΔ pA pσ) (ty-subst pΔ' pA' pσ') (ter-subst pt pσ'') (ter-subst pt' pσ''') =
-    --   let open EqRelReason ~teq in
-    --   begin
-    --     ter pΔ pA pt [ m pΓ pΔ pσ ]tE
-    --   ≈⟨ []t-resp-l (ter# pΔ pΔ' pA pA' pt pt') ⟩
-    --     (ι _ (ter pΔ' pA' pt' [ o# pΔ pΔ' ]tE)) [ m pΓ pΔ pσ ]tE
-    --   ≈⟨ ιsubst ⟩
-    --     ι _ ((ter pΔ' pA' pt' [ o# pΔ pΔ' ]tE) [ m pΓ pΔ pσ ]tE)
-    --   ≈⟨ {!!} ⟩
-    --     ι _ ((ter pΔ' pA' pt' [ o# pΔ pΔ' ]tE) [ m pΓ pΔ pσ' ]tE)
-    --   ≈⟨ {!ιresp!} ⟩
-    --     ι _ (ter pΔ' pA' pt' [ o# pΔ pΔ' ∘E m pΓ pΔ pσ' ]tE)
-    --   ≈⟨ {!!} ⟩
-    --     ι _ (ter pΔ' pA' pt' [ m pΓ' pΔ' pσ' ∘E o# pΓ pΓ' ]tE)
-    --   ≈⟨ {!!} ⟩
-    --      ι _ ((ter pΔ' pA' pt' [ m pΓ' pΔ' pσ' ]tE) [ o# pΓ pΓ' ]tE)
-    --   ∎
-    --   --   ter _ pA pt [ m pΓ _ pσ ]tE
-    --   -- ≈⟨ {!!} ⟩
-    --   --   ι (ty# pΓ pΓ' pA pA')
-    --   --     (ter pΓ' pA' (ter-subst pt' pσ') [ o# pΓ pΓ' ]tE)
-    --   -- ∎
-    -- ter# pΓ pΓ' (ty-subst pΔ pA pσ) (ty-subst pΔ' pA' pσ') (ter-subst pt pσ'') (ter-ty-eq pB pt' pBAσ) = {!!}
-    -- ter# pΓ pΓ' pA pA' (ter-ty-eq pB pt pBA) pt' = {!!}
+    ter# pΓ pΓ' pA pA' (ter-qq-conv x x₁) (ter-qq-conv x₂ x₃) = {!!}
+    ter# pΓ pΓ' pA pA' (ter-subst-conv  pΔ pt pσ pB pBσA) (ter-subst-conv pΔ' pt' pσ' pB' pBσA') =
+      let open EqRelReason ~teq in
+      begin
+        ι' (ty-cong pΓ (ty-subst pΔ pB pσ) pA pBσA) (ter pΔ pB pt [ m pΓ pΔ pσ ]tE)
+      ≈⟨ ιresp ([]t-resp-r (m# pΓ pΔ pσ pσ')) ⟩
+        ι' _ (ι _ (ter pΔ pB pt [ m pΓ pΔ pσ' ]tE))
+      ≈⟨ ιtrans ⟩
+        ι _ (ter pΔ pB pt [ m pΓ pΔ pσ' ]tE)
+      ≈⟨ ιresp ([]t-resp-l (ter# pΔ pΔ' pB pB' pt pt')) ⟩
+        ι _ ((ι _ (ter pΔ' pB' pt' [ o# pΔ pΔ' ]tE)) [ m pΓ pΔ pσ' ]tE)
+      ≈⟨ ιresp ιsubst ⟩
+        ι _ (ι _ (ter pΔ' pB' pt' [ o# pΔ pΔ' ]tE  [ m pΓ pΔ pσ' ]tE))
+      ≈⟨ ιtrans ⟩
+        ι _ ((ter pΔ' pB' pt' [ o# pΔ pΔ' ]tE) [ m pΓ pΔ pσ' ]tE)
+      ≈⟨ ιresp []t-assoc ⟩
+        ι _ (ι _ (ter pΔ' pB' pt' [ o# pΔ pΔ' ∘E m pΓ pΔ pσ' ]tE))
+      ≈⟨ ιresp (ιresp ([]t-resp-r (~seq .sym (m-o# pΓ' pΓ pΔ' pΔ pσ')))) ⟩
+        ι _ (ι _ (ι _ (ter pΔ' pB' pt' [ m pΓ' pΔ' pσ' ∘E o# pΓ pΓ' ]tE)))
+      ≈⟨ ιresp (ιresp (ιresp (ι-right (~teq .sym []t-assoc)))) ⟩
+        ι _ (ι _ (ι _ (ι _ ((ter pΔ' pB' pt' [ m pΓ' pΔ' pσ' ]tE) [ o# pΓ pΓ' ]tE))))
+      ≈⟨ ~teq .trans ιtrans (~teq .trans ιtrans ιtrans) ⟩
+        ι _ ((ter pΔ' pB' pt' [ m pΓ' pΔ' pσ' ]tE) [ o# pΓ pΓ' ]tE)
+      ≈⟨ ιirr ⟩
+        ι _ ((ter pΔ' pB' pt' [ m pΓ' pΔ' pσ' ]tE) [ o# pΓ pΓ' ]tE)
+      ≈⟨ ιtrans-inv ⟩
+        ι _ (ι _ (ter pΔ' pB' pt' [ m pΓ' pΔ' pσ' ]tE [ o# pΓ pΓ' ]tE))
+      ≈⟨ ιresp ιsubst-inv ⟩
+        ι (ty# pΓ pΓ' pA pA')
+          (ι' (ty-cong pΓ' (ty-subst pΔ' pB' pσ') pA' pBσA')
+            (ter pΔ' pB' pt' [ m pΓ' pΔ' pσ' ]tE)
+            [ o# pΓ pΓ' ]tE)
+      ∎
 
     -- Some consequences of ter#
     ter#r : ∀ {Γ A t} (pΓ : Γ ⊢) (pA : Γ ⊢ A) (pt pt' : Γ ⊢ t ∈ A) →
