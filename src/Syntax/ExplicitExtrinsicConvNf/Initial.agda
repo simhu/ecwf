@@ -445,7 +445,7 @@ module Elim {ks kr lo lh lr : Level}
     -- NEEDED
     ty : ∀ {Γ A} (pΓ : Γ ⊢) (pA : Γ ⊢ A) → TypE (o pΓ)
     -- Ind(pA : Γ ⊢ A).
-    {-# TERMINATING #-} -- TODO
+    --{-# TERMINATING #-} -- TODO
 
     -- Actually, this termination thing is not at all clear as why
     -- should the calls o pΔ in the *type* of m pΔ pΓ pσ be justified?
@@ -599,24 +599,42 @@ module Elim {ks kr lo lh lr : Level}
     -- ter# pΓ pΓ' (ty-subst pΔ pA pσ) (ty-subst pΔ' pA' pσ') (ter-subst pt pσ'') (ter-ty-eq pB pt' pBAσ) = {!!}
     -- ter# pΓ pΓ' pA pA' (ter-ty-eq pB pt pBA) pt' = {!!}
 
+    -- Some consequences of ter#
     ter#r : ∀ {Γ A t} (pΓ : Γ ⊢) (pA : Γ ⊢ A) (pt pt' : Γ ⊢ t ∈ A) →
             ter pΓ pA pt ~t ter pΓ pA pt'
-    -- Ind(pt pt' : Γ ⊢ t ∈ A).
-    ter#r = {!!}
+    ter#r pΓ pA pt pt' =
+      let open EqRelReason ~teq in
+      begin
+        ter pΓ pA pt
+      ≈⟨ ter# pΓ pΓ pA pA pt pt' ⟩
+        ι _ (ter pΓ pA pt' [ o# pΓ pΓ ]tE)
+      ≈⟨ ιresp ([]t-resp-r (~seq .sym (o#id pΓ))) ⟩
+        ι _ (ι _ (ter pΓ pA pt' [ idsE ]tE))
+      ≈⟨ ιresp (ιresp (ι-right (~teq .sym []t-id))) ⟩
+        ι _ (ι _ (ι _ (ter pΓ pA pt')))
+      ≈⟨ ~teq .trans ιtrans ιtrans ⟩
+        ι _ (ter pΓ pA pt')
+      ≈⟨ ~teq .sym ιrefl-irr ⟩
+        ter pΓ pA pt'
+      ∎
 
-    -- Maybe parametrize by an equality instead of using ty#r
     ter#m : ∀ {Γ A t} (pΓ : Γ ⊢) (pA pA' : Γ ⊢ A) (pt : Γ ⊢ t ∈ A) →
             ter pΓ pA pt ~t ι (ty#r pΓ pA pA') (ter pΓ pA' pt)
-    ter#m = {!!}
-
-
-    -- -- Maybe we have to generalize?
-    -- ter## : ∀ {Γ A B t} (pΓ pΓ' : Γ ⊢) (pA : Γ ⊢ A) (pB : Γ ⊢ B)
-    --           (eq : ty pΓ pA ~E ty pΓ' pB [ o# pΓ pΓ' ]E)
-    --           (ptA : Γ ⊢ t ∈ A) (ptB : Γ ⊢ t ∈ B) →
-    --           ter pΓ pA ptA ~t ι eq (ter pΓ' pB ptB [ o# pΓ pΓ' ]tE)
-    -- ter## = {!!}
-
+    ter#m pΓ pA pA' pt =
+      let open EqRelReason ~teq in
+      begin
+        ter pΓ pA pt
+      ≈⟨ ter# pΓ pΓ pA pA' pt pt ⟩
+        ι _ (ter pΓ pA' pt [ o# pΓ pΓ ]tE)
+      ≈⟨ ιresp ([]t-resp-r (~seq .sym (o#id pΓ))) ⟩
+        ι _ (ι _ (ter pΓ pA' pt [ idsE ]tE))
+      ≈⟨ ιresp (ιresp (ι-right (~teq .sym []t-id))) ⟩
+        ι _ (ι _ (ι _ (ter pΓ pA' pt)))
+      ≈⟨ ~teq .trans ιtrans ιtrans ⟩
+        ι _ (ter pΓ pA' pt)
+      ≈⟨ ιirr ⟩
+        ι (ty#r pΓ pA pA') (ter pΓ pA' pt)
+      ∎
 
     -- NEEDED
     ter-cong : ∀ {Γ A t s} (pΓ : Γ ⊢) (pA : Γ ⊢ A) (pt : Γ ⊢ t ∈ A) (ps : Γ ⊢ s ∈ A)
