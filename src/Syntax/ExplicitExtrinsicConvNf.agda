@@ -113,8 +113,11 @@ data _⊢_∈_ where
 
   ter-subst-conv :
     ∀ {σ Δ Γ A B t} →
+    Γ ⊢ →
     Γ ⊢ t ∈ A → σ ∈ Δ ⇒ Γ →
-    Δ ⊢ B → Δ ⊢ A [ σ to Γ ] ~ B →
+    Γ ⊢ A →
+    Δ ⊢ B →
+    Δ ⊢ A [ σ to Γ ] ~ B →
     ----------------------------------
     Δ ⊢ t [ σ to Γ ] ∈ B
 
@@ -295,7 +298,7 @@ ter-subst :
   Γ ⊢ t ∈ A → σ ∈ Δ ⇒ Γ →
   -------------------------
   Δ ⊢ t [ σ to Γ ] ∈ A [ σ to Γ ]
-ter-subst pΓ pA pt pσ = ter-subst-conv pt pσ (ty-subst pΓ pA pσ) (ty-eq-refl (ty-subst pΓ pA pσ))
+ter-subst pΓ pA pt pσ = ter-subst-conv pΓ pt pσ pA (ty-subst pΓ pA pσ) (ty-eq-refl (ty-subst pΓ pA pσ))
 
 ter-ty-eq :
   ∀ {Γ A B t} →
@@ -305,7 +308,7 @@ ter-ty-eq :
   ------------------------
   Γ ⊢ t ∈ B
 ter-ty-eq pA pB (ter-qq-conv pC pA' pCpA) pAB = ter-qq-conv pC pB (ty-eq-trans pA pCpA pAB)
-ter-ty-eq pA pB (ter-subst-conv pt pσ pB' pCσB) pAB = ter-subst-conv pt pσ pB (ty-eq-trans pA pCσB pAB)
+ter-ty-eq pA pB (ter-subst-conv pΔ pt pσ pC pB' pCσB) pAB = ter-subst-conv pΔ pt pσ pC pB (ty-eq-trans pA pCσB pAB)
 
 ------------------------------------------------------------------------------
 
