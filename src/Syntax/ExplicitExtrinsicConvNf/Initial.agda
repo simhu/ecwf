@@ -548,9 +548,9 @@ module Elim {ks kr lo lh lr : Level}
     ter : ∀ {Γ A t} (pΓ : Γ ⊢) (pA : Γ ⊢ A) (pt : Γ ⊢ t ∈ A) → TerE (o pΓ) (ty pΓ pA)
     -- Ind(pt : Γ ⊢ t ∈ A).
     -- ter = BLOCK
-    ter pΓ pA (ter-subst-conv pΔ pt pσ pB pA' pBσA) =
+    ter pΓ pA (ter-subst-conv pΔ pt pσ pB pBσA) =
       ι' (ty-cong pΓ (ty-subst pΔ pB pσ) pA pBσA) (ter pΔ pB pt [ m pΓ pΔ pσ ]tE)
-    ter (ctx-cons pΓ pA) pB (ter-qq-conv pA' pB' pApB) =
+    ter (ctx-cons pΓ pA) pB (ter-qq-conv pA' pApB) =
       let open EqRelReason ~eq
           eq = begin
                  ty (ctx-cons pΓ pA) pB
