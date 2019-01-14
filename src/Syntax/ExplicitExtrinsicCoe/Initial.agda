@@ -614,7 +614,8 @@ module Elim {ks kr lo lh lr : Level}
     -- Some consequences of ter#
     ter#r : ∀ {Γ A t} (pΓ : Γ ⊢) (pA : Γ ⊢ A) (pt pt' : Γ ⊢ t ∈ A) →
             ter pΓ pA pt ~t ter pΓ pA pt'
-    ter#r pΓ pA pt pt' = let open EqRelReason ~teq in
+    ter#r pΓ pA pt pt' =
+      let open EqRelReason ~teq in
       begin
         ter pΓ pA pt
       ≈⟨ ter# pΓ pΓ pA pA pt pt' ⟩
