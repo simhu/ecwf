@@ -52,14 +52,6 @@ module Elim {ks kr lo lh lr : Level}
     -- Ind(Γ ⊢).
     o ctx-nil = <> E
     o (ctx-cons pΓ pA) = o pΓ ∙E ty pΓ pA
-    -- I wonder if the termination checker would accept: (o (ty-ctx pA)) ∙E ..
-
-    -- ??
-    -- o# : ∀ {Γ} (pΓ pΓ' :  Γ ⊢) → o pΓ ≡ o pΓ'
-    -- o# ctx-nil ctx-nil = ≡-refl
-    -- o# (ctx-cons pΓ pA) (ctx-cons pΓ' pA') = {!!}
-    -- the problem with this is that type equality (~E) isn't
-    -- necessarily equality
 
     -- Maybe it is still feasible to formulate o# as an iso?
     -- But this has to be in a way compatible with ty# etc.
@@ -166,9 +158,6 @@ module Elim {ks kr lo lh lr : Level}
     m pΔ pΓ (subst-comp pΞ pσ pτ) = m pΞ pΓ pσ ∘E m pΔ pΞ pτ
 
 
-    -- Combine with m#?  This is needed there, but m-o# looks at least
-    -- as painful?  It feels like treating o# as isomorphisms is
-    -- *really* cumbersome, but this probably was to be expected..
     m-o# : ∀ {Δ Γ σ} (pΔ pΔ' : Δ ⊢) (pΓ pΓ' : Γ ⊢) (pσ : σ ∈ Δ ⇒ Γ) →
            m pΔ pΓ pσ ∘E o# pΔ' pΔ ~s o# pΓ' pΓ ∘E m pΔ' pΓ' pσ
     -- Ind(pσ : σ ∈ Δ ⇒ Γ).  Maybe doing an induction on Δ might
@@ -572,7 +561,6 @@ module Elim {ks kr lo lh lr : Level}
              ∎
       in ι eq qqE
 
-
     -- ??? we should really formulate with a general equality other than ty#?
     ter# : ∀ {Γ A t} (pΓ pΓ' : Γ ⊢) (pA pA' : Γ ⊢ A) (pt pt' : Γ ⊢ t ∈ A) →
            ter pΓ pA pt ~t ι (ty# pΓ pΓ' pA pA') (ter pΓ' pA' pt' [ o# pΓ pΓ' ]tE)
@@ -580,19 +568,67 @@ module Elim {ks kr lo lh lr : Level}
     ter# (ctx-cons pΓ pA) (ctx-cons pΓ' pA') (ty-subst x pA1 (subst-pp pA2)) (ty-subst x₂ pA3 (subst-pp pA4)) (ter-qq pA5) (ter-qq pA6) =
       {!!}
     ter# pΓ pΓ' pA pA' (ter-qq x) (ter-ty-eq x₁ pt' x₂) = {!!}
-    ter# pΓ pΓ' pA pA' (ter-subst pt pσ) (ter-subst pt' pσ') = {!!}
-    ter# pΓ pΓ' pA pA' (ter-subst pt pσ) (ter-ty-eq x pt' x₁) = {!!}
+    ter# pΓ pΓ' (ty-subst pΔ pA pσ) (ty-subst pΔ' pA' pσ') (ter-subst pt pσ'') (ter-subst pt' pσ''') =
+      let open EqRelReason ~teq in
+      begin
+        ter pΔ pA pt [ m pΓ pΔ pσ ]tE
+      ≈⟨ []t-resp-l (ter# pΔ pΔ' pA pA' pt pt') ⟩
+        (ι _ (ter pΔ' pA' pt' [ o# pΔ pΔ' ]tE)) [ m pΓ pΔ pσ ]tE
+      ≈⟨ ιsubst ⟩
+        ι _ ((ter pΔ' pA' pt' [ o# pΔ pΔ' ]tE) [ m pΓ pΔ pσ ]tE)
+      ≈⟨ {!!} ⟩
+        ι _ ((ter pΔ' pA' pt' [ o# pΔ pΔ' ]tE) [ m pΓ pΔ pσ' ]tE)
+      ≈⟨ {!ιresp!} ⟩
+        ι _ (ter pΔ' pA' pt' [ o# pΔ pΔ' ∘E m pΓ pΔ pσ' ]tE)
+      ≈⟨ {!!} ⟩
+        ι _ (ter pΔ' pA' pt' [ m pΓ' pΔ' pσ' ∘E o# pΓ pΓ' ]tE)
+      ≈⟨ {!!} ⟩
+         ι _ ((ter pΔ' pA' pt' [ m pΓ' pΔ' pσ' ]tE) [ o# pΓ pΓ' ]tE)
+      ∎
+      --   ter _ pA pt [ m pΓ _ pσ ]tE
+      -- ≈⟨ {!!} ⟩
+      --   ι (ty# pΓ pΓ' pA pA')
+      --     (ter pΓ' pA' (ter-subst pt' pσ') [ o# pΓ pΓ' ]tE)
+      -- ∎
+    ter# pΓ pΓ' (ty-subst pΔ pA pσ) (ty-subst pΔ' pA' pσ') (ter-subst pt pσ'') (ter-ty-eq pB pt' pBAσ) = {!!}
     ter# pΓ pΓ' pA pA' (ter-ty-eq pB pt pBA) pt' = {!!}
 
+    -- Some consequences of ter#
     ter#r : ∀ {Γ A t} (pΓ : Γ ⊢) (pA : Γ ⊢ A) (pt pt' : Γ ⊢ t ∈ A) →
             ter pΓ pA pt ~t ter pΓ pA pt'
-    -- Ind(pt pt' : Γ ⊢ t ∈ A).
-    ter#r = {!!}
+    ter#r pΓ pA pt pt' =
+      let open EqRelReason ~teq in
+      begin
+        ter pΓ pA pt
+      ≈⟨ ter# pΓ pΓ pA pA pt pt' ⟩
+        ι _ (ter pΓ pA pt' [ o# pΓ pΓ ]tE)
+      ≈⟨ ιresp ([]t-resp-r (~seq .sym (o#id pΓ))) ⟩
+        ι _ (ι _ (ter pΓ pA pt' [ idsE ]tE))
+      ≈⟨ ιresp (ιresp (ι-right (~teq .sym []t-id))) ⟩
+        ι _ (ι _ (ι _ (ter pΓ pA pt')))
+      ≈⟨ ~teq .trans ιtrans ιtrans ⟩
+        ι _ (ter pΓ pA pt')
+      ≈⟨ ~teq .sym ιrefl-irr ⟩
+        ter pΓ pA pt'
+      ∎
 
-    -- Maybe parametrize by an equality instead of using ty#r
     ter#m : ∀ {Γ A t} (pΓ : Γ ⊢) (pA pA' : Γ ⊢ A) (pt : Γ ⊢ t ∈ A) →
             ter pΓ pA pt ~t ι (ty#r pΓ pA pA') (ter pΓ pA' pt)
-    ter#m = {!!}
+    ter#m pΓ pA pA' pt =
+      let open EqRelReason ~teq in
+      begin
+        ter pΓ pA pt
+      ≈⟨ ter# pΓ pΓ pA pA' pt pt ⟩
+        ι _ (ter pΓ pA' pt [ o# pΓ pΓ ]tE)
+      ≈⟨ ιresp ([]t-resp-r (~seq .sym (o#id pΓ))) ⟩
+        ι _ (ι _ (ter pΓ pA' pt [ idsE ]tE))
+      ≈⟨ ιresp (ιresp (ι-right (~teq .sym []t-id))) ⟩
+        ι _ (ι _ (ι _ (ter pΓ pA' pt)))
+      ≈⟨ ~teq .trans ιtrans ιtrans ⟩
+        ι _ (ter pΓ pA' pt)
+      ≈⟨ ιirr ⟩
+        ι (ty#r pΓ pA pA') (ter pΓ pA' pt)
+      ∎
 
 
     -- -- Maybe we have to generalize?
@@ -621,7 +657,7 @@ module Elim {ks kr lo lh lr : Level}
 
 
 -------------------------------------------------------------------------------
-
+{-
 
 
   -- NEEDED: this is by definition!!
