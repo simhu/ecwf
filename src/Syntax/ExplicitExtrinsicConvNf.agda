@@ -132,6 +132,7 @@ data _⊢_~_∈_ where
     ∀ {σ σ' Δ Γ A B t t'} →
     Γ ⊢ t ~ t' ∈ A → σ ~ σ' ∈ Δ ⇒ Γ →
     Γ ⊢ A ~ B → -- ??
+    Γ ⊢ t' ∈ A → -- ?? helps in ty-cong
     -----------------------------------
     Δ ⊢ t [ σ to Γ at A ] ~ t' [ σ' to Γ at B ] ∈ A [ σ to Γ ]
 
@@ -289,9 +290,10 @@ ter-eq-subst' :
     ∀ {σ Δ Γ A t t'} →
     Γ ⊢ t ~ t' ∈ A → σ ∈ Δ ⇒ Γ →
     Γ ⊢ A → -- ??
+    Γ ⊢ t' ∈ A → -- ?????
     -----------------------------------
     Δ ⊢ t [ σ to Γ at A ] ~ t' [ σ to Γ at A ] ∈ A [ σ to Γ ]
-ter-eq-subst' tt' pσ pA = ter-eq-subst tt' (subst-eq-refl pσ) (ty-eq-refl pA)
+ter-eq-subst' ptt' pσ pA pt' = ter-eq-subst ptt' (subst-eq-refl pσ) (ty-eq-refl pA) pt'
 
 ty-eq-subst' :
   ∀ {σ Δ Γ A A'} →
@@ -422,7 +424,7 @@ ter-map {Γ} {Δ} {σ} {A} {B} pΓ pA pB pσ q = record
       ter-eq-ty-eq (ty-subst pΓ pA pσ)
         (ter-subst-conv pΓ pt pσ pA (ty-eq-refl (ty-subst pΓ pA pσ)))
         (ter-subst-conv pΓ ps pσ pA (ty-eq-refl (ty-subst pΓ pA pσ)))
-        (ter-eq-subst ts (subst-eq-refl pσ) (ty-eq-refl pA)) (ty-eq-sym q) }
+        (ter-eq-subst ts (subst-eq-refl pσ) (ty-eq-refl pA) ps) (ty-eq-sym q) }
   }
 
 ter-psh : ePSh (∫ {C = ctx-cat} ty-psh)
@@ -436,7 +438,7 @@ ter-psh = record
                     ter-eq-ty-eq (ty-subst pΓ pA pσ)
                       (ter-subst-conv pΓ pt pσ pA (ty-eq-refl (ty-subst pΓ pA pσ)))
                       (ter-subst-conv pΓ ps pτ pA (ty-eq-trans pB (ty-eq-sym q) p))
-                      (ter-eq-subst ts στ (ty-eq-refl pA)) (ty-eq-sym p) }
+                      (ter-eq-subst ts στ (ty-eq-refl pA) ps) (ty-eq-sym p) }
       }
   ; id-mor = map-rel λ { {t , pt} {s , ps} ts → ter-eq-trans ps ts (ter-eq-id ps) }
   ; comp-mor = λ
@@ -455,13 +457,14 @@ ter-psh = record
               (ter-eq-subst' (ter-eq-ty-eq (ty-subst pΓ pA pτ)
                 (ter-subst-conv pΓ pt pτ pA (ty-eq-refl (ty-subst pΓ pA pτ)))
                 (ter-subst-conv pΓ ps pτ pA (ty-eq-refl (ty-subst pΓ pA pτ)))
-                (ter-eq-subst' ts pτ pA) (ty-eq-sym q)) pσ pB)
+                (ter-eq-subst' ts pτ pA ps) (ty-eq-sym q)) pσ pB
+                  (ter-subst-conv pΓ ps pτ pA (ty-eq-sym q)))
               (ter-eq-trans
                 (ter-subst-conv pΔ
                   (ter-subst-conv pΓ ps pτ pA (ty-eq-refl (ty-subst pΓ pA pτ))) pσ
                      (ty-subst pΓ pA pτ) (ty-eq-subst (ty-eq-sym q) (subst-eq-refl pσ)))
                      (ter-eq-subst (ter-eq-refl (ter-subst-conv pΓ ps pτ pA (ty-eq-sym q)))
-                       (subst-eq-refl pσ) q)
+                       (subst-eq-refl pσ) q (ter-subst-conv pΓ ps pτ pA (ty-eq-sym q)))
                      (ter-eq-ty-eq (ty-subst pΔ (ty-subst pΓ pA pτ) pσ)
                        (ter-subst-conv pΔ
                          (ter-subst-conv pΓ ps pτ pA (ty-eq-refl (ty-subst pΓ pA pτ))) pσ
@@ -512,11 +515,12 @@ compr {Γ , pΓ} {A , pA} = record {
                 (ty-eq-subst (ty-eq-refl pA) (subst-eq-pp<> pσ pA pt))
         pAσ = ty-subst pΓ pA pσ
         pAσid = ty-subst pΔ pAσ (subst-id pΔ)
-        p1 = ter-subst pΔ pAσ (ter-ty-eq (ty-subst (ctx-cons pΓ pA) (ty-subst pΓ pA (subst-pp pA))
+        p0 = ter-ty-eq (ty-subst (ctx-cons pΓ pA) (ty-subst pΓ pA (subst-pp pA))
               (subst-<> pσ pA pt))
               pAσ (ter-subst (ctx-cons pΓ pA) (ty-subst pΓ pA (subst-pp pA))
                 (ter-qq-conv pA (ty-eq-refl (ty-subst pΓ pA (subst-pp pA))))
-                (subst-<> pσ pA pt)) bla) (subst-id pΔ)
+                (subst-<> pσ pA pt)) bla
+        p1 = ter-subst pΔ pAσ p0 (subst-id pΔ)
     in
     ter-eq-trans
       (ter-subst-conv pΔ pt (subst-id pΔ) pAσ
@@ -530,7 +534,8 @@ compr {Γ , pΓ} {A , pA} = record {
         (ty-eq-sym (ty-eq-id pAσ)))
         (ter-eq-ty-eq pAσid (ter-subst pΔ pAσ pt (subst-id pΔ))
           p1
-          (ter-eq-subst' (ter-eq-sym (ter-eq-qq<> pσ pA pt)) (subst-id pΔ) pAσ)
+          (ter-eq-subst' (ter-eq-sym (ter-eq-qq<> pσ pA pt)) (subst-id pΔ) pAσ
+            p0)
           (ty-eq-sym (ty-eq-id pAσ)))
           (ter-eq-ty-eq pAσid p1 (ter-subst-conv pΔ
               (ter-subst (ctx-cons pΓ pA) (ty-subst pΓ pA (subst-pp pA))
@@ -543,7 +548,7 @@ compr {Γ , pΓ} {A , pA} = record {
               (ter-subst-conv (ctx-cons pΓ pA) (ter-qq pΓ pA) (subst-<> pσ pA pt)
                 (ty-subst pΓ pA (subst-pp pA))
                 bla))
-              (subst-eq-refl (subst-id pΔ)) (ty-eq-sym bla))
+              (subst-eq-refl (subst-id pΔ)) (ty-eq-sym bla) p0)
             (ty-eq-sym (ty-eq-id pAσ))))
     }
   ;
