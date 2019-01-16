@@ -244,6 +244,7 @@ data _~_∈_⇒_ where
     ------------------------------------------
     comps Δ σ τ ~ comps Δ σ' τ' ∈ Ξ ⇒ Γ
 
+  -- TODO: use subst-eq-<> again and refactor m-resp
   -- subst-eq-<> :
   --   ∀ {Δ Γ σ σ' A t t'} →
   --   Γ ⊢ A → σ ~ σ' ∈ Δ ⇒ Γ → Δ ⊢ t ~ t' ∈ A [ σ to Γ ] →
