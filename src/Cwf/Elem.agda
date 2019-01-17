@@ -167,6 +167,11 @@ module eCwFNotation {lvs lvr lo lh lr} {Ctx : ECat {lo} {lh} {lr}}
            u ~t ι q v → ι' q u ~t v
   ι-left = ι-left-irr
 
+  ι-left' : ∀ {Γ} {A B : Typ Γ} {q : B ~ A} {u : Ter Γ A} {v : Ter Γ B} →
+           u ~t ι' q v → ι q u ~t v
+  ι-left' = ι-left-irr
+
+
   ι-right-irr : ∀ {Γ} {A B : Typ Γ} {p : B ~ A} {q : A ~ B} {u : Ter Γ A} {v : Ter Γ B} →
                ι q v ~t u → v ~t ι p u
   ι-right-irr r = ~teq .sym (ι-left-irr (~teq .sym r))
@@ -174,6 +179,11 @@ module eCwFNotation {lvs lvr lo lh lr} {Ctx : ECat {lo} {lh} {lr}}
   ι-right : ∀ {Γ} {A B : Typ Γ} {q : A ~ B} {u : Ter Γ A} {v : Ter Γ B} →
             ι q v ~t u → v ~t ι' q u
   ι-right = ι-right-irr
+
+  ι-right' : ∀ {Γ} {A B : Typ Γ} {q : B ~ A} {u : Ter Γ A} {v : Ter Γ B} →
+            ι' q v ~t u → v ~t ι q u
+  ι-right' = ι-right-irr
+
 
   []t-assoc : ∀ {Θ Δ Γ} {τ : Subst Θ Δ} {σ : Subst Δ Γ} {A : Typ Γ} {u : Ter Γ A} →
                 u [ σ ]t [ τ ]t ~t ι []-assoc (u [ σ ∘s τ ]t)

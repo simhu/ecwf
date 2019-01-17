@@ -22,7 +22,7 @@ module Elim {ks kr lo lh lr : Level}
   -- --open import Syntax.ExplicitExtrinsic {lzero}
   -- import Syntax.ExplicitExtrinsic
   -- open Syntax.ExplicitExtrinsic {lzero}
-  open import Syntax.ExplicitExtrinsicConvNf
+  open import Syntax.ExplicitExtrinsicConvNf renaming (_∙_ to _∙r_ ; pp to ppr ; qq to qqr)
 
 
   open eCwF
@@ -150,7 +150,7 @@ module Elim {ks kr lo lh lr : Level}
     m pΔ pΓ (subst-! pΔ') = o# ctx-nil pΓ ∘E !E
     m pΔ (ctx-cons pΓ pA) (subst-<> pσ pA' pt) =
       -- TODO: this maybe breaks when all holes are instantiated?
-      < m pΔ pΓ pσ , ι' (ty-lem pΔ pΓ pσ pA (ty-subst pΓ pA pσ)) (ter pΔ (ty-subst pΓ pA pσ) pt) >E --  ter pΔ (ty-subst pΓ pA pσ) pt >E
+      < m pΔ pΓ pσ , ι' (ty-def-subst pΔ pΓ pσ pA) (ter pΔ (ty-subst pΓ pA pσ) pt) >E --  ter pΔ (ty-subst pΓ pA pσ) pt >E
       -- -- TODO: How is mutual type-checked here?  Why are the
       -- -- definitional equalities not available?  Maybe we should add Δ
       -- -- ⊢ A [ σ to Γ ] as premise to subst-<>?  (Doesn't help
@@ -351,6 +351,257 @@ module Elim {ks kr lo lh lr : Level}
     --   ∎
 
 
+
+    -- NEEDED
+    ty : ∀ {Γ A} (pΓ : Γ ⊢) (pA : Γ ⊢ A) → TypE (o pΓ)
+    -- Ind(pA : Γ ⊢ A).
+    {-# TERMINATING #-} -- TODO
+
+    -- Actually, this termination thing is not at all clear as why
+    -- should the calls o pΔ in the *type* of m pΔ pΓ pσ be justified?
+
+    ty pΔ (ty-subst pΓ pA pσ) = ty pΓ pA [ m pΔ pΓ pσ ]E
+    -- INFO: here we need the pΓ argument to ty-subst
+
+
+    -- maybe better to define ty#l and ty#r instead to prove ty#
+    ty# : ∀ {Γ A} (pΓ pΓ' : Γ ⊢) (pA pA' : Γ ⊢ A) → ty pΓ pA ~E ty pΓ' pA' [ o# pΓ pΓ' ]E
+    -- Ind(pA pA' : Γ ⊢ A)?
+
+    -- Hmm, this is actually not at all clear how to do as Δ and Δ'
+    -- might be different; where do we need ty#?  One way to be able
+    -- to proof is to fix Δ and Δ' by adding it to the substitution
+    -- syntax as an additional argument to _[_] in the raw syntax.
+
+    ty# pΓ pΓ' (ty-subst pΔ pA pσ) (ty-subst pΔ' pA' pσ') = BLOCK
+      -- let open EqRelReason ~eq in
+      -- begin
+      --   ty pΔ pA [ m pΓ pΔ pσ ]E
+      -- ≈⟨ []-resp-l (ty# pΔ pΔ' pA pA') ⟩
+      --   ty pΔ' pA' [ o# pΔ pΔ' ]E [ m pΓ pΔ pσ ]E
+      -- ≈⟨ []-assoc ⟩
+      --   ty pΔ' pA' [ o# pΔ pΔ' ∘E m pΓ pΔ pσ ]E
+      -- ≈⟨ []-resp-r (comp-cong-r (Ctx E) (m# pΓ pΔ pσ pσ')) ⟩
+      --   ty pΔ' pA' [ o# pΔ pΔ' ∘E m pΓ pΔ pσ' ]E
+      -- ≈⟨ []-resp-r (~seq .sym (m-o# pΓ' pΓ pΔ' pΔ pσ')) ⟩
+      --   ty pΔ' pA' [ m pΓ' pΔ' pσ' ∘E o# pΓ pΓ' ]E
+      -- ≈⟨ []-assoc-inv ⟩
+      --   ty pΔ' pA' [ m pΓ' pΔ' pσ' ]E [ o# pΓ pΓ' ]E
+      -- ∎
+
+    -- special case of ty#, using m#id (not sure if termination
+    -- checker will grasp this)
+    -- TODO: really necessary?
+    ty#r : ∀ {Γ A} (pΓ : Γ ⊢) (pA pA' : Γ ⊢ A) → ty pΓ pA ~E ty pΓ pA'
+    -- Ind(pA pA' : Γ ⊢ A)?
+    ty#r = BLOCK
+    -- ty#r pΓ pA pA' =
+    --   let open EqRelReason ~eq in
+    --   begin
+    --     ty pΓ pA
+    --   ≈⟨ ty# pΓ pΓ pA pA' ⟩
+    --     ty pΓ pA' [ o# pΓ pΓ ]E
+    --   ≈⟨ []-resp-r (~seq .sym (o#id pΓ)) ⟩
+    --     ty pΓ pA' [ idsE ]E
+    --   ≈⟨ []-id-inv ⟩
+    --     ty pΓ pA'
+    --   ∎
+
+    -- ditto
+    -- ty#l : ∀ {Γ A} (pΓ pΓ' : Γ ⊢) (pA : Γ ⊢ A) → ty pΓ pA ~E ty pΓ' pA [ o# pΓ pΓ' ]E
+    -- -- Ind(pA : Γ ⊢ A)?
+    -- ty#l pΓ pΓ' (ty-subst pΓ'' pA pσ) = {!!}
+
+    -- -- TODO: Needed in definition of m?????? (And in the η case in m-resp.)
+    -- ty-lem : ∀ {Δ Γ A σ} (pΔ : Δ ⊢) (pΓ : Γ ⊢) (pσ : σ ∈ Δ ⇒ Γ )
+    --          (pA : Γ ⊢ A) (pAσ : Δ ⊢ A [ σ to Γ ]) →
+    --          ty pΔ pAσ ~E ty pΓ pA [ m pΔ pΓ pσ ]E
+    -- ty-lem pΔ pΓ pσ pA pAσ = ty#r pΔ pAσ (ty-subst pΓ pA pσ)
+
+    -- -- TODO: use this instead of ty-lem
+    ty-def-subst : ∀ {Δ Γ A σ} (pΔ : Δ ⊢) (pΓ : Γ ⊢) (pσ : σ ∈ Δ ⇒ Γ )
+                   (pA : Γ ⊢ A)  →
+                   ty pΔ (ty-subst pΓ pA pσ) ~E ty pΓ pA [ m pΔ pΓ pσ ]E
+    ty-def-subst pΔ pΓ pσ pA = ~eq .refl
+
+
+
+    -- NEEDED
+    ter : ∀ {Γ A t} (pΓ : Γ ⊢) (pA : Γ ⊢ A) (pt : Γ ⊢ t ∈ A) → TerE (o pΓ) (ty pΓ pA)
+    -- Ind(pt : Γ ⊢ t ∈ A).
+    -- ter = BLOCK
+    ter pΓ pA (ter-subst-conv pΔ pt pσ pB pBσA) =
+      ι' (ty-cong pΓ (ty-subst pΔ pB pσ) pA pBσA) (ter pΔ pB pt [ m pΓ pΔ pσ ]tE)
+    ter (ctx-cons pΓ pA) pB (ter-qq-conv pA' pApB) =  -- TODO: maybe even drop pA' argument?
+      let open EqRelReason ~eq
+          eq = begin
+                 ty (ctx-cons pΓ pA) pB
+               ≈⟨ ~eq .sym (ty-cong (ctx-cons pΓ pA) (ty-subst pΓ pA (subst-pp pA)) pB pApB) ⟩
+                 ty (ctx-cons pΓ pA) (ty-subst pΓ pA (subst-pp pA))
+               ≈⟨⟩
+                 ty pΓ pA [ ppE ∘E < o# pΓ pΓ ∘E ppE , ι _ qqE >E ]E
+               ≈⟨ []-resp-r (pp<> E) ⟩
+                 ty pΓ pA [ o# pΓ pΓ ∘E ppE ]E
+               ≈⟨ []-resp-r (comp-cong-l (Ctx E) (~seq .sym (o#id pΓ))) ⟩
+                 ty pΓ pA [ idsE ∘E ppE ]E
+               ≈⟨ []-resp-r (id-l (Ctx E)) ⟩
+                 ty pΓ pA [ ppE ]E
+               ∎
+      in ι eq qqE
+
+    -- ??? we should really formulate with a general equality other than ty#?
+    ter# : ∀ {Γ A t} (pΓ pΓ' : Γ ⊢) (pA pA' : Γ ⊢ A) (pt pt' : Γ ⊢ t ∈ A) →
+           ter pΓ pA pt ~t ι (ty# pΓ pΓ' pA pA') (ter pΓ' pA' pt' [ o# pΓ pΓ' ]tE)
+    ter# = BLOCK
+    -- ter# pΓ pΓ' pA pA' (ter-subst-conv pΔ pt pσ pB pBσA)
+    --                    (ter-subst-conv pΔ' pt' pσ' pB' pBσA') =
+    --   let open EqRelReason ~teq in
+    --   begin
+    --     ι' (ty-cong pΓ (ty-subst pΔ pB pσ) pA pBσA) (ter pΔ pB pt [ m pΓ pΔ pσ ]tE)
+    --   ≈⟨ ιresp ([]t-resp-r (m# pΓ pΔ pσ pσ')) ⟩
+    --     ι' _ (ι _ (ter pΔ pB pt [ m pΓ pΔ pσ' ]tE))
+    --   ≈⟨ ιtrans ⟩
+    --     ι _ (ter pΔ pB pt [ m pΓ pΔ pσ' ]tE)
+    --   ≈⟨ ιresp ([]t-resp-l (ter# pΔ pΔ' pB pB' pt pt')) ⟩
+    --     ι _ ((ι _ (ter pΔ' pB' pt' [ o# pΔ pΔ' ]tE)) [ m pΓ pΔ pσ' ]tE)
+    --   ≈⟨ ιresp ιsubst ⟩
+    --     ι _ (ι _ (ter pΔ' pB' pt' [ o# pΔ pΔ' ]tE  [ m pΓ pΔ pσ' ]tE))
+    --   ≈⟨ ιtrans ⟩
+    --     ι _ ((ter pΔ' pB' pt' [ o# pΔ pΔ' ]tE) [ m pΓ pΔ pσ' ]tE)
+    --   ≈⟨ ιresp []t-assoc ⟩
+    --     ι _ (ι _ (ter pΔ' pB' pt' [ o# pΔ pΔ' ∘E m pΓ pΔ pσ' ]tE))
+    --   ≈⟨ ιresp (ιresp ([]t-resp-r (~seq .sym (m-o# pΓ' pΓ pΔ' pΔ pσ')))) ⟩
+    --     ι _ (ι _ (ι _ (ter pΔ' pB' pt' [ m pΓ' pΔ' pσ' ∘E o# pΓ pΓ' ]tE)))
+    --   ≈⟨ ιresp (ιresp (ιresp (ι-right (~teq .sym []t-assoc)))) ⟩
+    --     ι _ (ι _ (ι _ (ι _ ((ter pΔ' pB' pt' [ m pΓ' pΔ' pσ' ]tE) [ o# pΓ pΓ' ]tE))))
+    --   ≈⟨ ~teq .trans ιtrans (~teq .trans ιtrans ιtrans) ⟩
+    --     ι _ ((ter pΔ' pB' pt' [ m pΓ' pΔ' pσ' ]tE) [ o# pΓ pΓ' ]tE)
+    --   ≈⟨ ιirr ⟩
+    --     ι _ ((ter pΔ' pB' pt' [ m pΓ' pΔ' pσ' ]tE) [ o# pΓ pΓ' ]tE)
+    --   ≈⟨ ιtrans-inv ⟩
+    --     ι _ (ι _ (ter pΔ' pB' pt' [ m pΓ' pΔ' pσ' ]tE [ o# pΓ pΓ' ]tE))
+    --   ≈⟨ ιresp ιsubst-inv ⟩
+    --     ι (ty# pΓ pΓ' pA pA')
+    --       (ι' (ty-cong pΓ' (ty-subst pΔ' pB' pσ') pA' pBσA')
+    --         (ter pΔ' pB' pt' [ m pΓ' pΔ' pσ' ]tE)
+    --         [ o# pΓ pΓ' ]tE)
+    --   ∎
+    -- ter# (ctx-cons pΓ pB) (ctx-cons pΓ' pB') pA pA'
+    --      (ter-qq-conv pB'' pBpA) (ter-qq-conv pB''' pBpA') =
+    --   let eq3 : (ty pΓ pB [ ppE ]E) ~E (ty pΓ' pB' [ o# pΓ pΓ' ∘E ppE ]E)
+    --       eq3 = _
+    --       eq1 : ty (ctx-cons pΓ pB) pA ~E ty pΓ pB [ ppE ]E
+    --       eq1 = _
+    --       open EqRelReason ~teq
+    --   in begin
+    --     ι eq1 (qqE {A = ty pΓ pB})
+    --   ≈⟨ ιirr ⟩
+    --     ι _ qqE
+    --   ≈⟨ ιtrans-inv ⟩
+    --     ι (~eq .trans eq1 eq3) (ι' eq3 (qqE {A = ty pΓ pB}))
+    --   ≈⟨ ιresp (qq<>-inv E) ⟩
+    --     ι _ (ι _ (qqE [ < o# pΓ pΓ' ∘E ppE , ι' _ qqE >E ]tE))
+    --   ≈⟨ ιtrans ⟩
+    --     ι _ (qqE [ < o# pΓ pΓ' ∘E ppE , ι' _ qqE >E ]tE)
+    --   ≈⟨ ιirr ⟩
+    --     ι _ (qqE [ < o# pΓ pΓ' ∘E ppE , ι' _ qqE >E ]tE)
+    --   ≈⟨ ιtrans-inv ⟩
+    --     ι _ (ι _ (qqE [ <  _ , ι' _ qqE >E ]tE))
+    --   ≈⟨ ιresp ιsubst-inv ⟩
+    --     ι (ty# (ctx-cons pΓ pB) (ctx-cons pΓ' pB') pA pA')
+    --       ((ι _ (qqE {A = ty pΓ' pB'})) [ < o# pΓ pΓ' ∘E ppE , ι' eq3 qqE >E ]tE)
+    --   ∎
+
+
+
+    -- Some consequences of ter#
+    ter#r : ∀ {Γ A t} (pΓ : Γ ⊢) (pA : Γ ⊢ A) (pt pt' : Γ ⊢ t ∈ A) →
+            ter pΓ pA pt ~t ter pΓ pA pt'
+    ter#r pΓ pA pt pt' = BLOCK
+      -- let open EqRelReason ~teq in
+      -- begin
+      --   ter pΓ pA pt
+      -- ≈⟨ ter# pΓ pΓ pA pA pt pt' ⟩
+      --   ι _ (ter pΓ pA pt' [ o# pΓ pΓ ]tE)
+      -- ≈⟨ ιresp ([]t-resp-r (~seq .sym (o#id pΓ))) ⟩
+      --   ι _ (ι _ (ter pΓ pA pt' [ idsE ]tE))
+      -- ≈⟨ ιresp (ιresp (ι-right (~teq .sym []t-id))) ⟩
+      --   ι _ (ι _ (ι _ (ter pΓ pA pt')))
+      -- ≈⟨ ~teq .trans ιtrans ιtrans ⟩
+      --   ι _ (ter pΓ pA pt')
+      -- ≈⟨ ~teq .sym ιrefl-irr ⟩
+      --   ter pΓ pA pt'
+      -- ∎
+
+    ter#m : ∀ {Γ A t} (pΓ : Γ ⊢) (pA pA' : Γ ⊢ A) (pt : Γ ⊢ t ∈ A) →
+            ter pΓ pA pt ~t ι (ty#r pΓ pA pA') (ter pΓ pA' pt)
+    ter#m pΓ pA pA' pt = BLOCK
+      -- let open EqRelReason ~teq in
+      -- begin
+      --   ter pΓ pA pt
+      -- ≈⟨ ter# pΓ pΓ pA pA' pt pt ⟩
+      --   ι _ (ter pΓ pA' pt [ o# pΓ pΓ ]tE)
+      -- ≈⟨ ιresp ([]t-resp-r (~seq .sym (o#id pΓ))) ⟩
+      --   ι _ (ι _ (ter pΓ pA' pt [ idsE ]tE))
+      -- ≈⟨ ιresp (ιresp (ι-right (~teq .sym []t-id))) ⟩
+      --   ι _ (ι _ (ι _ (ter pΓ pA' pt)))
+      -- ≈⟨ ~teq .trans ιtrans ιtrans ⟩
+      --   ι _ (ter pΓ pA' pt)
+      -- ≈⟨ ιirr ⟩
+      --   ι (ty#r pΓ pA pA') (ter pΓ pA' pt)
+      -- ∎
+
+    -- ter#mr : ∀ {Γ A t} (pΓ : Γ ⊢) (pA pA' : Γ ⊢ A) (pt pt' : Γ ⊢ t ∈ A) →
+    --         ter pΓ pA pt ~t ι (ty#r pΓ pA pA') (ter pΓ pA' pt')
+    -- ter#mr pΓ pA pA' pt pt' = BLOCK
+
+
+    -- To "trick" Agda's type-checking of mutual..
+
+--    ter-def-subst : ∀ {Δ Γ σ A B }
+      --   ter pΓ pA (ter-subst-conv pΔ pt pσ pB pBσA) ~
+      -- ι' (ty-cong pΓ (ty-subst pΔ pB pσ) pA pBσA) (ter pΔ pB pt [ m pΓ pΔ pσ ]tE)
+
+    -- ter-lem-subst : ∀ {Δ Γ A B t σ} (pΔ : Δ ⊢) (pΓ : Γ ⊢) (pσ : σ ∈ Δ ⇒ Γ)
+    --   (pA : Γ ⊢ A) (pAσ : Δ ⊢ A [ σ to Γ ])
+    --   (pB : Δ ⊢ B) (pAσB : Δ ⊢ A [ σ to Γ ] ~ B)
+    --   (pt : Γ ⊢ t ∈ A)
+    --   (ptσ : Δ ⊢ t [ σ to Γ at A ] ∈ B) →
+    --   ter pΔ pB ptσ ~t
+    --     ι' (~eq .trans (~eq .sym (ty-lem pΔ pΓ pσ pA pAσ)) (ty-cong pΔ pAσ pB pAσB))
+    --       (ter pΓ pA pt [ m pΔ pΓ pσ ]tE)
+    -- ter-lem-subst pΔ pΓ pσ pA pAσ pB pAσB pt ptσ =
+    --   let open EqRelReason ~teq in
+    --   begin
+    --     ter pΔ pB ptσ
+    --   ≈⟨ ter#r pΔ pB ptσ (ter-subst-conv pΓ pt pσ pA pAσB) ⟩
+    --     ter pΔ pB (ter-subst-conv pΓ pt pσ pA pAσB)
+    --   ≈⟨ ιirr ⟩
+    --     ι' (~eq .trans (~eq .sym (ty-lem pΔ pΓ pσ pA pAσ)) (ty-cong pΔ pAσ pB pAσB))
+    --        (ter pΓ pA pt [ m pΔ pΓ pσ ]tE)
+    --   ∎
+
+    -- ter-lem-qq : ∀ {Γ A B} (pΓ : Γ ⊢) (pA : Γ ⊢ A) (pB : Γ ∙r A ⊢ B)
+    --              (pApB : Γ ⊢ A [ ppr to Γ ] ~ B) (pq : Γ ∙r A ⊢ qqr ∈ B)
+    --              (f : hom (Ctx E) (o (ctx-cons pΓ pA)) (o pΓ ∙E ty pΓ pA)) -- OMG!
+    --              (fnice : ty (ctx-cons pΓ pA) pB ~E ((ty pΓ pA [ ppE ]E) [ f ]E)) →  -- OMG^2!
+    --              ter (ctx-cons pΓ pA) pB pq ~t
+    --                ι fnice (qqE {A = ty pΓ pA} [ f ]tE)
+    -- ter-lem-qq pΓ pA pB pApB pq f fnice =
+    --   let open EqRelReason ~teq in
+    --   begin
+    --     ter (ctx-cons pΓ pA) pB pq
+    --   ≈⟨ {!!} ⟩
+    --     ι _ (qqE [ f ]tE)
+    --   ≈⟨ {!!} ⟩
+    --     ι fnice (qqE [ f ]tE)
+    --   ∎
+
+
+    -- CONGRUENCE STUFF.  NB: this are not 'proof relevant', so their
+    -- definition should not matter and hence they can come last.
+
+
     -- NEEDED
     m-resp : ∀ {Δ Γ σ τ} (pΔ : Δ ⊢) (pΓ : Γ ⊢) (pσ : σ ∈ Δ ⇒ Γ) (pτ : τ ∈ Δ ⇒ Γ)
            (pστ : σ ~ τ ∈ Δ ⇒ Γ) → m pΔ pΓ pσ ~s m pΔ pΓ pτ
@@ -447,10 +698,10 @@ module Elim {ks kr lo lh lr : Level}
       BLOCK
       -- let open EqRelReason ~teq
       --     eq = begin
-      --            ι' (ty-lem pΔ pΓ pσ pA (ty-subst pΓ pA pσ))
+      --            ι' (ty-def-subst pΔ pΓ pσ pA)
       --              (ter pΔ (ty-subst pΓ pA pσ) pt)
       --          ≈⟨ ιresp (ter#m pΔ (ty-subst pΓ pA pσ) (ty-subst pΓ pA pσ') pt) ⟩
-      --            ι' (ty-lem pΔ pΓ pσ pA (ty-subst pΓ pA pσ))
+      --            ι' _
       --              (ι _ (ter pΔ (ty-subst pΓ pA pσ') pt))
       --          ≈⟨ ~teq .trans ιtrans ιirr ⟩
       --            ι _ (ter pΔ (ty-subst pΓ pA pσ') pt)
@@ -458,7 +709,7 @@ module Elim {ks kr lo lh lr : Level}
       --            ι _ (ter pΔ (ty-subst pΓ pA pσ') ps)
       --          ≈⟨ ιtrans-inv ⟩
       --            ι ([]-resp-r (m# pΔ pΓ pσ pσ'))
-      --              (ι' (ty-lem pΔ pΓ pσ' pA (ty-subst pΓ pA pσ'))
+      --              (ι' _
       --                (ter pΔ (ty-subst pΓ pA pσ') ps))
       --          ∎
       -- in <>-cong E (m# pΔ pΓ pσ pσ') eq
@@ -467,7 +718,7 @@ module Elim {ks kr lo lh lr : Level}
       BLOCK
       -- let open EqRelReason ~teq
       --     eq = begin
-      --            ι' (ty-lem pΔ pΓ pσ pA (ty-subst pΓ pA pσ))
+      --            ι' _
       --              (ter pΔ (ty-subst pΓ pA pσ) pt)
       --          ≈⟨ ιresp (ter#m-ty-eq pΔ (ty-subst pΓ pA pσ)
       --                     (ty-subst pΓ pA pτ) (ty-eq-subst (ty-eq-refl pA) pστ) pt pt') ⟩
@@ -478,7 +729,7 @@ module Elim {ks kr lo lh lr : Level}
       --            ι _ (ter pΔ (ty-subst pΓ pA pτ) pt')
       --          ≈⟨ ιtrans-inv ⟩
       --            ι ([]-resp-r (m-resp pΔ pΓ pσ pτ pστ))
-      --              (ι' (ty-lem pΔ pΓ pτ pA (ty-subst pΓ pA pτ))
+      --              (ι' _
       --                (ter pΔ (ty-subst pΓ pA pτ) pt'))
       --          ∎
       -- in <>-cong E (m-resp pΔ pΓ pσ pτ pστ) eq
@@ -510,6 +761,7 @@ module Elim {ks kr lo lh lr : Level}
       ~seq .trans (m-resp pΔ pΓ pσ pξ pσξ) (m-resp pΔ pΓ pξ pτ pξτ)
     m-resp pΔ ctx-nil pσ pτ (subst-eq-!-η _) = !-η' E
     -- m-resp = BLOCK
+    -- {-
     m-resp pΔ (ctx-cons pΓ pA) pτ
       (subst-<> (subst-comp (ctx-cons pΓ1 pA1)  (subst-pp pA'') pτ') pA'''
         (ter-subst-conv (ctx-cons pΓ2 pA2) (ter-qq-conv pA5 pApAp) pτ'' pAp pAassoc))
@@ -547,206 +799,46 @@ module Elim {ks kr lo lh lr : Level}
             ≈⟨ comp-assoc (Ctx E) ⟩
               ppE {A = ty pΓ pA''} ∘E o# pΓA (ctx-cons pΓ pA'') ∘E m pΔ pΓA pτ'
             ∎
-          lhs = _
-          rhs = _
---          right : lhs ~t rhs
 
-          foo : TerE (o pΔ)
-                  (ty pΔ
-                   (ty-subst pΓ pA
-                    (subst-comp (ctx-cons pΓ1 pA1) (subst-pp pA'') pτ')))
-          foo = (ter pΔ
-                    (ty-subst pΓ pA
-                     (subst-comp (ctx-cons pΓ1 pA1) (subst-pp pA'') pτ'))
-                    (ter-subst-conv (ctx-cons pΓ2 pA2) (ter-qq-conv pA5 pApAp) pτ'' pAp
-                     pAassoc))
-    -- ty-lem : ∀ {Δ Γ A σ} (pΔ : Δ ⊢) (pΓ : Γ ⊢) (pσ : σ ∈ Δ ⇒ Γ )
-    --          (pA : Γ ⊢ A) (pAσ : Δ ⊢ A [ σ to Γ ]) →
-    --          ty pΔ pAσ ~E ty pΓ pA [ m pΔ pΓ pσ ]E
-
-          foo2 : TerE (o pΔ)
-                  (ty pΔ
-                   {!!})
-          foo2 = (ι'
-                    {!!}
-                    (ι
-                     (eqr (fun (Ty E) (o pΓ2 ∙E ty pΓ2 pA2)) .trans
-                      (~eq .sym
-                       {!(ty-cong (ctx-cons pΓ2 pA2) (ty-subst pΓ2 pA2 (subst-pp pA2)) pAp
-                        pApAp)!})
-                      ((~eq .trans ([]-resp-r (pp<> E))
-                       (~eq .trans
-                        ([]-resp-r (comp-cong-l (Ctx E) (~seq .sym (o#id pΓ2))))
-                        (~eq .trans ([]-resp-r (id-l (Ctx E))) (~eq .refl))))))
-                     qqE
-                     [ m pΔ (ctx-cons pΓ2 pA2) pτ'' ]tE))
-                 -- (ι'
-                 -- (ty-cong pΔ (ty-subst (ctx-cons pΓ2 pA2) pAp pτ'')
-                 --  (ty-subst pΓ pA
-                 --   (subst-comp (ctx-cons pΓ1 pA1) (subst-pp pA'') pτ'))
-                 --  pAassoc)
-                 -- ((ι
-                 --  ?
-                 --  qqE)
-                 --  [ m pΔ (ctx-cons pΓ2 pA2) pτ'' ]tE))
-
+          eq = let open EqRelReason ~seq in
+               begin
+                 m pΔ (ctx-cons pΓ2 pA2) pτ''
+               ≈⟨ m-o#-l pΔ (ctx-cons pΓ2 pA2) (ctx-cons pΓ pA) pτ'' ⟩
+                 o# (ctx-cons pΓ pA) (ctx-cons pΓ2 pA2) ∘E m pΔ (ctx-cons pΓ pA) pτ''
+               ≈⟨ comp-cong-r (Ctx E) (m# pΔ (ctx-cons pΓ pA) pτ'' pτ') ⟩
+                 o# (ctx-cons pΓ pA) (ctx-cons pΓ2 pA2) ∘E m pΔ (ctx-cons pΓ pA) pτ'
+               ≈⟨⟩
+                 < _ , ι' _ (qqE {A = ty pΓ pA }) >E ∘E m pΔ (ctx-cons pΓ pA) pτ'
+               ∎
 
           right =
             let open EqRelReason ~teq
             in
             begin
-              (ι' []-assoc (qqE [ m pΔ (ctx-cons pΓ pA) pτ' ]tE))
-            ≈⟨ {!!} ⟩
-               ι
-                 ([]-resp-r
-                  left)
-                 (ι'
-                  (ty-lem pΔ pΓ (subst-comp (ctx-cons pΓ1 pA1) (subst-pp pA'') pτ')
-                   pA
-                   (ty-subst pΓ pA
-                    (subst-comp (ctx-cons pΓ1 pA1) (subst-pp pA'') pτ')))
-                  {!!})
-              -- (ι
-              --   ([]-resp-r
-              --    (Ctx E .hom-eqr .trans (comp-cong-l (Ctx E) (id-l-inv (Ctx E)))
-              --     (~seq .trans (comp-cong-l (Ctx E) (comp-cong-l (Ctx E) (o#id pΓ)))
-              --      (~seq .trans
-              --       (comp-cong (Ctx E)
-              --        (isTerminal.!-explicit (eCwF.compr E)
-              --         ((o pΓ ∙E ty pΓ pA) ,
-              --          o# pΓ pΓ ∘E ppE ,
-              --          ι'
-              --          (eqr (fun (Ty E) (o pΓ ∙E ty pΓ pA)) .trans
-              --           ([]-resp-l (ty# pΓ pΓ pA pA'')) (~eq .trans []-assoc (~eq .refl)))
-              --          qqE)
-              --         .snd .fst)
-              --        (m-o#-l pΔ (ctx-cons pΓ pA) (ctx-cons pΓ1 pA1) pτ'))
-              --       (~seq .trans (comp-assoc-inv (Ctx E))
-              --        (~seq .trans (comp-cong-r (Ctx E) (comp-assoc (Ctx E)))
-              --         (~seq .trans
-              --          (comp-cong-r (Ctx E)
-              --           (comp-cong-l (Ctx E)
-              --            (o#comp (ctx-cons pΓ1 pA1) (ctx-cons pΓ pA) (ctx-cons pΓ pA''))))
-              --          (~seq .trans (comp-assoc (Ctx E)) (~seq .refl)))))))))
-              --   (ι'
-              --    (ty-lem pΔ pΓ (subst-comp (ctx-cons pΓ1 pA1) (subst-pp pA'') pτ')
-              --     pA
-              --     (ty-subst pΓ pA
-              --      (subst-comp (ctx-cons pΓ1 pA1) (subst-pp pA'') pτ')))
-              --    (ι'
-              --     (ty-cong pΔ (ty-subst pΓA' pAp pτ'')
-              --      (ty-subst pΓ pA
-              --       (subst-comp (ctx-cons pΓ1 pA1) (subst-pp pA'') pτ'))
-              --      pAassoc)
-              --     (ter pΓA' pAp (ter-qq-conv pA5 pApAp) [ m pΔ pΓA' pτ'' ]tE))))
-              ∎
+              ι' []-assoc (qqE [ m pΔ (ctx-cons pΓ pA) pτ' ]tE)
+            ≈⟨ ιirr ⟩
+              ι _ (qqE [ m pΔ (ctx-cons pΓ pA) pτ' ]tE)
+            ≈⟨ ~teq .trans ιtrans-inv (ιresp ιsubst-inv) ⟩
+               ι _ ((ι _ (qqE {A = ty pΓ pA })) [ m pΔ (ctx-cons pΓ pA) pτ' ]tE)
+            ≈⟨ ~teq .trans ιtrans-inv (ιresp (ιresp ([]t-resp-l ιtrans-inv))) ⟩
+               ι _ (ι _ ((ι _ (ι' _ (qqE {A = ty pΓ pA }))) [ m pΔ (ctx-cons pΓ pA) pτ' ]tE))
+            ≈⟨ ιresp (ιresp ([]t-resp-l (~teq .sym (qq<> E)))) ⟩
+               ι _ (ι _ (qqE [ < _ , ι' _ (qqE {A = ty pΓ pA }) >E ]tE [ m pΔ (ctx-cons pΓ pA) pτ' ]tE))
+            ≈⟨ ιresp (ι-left []t-assoc) ⟩
+               ι _ (qqE [ < _ , ι' _ (qqE {A = ty pΓ pA }) >E ∘E m pΔ (ctx-cons pΓ pA) pτ' ]tE)
+            ≈⟨ ~teq .trans ιtrans-inv ιtrans-inv ⟩
+               ι _ (ι _ (ι _ (qqE [ < _ , ι' _ (qqE {A = ty pΓ pA }) >E ∘E m pΔ (ctx-cons pΓ pA) pτ' ]tE)))
+            ≈⟨ ιresp (ιresp ιsubst-inv) ⟩
+               ι _ (ι _ ((ι _ qqE) [ < _ , ι' _ (qqE {A = ty pΓ pA }) >E ∘E m pΔ (ctx-cons pΓ pA) pτ' ]tE))
+            ≈⟨ ιresp (~teq .sym ([]t-resp-r eq)) ⟩
+              ι _ ((ι _ qqE) [ m pΔ (ctx-cons pΓ2 pA2) pτ'' ]tE)
+            ≈⟨ ~teq .trans ιtrans-inv ιtrans-inv ⟩
+               ι ([]-resp-r left) (ι' _ (ι' _ (ι _ qqE [ m pΔ (ctx-cons pΓ2 pA2) pτ'' ]tE)))
+            ∎
       in ~seq .trans
            (m# pΔ (ctx-cons pΓ pA) pτ pτ')
            (~seq .trans
-           (<>-η E) (<>-cong E {t = lhs} {t' = rhs} left right))
-      -- OLD
-      -- begin
-      --   m pΔ (ctx-cons pΓ pA) pτ
-      -- ≈⟨ {!!} ⟩
-      --   < ppE {A = ty pΓ pA''} ∘E o# pΓA (ctx-cons pΓ pA'') ∘E m pΔ pΓA pτ'
-      --       --  o# pΓ' pΓ ∘E ppE ,
-      --       --  ι'
-      --       --  (eqr (fun (Ty E) (o pΓ' ∙E ty pΓ' pA')) .trans
-      --       --   ([]-resp-l (ty# pΓ' pΓ pA' pA''))
-      --       --   (~eq .trans []-assoc (~eq .refl)))
-      --       --  qqE)
-      --       -- .fst
-      --       -- ∘E m pΔ (ctx-cons pΓ' pA') pτ' -- ppE ∘E
-      --     -- < o# pΓ' pΓ ∘E ppE , ι' _ qqE >E ∘E m pΔ (ctx-cons pΓ' pA') pτ'
-      --   ,
-      --   ι'
-      --     (ty-lem pΔ pΓ (subst-comp pΓA (subst-pp pA'') pτ') pA
-      --      (ty-subst pΓ pA (subst-comp pΓA (subst-pp pA'') pτ')))
-      --     (ι'
-      --      (ty-cong pΔ (ty-subst pΓA' pAp pτ'')
-      --       (ty-subst pΓ pA (subst-comp pΓA (subst-pp pA'') pτ')) pAassoc)
-      --      (ter pΓA' pAp (ter-qq-conv pA5 pApAp) [ m pΔ pΓA' pτ'' ]tE))
-      --   >E
-      -- ∎
-
-
-
-
-
-      -- let open EqRelReason ~seq in
-      -- begin
-      --   m pΔ (ctx-cons pΓ pA) pτ
-      -- ≈⟨ {!!} ⟩
-      --   < ppE ∘E < o# pΓ' pΓ ∘E ppE , ι' _ qqE >E ∘E m pΔ (ctx-cons pΓ' pA') pτ'
-      --   , ι' _ (ter pΔ (ty-subst pΓ pA (subst-comp (ctx-cons pΓ' pA') (subst-pp pA'') pτ')) pqq) >E
-      -- ∎
-    -- -}
-
-    -- NEEDED
-    ty : ∀ {Γ A} (pΓ : Γ ⊢) (pA : Γ ⊢ A) → TypE (o pΓ)
-    -- Ind(pA : Γ ⊢ A).
-    {-# TERMINATING #-} -- TODO
-
-    -- Actually, this termination thing is not at all clear as why
-    -- should the calls o pΔ in the *type* of m pΔ pΓ pσ be justified?
-
-    ty pΔ (ty-subst pΓ pA pσ) = ty pΓ pA [ m pΔ pΓ pσ ]E
-    -- INFO: here we need the pΓ argument to ty-subst
-
-
-    -- maybe better to define ty#l and ty#r instead to prove ty#
-    ty# : ∀ {Γ A} (pΓ pΓ' : Γ ⊢) (pA pA' : Γ ⊢ A) → ty pΓ pA ~E ty pΓ' pA' [ o# pΓ pΓ' ]E
-    -- Ind(pA pA' : Γ ⊢ A)?
-
-    -- Hmm, this is actually not at all clear how to do as Δ and Δ'
-    -- might be different; where do we need ty#?  One way to be able
-    -- to proof is to fix Δ and Δ' by adding it to the substitution
-    -- syntax as an additional argument to _[_] in the raw syntax.
-
-    ty# pΓ pΓ' (ty-subst pΔ pA pσ) (ty-subst pΔ' pA' pσ') = BLOCK
-      -- let open EqRelReason ~eq in
-      -- begin
-      --   ty pΔ pA [ m pΓ pΔ pσ ]E
-      -- ≈⟨ []-resp-l (ty# pΔ pΔ' pA pA') ⟩
-      --   ty pΔ' pA' [ o# pΔ pΔ' ]E [ m pΓ pΔ pσ ]E
-      -- ≈⟨ []-assoc ⟩
-      --   ty pΔ' pA' [ o# pΔ pΔ' ∘E m pΓ pΔ pσ ]E
-      -- ≈⟨ []-resp-r (comp-cong-r (Ctx E) (m# pΓ pΔ pσ pσ')) ⟩
-      --   ty pΔ' pA' [ o# pΔ pΔ' ∘E m pΓ pΔ pσ' ]E
-      -- ≈⟨ []-resp-r (~seq .sym (m-o# pΓ' pΓ pΔ' pΔ pσ')) ⟩
-      --   ty pΔ' pA' [ m pΓ' pΔ' pσ' ∘E o# pΓ pΓ' ]E
-      -- ≈⟨ []-assoc-inv ⟩
-      --   ty pΔ' pA' [ m pΓ' pΔ' pσ' ]E [ o# pΓ pΓ' ]E
-      -- ∎
-
-    -- special case of ty#, using m#id (not sure if termination
-    -- checker will grasp this)
-    -- TODO: really necessary?
-    ty#r : ∀ {Γ A} (pΓ : Γ ⊢) (pA pA' : Γ ⊢ A) → ty pΓ pA ~E ty pΓ pA'
-    -- Ind(pA pA' : Γ ⊢ A)?
-    -- ty#r = BLOCK
-    ty#r pΓ pA pA' =
-      let open EqRelReason ~eq in
-      begin
-        ty pΓ pA
-      ≈⟨ ty# pΓ pΓ pA pA' ⟩
-        ty pΓ pA' [ o# pΓ pΓ ]E
-      ≈⟨ []-resp-r (~seq .sym (o#id pΓ)) ⟩
-        ty pΓ pA' [ idsE ]E
-      ≈⟨ []-id-inv ⟩
-        ty pΓ pA'
-      ∎
-
-    -- ditto
-    -- ty#l : ∀ {Γ A} (pΓ pΓ' : Γ ⊢) (pA : Γ ⊢ A) → ty pΓ pA ~E ty pΓ' pA [ o# pΓ pΓ' ]E
-    -- -- Ind(pA : Γ ⊢ A)?
-    -- ty#l pΓ pΓ' (ty-subst pΓ'' pA pσ) = {!!}
-
-    -- TODO: Needed in definition of m?????? (And in the η case in m-resp.)
-    ty-lem : ∀ {Δ Γ A σ} (pΔ : Δ ⊢) (pΓ : Γ ⊢) (pσ : σ ∈ Δ ⇒ Γ )
-             (pA : Γ ⊢ A) (pAσ : Δ ⊢ A [ σ to Γ ]) →
-             ty pΔ pAσ ~E ty pΓ pA [ m pΔ pΓ pσ ]E
-    ty-lem pΔ pΓ pσ pA pAσ = ty#r pΔ pAσ (ty-subst pΓ pA pσ)
+           (<>-η E) (<>-cong E left right))
 
 
     -- NEEDED
@@ -797,91 +889,6 @@ module Elim {ks kr lo lh lr : Level}
     ty-cong' = BLOCK
 
 
-    -- NEEDED
-    ter : ∀ {Γ A t} (pΓ : Γ ⊢) (pA : Γ ⊢ A) (pt : Γ ⊢ t ∈ A) → TerE (o pΓ) (ty pΓ pA)
-    -- Ind(pt : Γ ⊢ t ∈ A).
-    -- ter = BLOCK
-    ter pΓ pA (ter-subst-conv pΔ pt pσ pB pBσA) =
-      ι' (ty-cong pΓ (ty-subst pΔ pB pσ) pA pBσA) (ter pΔ pB pt [ m pΓ pΔ pσ ]tE)
-    ter (ctx-cons pΓ pA) pB (ter-qq-conv pA' pApB) =  -- TODO: maybe even drop pA' argument?
-      let open EqRelReason ~eq
-          eq = begin
-                 ty (ctx-cons pΓ pA) pB
-               ≈⟨ ~eq .sym (ty-cong (ctx-cons pΓ pA) (ty-subst pΓ pA (subst-pp pA)) pB pApB) ⟩
-                 ty (ctx-cons pΓ pA) (ty-subst pΓ pA (subst-pp pA))
-               ≈⟨⟩
-                 ty pΓ pA [ ppE ∘E < o# pΓ pΓ ∘E ppE , ι _ qqE >E ]E
-               ≈⟨ []-resp-r (pp<> E) ⟩
-                 ty pΓ pA [ o# pΓ pΓ ∘E ppE ]E
-               ≈⟨ []-resp-r (comp-cong-l (Ctx E) (~seq .sym (o#id pΓ))) ⟩
-                 ty pΓ pA [ idsE ∘E ppE ]E
-               ≈⟨ []-resp-r (id-l (Ctx E)) ⟩
-                 ty pΓ pA [ ppE ]E
-               ∎
-      in ι eq qqE
-
-    -- ??? we should really formulate with a general equality other than ty#?
-    ter# : ∀ {Γ A t} (pΓ pΓ' : Γ ⊢) (pA pA' : Γ ⊢ A) (pt pt' : Γ ⊢ t ∈ A) →
-           ter pΓ pA pt ~t ι (ty# pΓ pΓ' pA pA') (ter pΓ' pA' pt' [ o# pΓ pΓ' ]tE)
-    ter# = BLOCK
-    -- ter# pΓ pΓ' pA pA' (ter-subst-conv pΔ pt pσ pB pBσA)
-    --                    (ter-subst-conv pΔ' pt' pσ' pB' pBσA') =
-    --   let open EqRelReason ~teq in
-    --   begin
-    --     ι' (ty-cong pΓ (ty-subst pΔ pB pσ) pA pBσA) (ter pΔ pB pt [ m pΓ pΔ pσ ]tE)
-    --   ≈⟨ ιresp ([]t-resp-r (m# pΓ pΔ pσ pσ')) ⟩
-    --     ι' _ (ι _ (ter pΔ pB pt [ m pΓ pΔ pσ' ]tE))
-    --   ≈⟨ ιtrans ⟩
-    --     ι _ (ter pΔ pB pt [ m pΓ pΔ pσ' ]tE)
-    --   ≈⟨ ιresp ([]t-resp-l (ter# pΔ pΔ' pB pB' pt pt')) ⟩
-    --     ι _ ((ι _ (ter pΔ' pB' pt' [ o# pΔ pΔ' ]tE)) [ m pΓ pΔ pσ' ]tE)
-    --   ≈⟨ ιresp ιsubst ⟩
-    --     ι _ (ι _ (ter pΔ' pB' pt' [ o# pΔ pΔ' ]tE  [ m pΓ pΔ pσ' ]tE))
-    --   ≈⟨ ιtrans ⟩
-    --     ι _ ((ter pΔ' pB' pt' [ o# pΔ pΔ' ]tE) [ m pΓ pΔ pσ' ]tE)
-    --   ≈⟨ ιresp []t-assoc ⟩
-    --     ι _ (ι _ (ter pΔ' pB' pt' [ o# pΔ pΔ' ∘E m pΓ pΔ pσ' ]tE))
-    --   ≈⟨ ιresp (ιresp ([]t-resp-r (~seq .sym (m-o# pΓ' pΓ pΔ' pΔ pσ')))) ⟩
-    --     ι _ (ι _ (ι _ (ter pΔ' pB' pt' [ m pΓ' pΔ' pσ' ∘E o# pΓ pΓ' ]tE)))
-    --   ≈⟨ ιresp (ιresp (ιresp (ι-right (~teq .sym []t-assoc)))) ⟩
-    --     ι _ (ι _ (ι _ (ι _ ((ter pΔ' pB' pt' [ m pΓ' pΔ' pσ' ]tE) [ o# pΓ pΓ' ]tE))))
-    --   ≈⟨ ~teq .trans ιtrans (~teq .trans ιtrans ιtrans) ⟩
-    --     ι _ ((ter pΔ' pB' pt' [ m pΓ' pΔ' pσ' ]tE) [ o# pΓ pΓ' ]tE)
-    --   ≈⟨ ιirr ⟩
-    --     ι _ ((ter pΔ' pB' pt' [ m pΓ' pΔ' pσ' ]tE) [ o# pΓ pΓ' ]tE)
-    --   ≈⟨ ιtrans-inv ⟩
-    --     ι _ (ι _ (ter pΔ' pB' pt' [ m pΓ' pΔ' pσ' ]tE [ o# pΓ pΓ' ]tE))
-    --   ≈⟨ ιresp ιsubst-inv ⟩
-    --     ι (ty# pΓ pΓ' pA pA')
-    --       (ι' (ty-cong pΓ' (ty-subst pΔ' pB' pσ') pA' pBσA')
-    --         (ter pΔ' pB' pt' [ m pΓ' pΔ' pσ' ]tE)
-    --         [ o# pΓ pΓ' ]tE)
-    --   ∎
-    -- ter# (ctx-cons pΓ pB) (ctx-cons pΓ' pB') pA pA'
-    --      (ter-qq-conv pB'' pBpA) (ter-qq-conv pB''' pBpA') =
-    --   let eq3 : (ty pΓ pB [ ppE ]E) ~E (ty pΓ' pB' [ o# pΓ pΓ' ∘E ppE ]E)
-    --       eq3 = _
-    --       eq1 : ty (ctx-cons pΓ pB) pA ~E ty pΓ pB [ ppE ]E
-    --       eq1 = _
-    --       open EqRelReason ~teq
-    --   in begin
-    --     ι eq1 (qqE {A = ty pΓ pB})
-    --   ≈⟨ ιirr ⟩
-    --     ι _ qqE
-    --   ≈⟨ ιtrans-inv ⟩
-    --     ι (~eq .trans eq1 eq3) (ι' eq3 (qqE {A = ty pΓ pB}))
-    --   ≈⟨ ιresp (qq<>-inv E) ⟩
-    --     ι _ (ι _ (qqE [ < o# pΓ pΓ' ∘E ppE , ι' _ qqE >E ]tE))
-    --   ≈⟨ ιtrans ⟩
-    --     ι _ (qqE [ < o# pΓ pΓ' ∘E ppE , ι' _ qqE >E ]tE)
-    --   ≈⟨ ιirr ⟩
-    --     ι _ (qqE [ < o# pΓ pΓ' ∘E ppE , ι' _ qqE >E ]tE)
-    --   ≈⟨ ιtrans-inv ⟩
-    --     ι _ (ι _ (qqE [ <  _ , ι' _ qqE >E ]tE))
-    --   ≈⟨ ιresp ιsubst-inv ⟩
-    --     ι (ty# (ctx-cons pΓ pB) (ctx-cons pΓ' pB') pA pA')
-    --       ((ι _ (qqE {A = ty pΓ' pB'})) [ < o# pΓ pΓ' ∘E ppE , ι' eq3 qqE >E ]tE)
-    --   ∎
 
     -- We need to generalize ter#...
     ter#-ty-eq : ∀ {Γ A B t} (pΓ pΓ' : Γ ⊢) (pA : Γ ⊢ A) (pB : Γ ⊢ B) (pAB : Γ ⊢ A ~ B)
@@ -955,159 +962,122 @@ module Elim {ks kr lo lh lr : Level}
     ter#m-ty-eq = BLOCK
 
 
-    -- Some consequences of ter#
-    ter#r : ∀ {Γ A t} (pΓ : Γ ⊢) (pA : Γ ⊢ A) (pt pt' : Γ ⊢ t ∈ A) →
-            ter pΓ pA pt ~t ter pΓ pA pt'
-    ter#r pΓ pA pt pt' = BLOCK
-      -- let open EqRelReason ~teq in
-      -- begin
-      --   ter pΓ pA pt
-      -- ≈⟨ ter# pΓ pΓ pA pA pt pt' ⟩
-      --   ι _ (ter pΓ pA pt' [ o# pΓ pΓ ]tE)
-      -- ≈⟨ ιresp ([]t-resp-r (~seq .sym (o#id pΓ))) ⟩
-      --   ι _ (ι _ (ter pΓ pA pt' [ idsE ]tE))
-      -- ≈⟨ ιresp (ιresp (ι-right (~teq .sym []t-id))) ⟩
-      --   ι _ (ι _ (ι _ (ter pΓ pA pt')))
-      -- ≈⟨ ~teq .trans ιtrans ιtrans ⟩
-      --   ι _ (ter pΓ pA pt')
-      -- ≈⟨ ~teq .sym ιrefl-irr ⟩
-      --   ter pΓ pA pt'
-      -- ∎
-
-    ter#m : ∀ {Γ A t} (pΓ : Γ ⊢) (pA pA' : Γ ⊢ A) (pt : Γ ⊢ t ∈ A) →
-            ter pΓ pA pt ~t ι (ty#r pΓ pA pA') (ter pΓ pA' pt)
-    ter#m pΓ pA pA' pt = BLOCK
-      -- let open EqRelReason ~teq in
-      -- begin
-      --   ter pΓ pA pt
-      -- ≈⟨ ter# pΓ pΓ pA pA' pt pt ⟩
-      --   ι _ (ter pΓ pA' pt [ o# pΓ pΓ ]tE)
-      -- ≈⟨ ιresp ([]t-resp-r (~seq .sym (o#id pΓ))) ⟩
-      --   ι _ (ι _ (ter pΓ pA' pt [ idsE ]tE))
-      -- ≈⟨ ιresp (ιresp (ι-right (~teq .sym []t-id))) ⟩
-      --   ι _ (ι _ (ι _ (ter pΓ pA' pt)))
-      -- ≈⟨ ~teq .trans ιtrans ιtrans ⟩
-      --   ι _ (ter pΓ pA' pt)
-      -- ≈⟨ ιirr ⟩
-      --   ι (ty#r pΓ pA pA') (ter pΓ pA' pt)
-      -- ∎
-
-
 
     -- NEEDED
     ter-cong : ∀ {Γ A t s} (pΓ : Γ ⊢) (pA : Γ ⊢ A) (pt : Γ ⊢ t ∈ A) (ps : Γ ⊢ s ∈ A)
                (pts : Γ ⊢ t ~ s ∈ A) → ter pΓ pA pt ~t ter pΓ pA ps
     -- Ind(pts : Γ ⊢ t ~ s ∈ A).
-    ter-cong {Γ = Δ } pΔ pAσ
-      (ter-subst-conv (ctx-cons pΓ pA) (ter-qq-conv pA' pApAp) (subst-<> pσ pA'' pt) pAp pAeq)
-      pt' (ter-eq-qq<> pσ' pA''' pt'') =
-      BLOCK
-      -- let open EqRelReason ~teq in
-      -- begin
-      --   ι' _ ((ι _ qqE) [ < m pΔ pΓ pσ , ι' _ (ter pΔ (ty-subst pΓ pA pσ) pt) >E ]tE)
-      -- ≈⟨ ιresp ιsubst ⟩
-      --   ι' _ (ι _ (qqE [ < m pΔ pΓ pσ , ι' _ (ter pΔ (ty-subst pΓ pA pσ) pt) >E ]tE))
-      -- ≈⟨ ιresp (ιresp (qq<> E)) ⟩
-      --   ι' _ (ι _ (ι _ (ι' _ (ter pΔ (ty-subst pΓ pA pσ) pt))))
-      -- ≈⟨ ~teq .trans ιtrans (~teq .trans ιtrans ιtrans) ⟩
-      --   ι _ (ter pΔ (ty-subst pΓ pA pσ) pt)
-      -- ≈⟨ ιirr ⟩
-      --   ι _ (ter pΔ (ty-subst pΓ pA pσ) pt)
-      -- ≈⟨ ιresp (ter#r pΔ (ty-subst pΓ pA pσ) pt pt') ⟩
-      --   ι _ (ter pΔ (ty-subst pΓ pA pσ) pt')
-      -- ≈⟨ ~teq .sym (ter#m pΔ pAσ (ty-subst pΓ pA pσ) pt') ⟩
-      --   ter pΔ pAσ pt'
-      -- ∎
-    ter-cong {Γ = Δ} pΔ pAσ
-      (ter-subst-conv pΓ pt pσ pA pAσAσ)
-      (ter-subst-conv {σ = τ} {A = B} {t = s} pΓ' ps pτ pB pBτAσ)
-      (ter-eq-subst {A = A} pts pστ pAB ps') =
-      BLOCK
-      -- let open EqRelReason ~teq in
-      -- begin
-      --   ι' (ty-cong pΔ (ty-subst pΓ pA pσ) pAσ pAσAσ)
-      --     (ter pΓ pA pt [ m pΔ pΓ pσ ]tE)
-      -- ≈⟨ ιresp ([]t-resp-l (ter-cong pΓ pA pt ps' pts)) ⟩
-      --   ι' _ (ter pΓ pA ps' [ m pΔ pΓ pσ ]tE)
-      -- ≈⟨ ιresp ([]t-resp-l (ter#-ty-eq pΓ pΓ' pA pB pAB ps' ps)) ⟩
-      --   ι' _ ((ι _ (ter pΓ' pB ps [ o# pΓ pΓ' ]tE)) [ m pΔ pΓ pσ ]tE)
-      -- ≈⟨ ιresp ιsubst ⟩
-      --   ι' _ (ι _ (ter pΓ' pB ps [ o# pΓ pΓ' ]tE [ m pΔ pΓ pσ ]tE))
-      -- ≈⟨ ιresp (ιresp []t-assoc) ⟩
-      --   ι' _ (ι _ (ι _ (ter pΓ' pB ps [ o# pΓ pΓ' ∘E m pΔ pΓ pσ ]tE)))
-      -- ≈⟨ ιresp (ιresp (ιresp ([]t-resp-r (~seq .trans
-      --      (~seq .sym (m-o#-l pΔ pΓ' pΓ pσ)) (m-resp pΔ pΓ' pσ pτ pστ))))) ⟩
-      --   ι' _ (ι _ (ι _ (ι _ (ter pΓ' pB ps [ m pΔ pΓ' pτ ]tE))))
-      -- ≈⟨ ~teq .trans ιtrans (~teq .trans ιtrans (~teq .trans ιtrans ιirr)) ⟩
-      --   ι' (ty-cong pΔ (ty-subst pΓ' pB pτ) pAσ pBτAσ)
-      --     (ter pΓ' pB ps [ m pΔ pΓ' pτ ]tE)
-      -- ∎
-    ter-cong pΓ pA pt (ter-subst-conv pΓ' pt' (subst-id pΓ'') pA' pAidA) (ter-eq-id pt'') =
-      BLOCK
-      -- let open EqRelReason ~teq in
-      -- begin
-      --   ter pΓ pA pt
-      -- ≈⟨ ter# pΓ pΓ' pA pA' pt pt' ⟩
-      --   ι _ (ter pΓ' pA' pt' [ o# pΓ pΓ' ]tE)
-      -- ≈⟨ ιirr ⟩
-      --   ι' (ty-cong pΓ (ty-subst pΓ' pA' (subst-id pΓ'')) pA pAidA)
-      --      (ter pΓ' pA' pt' [ o# pΓ pΓ' ]tE)
-      -- ∎
-    ter-cong pΞ pAστ
-      (ter-subst-conv pΔ (ter-subst-conv pΓ pt pσ pA pAσAσ) pτ pAσ pAστAστ)
-      (ter-subst-conv pΓ' ps (subst-comp pΔ' pσ' pτ') pA' pAassoc)
-      (ter-eq-assoc {Ξ} {Δ} {Γ} pt' pσ'' pτ'') =
-      BLOCK
-      -- let eq = let open EqRelReason ~seq in
-      --          begin
-      --            o# pΓ pΓ' ∘E m pΔ pΓ pσ ∘E m pΞ pΔ pτ
-      --          ≈⟨ comp-cong (Ctx E) (~seq .sym (m-o# pΔ' pΔ pΓ' pΓ pσ)) (m# pΞ pΔ pτ pτ') ⟩
-      --            m pΔ' pΓ' pσ ∘E o# pΔ pΔ' ∘E m pΞ pΔ pτ'
-      --          ≈⟨ comp-assoc-inv (Ctx E) ⟩
-      --            m pΔ' pΓ' pσ ∘E (o# pΔ pΔ' ∘E m pΞ pΔ pτ')
-      --          ≈⟨ comp-cong (Ctx E) (m# pΔ' pΓ' pσ pσ') (~seq .sym (m-o#-l pΞ pΔ' pΔ pτ')) ⟩
-      --            m pΔ' pΓ' pσ' ∘E m pΞ pΔ' pτ'
-      --          ∎
-      --     open EqRelReason ~teq
-      -- in begin
-      --   ι' _ ((ι' _ (ter pΓ pA pt [ m pΔ pΓ pσ ]tE)) [ m pΞ pΔ pτ ]tE)
-      -- ≈⟨ ιresp ([]t-resp-l (ιresp ([]t-resp-l (ter# pΓ pΓ' pA pA' pt ps)))) ⟩
-      --   ι' _ (ι' _ (ι _ (ter pΓ' pA' ps [ o# pΓ pΓ' ]tE) [ m pΔ pΓ pσ ]tE) [ m pΞ pΔ pτ ]tE)
-      -- ≈⟨ ιresp ([]t-resp-l (ιresp ιsubst)) ⟩
-      --   ι' _ ((ι' _ (ι _ (ter pΓ' pA' ps [ o# pΓ pΓ' ]tE [ m pΔ pΓ pσ ]tE))) [ m pΞ pΔ pτ ]tE)
-      -- ≈⟨ ιresp ιsubst ⟩
-      --   ι' _ (ι _ ((ι _ (ter pΓ' pA' ps [ o# pΓ pΓ' ]tE [ m pΔ pΓ pσ ]tE)) [ m pΞ pΔ pτ ]tE))
-      -- ≈⟨ ιresp (ιresp ιsubst) ⟩
-      --   ι' _ (ι _ (ι _ (ter pΓ' pA' ps [ o# pΓ pΓ' ]tE [ m pΔ pΓ pσ ]tE [ m pΞ pΔ pτ ]tE)))
-      -- ≈⟨ ~teq .trans ιtrans ιtrans ⟩
-      --   ι _ (ter pΓ' pA' ps [ o# pΓ pΓ' ]tE [ m pΔ pΓ pσ ]tE [ m pΞ pΔ pτ ]tE)
-      -- ≈⟨ ιresp ([]t-resp-l []t-assoc) ⟩
-      --   ι _ (ι _ (ter pΓ' pA' ps [ o# pΓ pΓ' ∘E m pΔ pΓ pσ ]tE) [ m pΞ pΔ pτ ]tE)
-      -- ≈⟨ ιresp ιsubst ⟩
-      --   ι _ (ι _ (ter pΓ' pA' ps [ o# pΓ pΓ' ∘E m pΔ pΓ pσ ]tE [ m pΞ pΔ pτ ]tE))
-      -- ≈⟨ ιresp (ιresp []t-assoc) ⟩
-      --   ι _ (ι _ (ι _ (ter pΓ' pA' ps [ o# pΓ pΓ' ∘E m pΔ pΓ pσ ∘E  m pΞ pΔ pτ ]tE)))
-      -- ≈⟨ ιresp (ιresp (ιresp ([]t-resp-r eq))) ⟩
-      --   ι _ (ι _ (ι _ (ι _ (ter pΓ' pA' ps [ m pΔ' pΓ' pσ' ∘E m pΞ pΔ' pτ' ]tE))))
-      -- ≈⟨ ~teq .trans ιtrans (~teq .trans ιtrans (~teq .trans ιtrans ιirr)) ⟩
-      --   ι' _ (ter pΓ' pA' ps [ m pΔ' pΓ' pσ' ∘E m pΞ pΔ' pτ' ]tE)
-      -- ∎
-    ter-cong pΓ pA pt ps (ter-eq-ty-eq {A = B} {B = A} pB pt' ps' pts pBA) =
-      BLOCK
-      -- let open EqRelReason ~teq in
-      -- begin
-      --   ter pΓ pA pt
-      -- ≈⟨ ter#m-ty-eq pΓ pA pB (ty-eq-sym pBA) pt pt' ⟩
-      --   ι _ (ter pΓ pB pt')
-      -- ≈⟨ ιresp (ter-cong pΓ pB pt' ps' pts) ⟩
-      --   ι _ (ter pΓ pB ps')
-      -- ≈⟨ ~teq .sym (ter#m-ty-eq pΓ pA pB (ty-eq-sym pBA) ps ps') ⟩
-      --   ter pΓ pA ps
-      -- ∎
-    ter-cong pΓ pA pt ps (ter-eq-refl _) = ter#r pΓ pA pt ps
-    ter-cong pΓ pA pt ps (ter-eq-sym pst) = ~teq .sym (ter-cong pΓ pA ps pt pst)
-    ter-cong pΓ pA pt ps (ter-eq-trans pr ptr prs) =
-      ~teq .trans (ter-cong pΓ pA pt pr ptr) (ter-cong pΓ pA pr ps prs)
+    ter-cong = BLOCK
+    -- ter-cong {Γ = Δ } pΔ pAσ
+    --   (ter-subst-conv (ctx-cons pΓ pA) (ter-qq-conv pA' pApAp) (subst-<> pσ pA'' pt) pAp pAeq)
+    --   pt' (ter-eq-qq<> pσ' pA''' pt'') =
+    --   BLOCK
+    --   -- let open EqRelReason ~teq in
+    --   -- begin
+    --   --   ι' _ ((ι _ qqE) [ < m pΔ pΓ pσ , ι' _ (ter pΔ (ty-subst pΓ pA pσ) pt) >E ]tE)
+    --   -- ≈⟨ ιresp ιsubst ⟩
+    --   --   ι' _ (ι _ (qqE [ < m pΔ pΓ pσ , ι' _ (ter pΔ (ty-subst pΓ pA pσ) pt) >E ]tE))
+    --   -- ≈⟨ ιresp (ιresp (qq<> E)) ⟩
+    --   --   ι' _ (ι _ (ι _ (ι' _ (ter pΔ (ty-subst pΓ pA pσ) pt))))
+    --   -- ≈⟨ ~teq .trans ιtrans (~teq .trans ιtrans ιtrans) ⟩
+    --   --   ι _ (ter pΔ (ty-subst pΓ pA pσ) pt)
+    --   -- ≈⟨ ιirr ⟩
+    --   --   ι _ (ter pΔ (ty-subst pΓ pA pσ) pt)
+    --   -- ≈⟨ ιresp (ter#r pΔ (ty-subst pΓ pA pσ) pt pt') ⟩
+    --   --   ι _ (ter pΔ (ty-subst pΓ pA pσ) pt')
+    --   -- ≈⟨ ~teq .sym (ter#m pΔ pAσ (ty-subst pΓ pA pσ) pt') ⟩
+    --   --   ter pΔ pAσ pt'
+    --   -- ∎
+    -- ter-cong {Γ = Δ} pΔ pAσ
+    --   (ter-subst-conv pΓ pt pσ pA pAσAσ)
+    --   (ter-subst-conv {σ = τ} {A = B} {t = s} pΓ' ps pτ pB pBτAσ)
+    --   (ter-eq-subst {A = A} pts pστ pAB ps') =
+    --   BLOCK
+    --   -- let open EqRelReason ~teq in
+    --   -- begin
+    --   --   ι' (ty-cong pΔ (ty-subst pΓ pA pσ) pAσ pAσAσ)
+    --   --     (ter pΓ pA pt [ m pΔ pΓ pσ ]tE)
+    --   -- ≈⟨ ιresp ([]t-resp-l (ter-cong pΓ pA pt ps' pts)) ⟩
+    --   --   ι' _ (ter pΓ pA ps' [ m pΔ pΓ pσ ]tE)
+    --   -- ≈⟨ ιresp ([]t-resp-l (ter#-ty-eq pΓ pΓ' pA pB pAB ps' ps)) ⟩
+    --   --   ι' _ ((ι _ (ter pΓ' pB ps [ o# pΓ pΓ' ]tE)) [ m pΔ pΓ pσ ]tE)
+    --   -- ≈⟨ ιresp ιsubst ⟩
+    --   --   ι' _ (ι _ (ter pΓ' pB ps [ o# pΓ pΓ' ]tE [ m pΔ pΓ pσ ]tE))
+    --   -- ≈⟨ ιresp (ιresp []t-assoc) ⟩
+    --   --   ι' _ (ι _ (ι _ (ter pΓ' pB ps [ o# pΓ pΓ' ∘E m pΔ pΓ pσ ]tE)))
+    --   -- ≈⟨ ιresp (ιresp (ιresp ([]t-resp-r (~seq .trans
+    --   --      (~seq .sym (m-o#-l pΔ pΓ' pΓ pσ)) (m-resp pΔ pΓ' pσ pτ pστ))))) ⟩
+    --   --   ι' _ (ι _ (ι _ (ι _ (ter pΓ' pB ps [ m pΔ pΓ' pτ ]tE))))
+    --   -- ≈⟨ ~teq .trans ιtrans (~teq .trans ιtrans (~teq .trans ιtrans ιirr)) ⟩
+    --   --   ι' (ty-cong pΔ (ty-subst pΓ' pB pτ) pAσ pBτAσ)
+    --   --     (ter pΓ' pB ps [ m pΔ pΓ' pτ ]tE)
+    --   -- ∎
+    -- ter-cong pΓ pA pt (ter-subst-conv pΓ' pt' (subst-id pΓ'') pA' pAidA) (ter-eq-id pt'') =
+    --   BLOCK
+    --   -- let open EqRelReason ~teq in
+    --   -- begin
+    --   --   ter pΓ pA pt
+    --   -- ≈⟨ ter# pΓ pΓ' pA pA' pt pt' ⟩
+    --   --   ι _ (ter pΓ' pA' pt' [ o# pΓ pΓ' ]tE)
+    --   -- ≈⟨ ιirr ⟩
+    --   --   ι' (ty-cong pΓ (ty-subst pΓ' pA' (subst-id pΓ'')) pA pAidA)
+    --   --      (ter pΓ' pA' pt' [ o# pΓ pΓ' ]tE)
+    --   -- ∎
+    -- ter-cong pΞ pAστ
+    --   (ter-subst-conv pΔ (ter-subst-conv pΓ pt pσ pA pAσAσ) pτ pAσ pAστAστ)
+    --   (ter-subst-conv pΓ' ps (subst-comp pΔ' pσ' pτ') pA' pAassoc)
+    --   (ter-eq-assoc {Ξ} {Δ} {Γ} pt' pσ'' pτ'') =
+    --   BLOCK
+    --   -- let eq = let open EqRelReason ~seq in
+    --   --          begin
+    --   --            o# pΓ pΓ' ∘E m pΔ pΓ pσ ∘E m pΞ pΔ pτ
+    --   --          ≈⟨ comp-cong (Ctx E) (~seq .sym (m-o# pΔ' pΔ pΓ' pΓ pσ)) (m# pΞ pΔ pτ pτ') ⟩
+    --   --            m pΔ' pΓ' pσ ∘E o# pΔ pΔ' ∘E m pΞ pΔ pτ'
+    --   --          ≈⟨ comp-assoc-inv (Ctx E) ⟩
+    --   --            m pΔ' pΓ' pσ ∘E (o# pΔ pΔ' ∘E m pΞ pΔ pτ')
+    --   --          ≈⟨ comp-cong (Ctx E) (m# pΔ' pΓ' pσ pσ') (~seq .sym (m-o#-l pΞ pΔ' pΔ pτ')) ⟩
+    --   --            m pΔ' pΓ' pσ' ∘E m pΞ pΔ' pτ'
+    --   --          ∎
+    --   --     open EqRelReason ~teq
+    --   -- in begin
+    --   --   ι' _ ((ι' _ (ter pΓ pA pt [ m pΔ pΓ pσ ]tE)) [ m pΞ pΔ pτ ]tE)
+    --   -- ≈⟨ ιresp ([]t-resp-l (ιresp ([]t-resp-l (ter# pΓ pΓ' pA pA' pt ps)))) ⟩
+    --   --   ι' _ (ι' _ (ι _ (ter pΓ' pA' ps [ o# pΓ pΓ' ]tE) [ m pΔ pΓ pσ ]tE) [ m pΞ pΔ pτ ]tE)
+    --   -- ≈⟨ ιresp ([]t-resp-l (ιresp ιsubst)) ⟩
+    --   --   ι' _ ((ι' _ (ι _ (ter pΓ' pA' ps [ o# pΓ pΓ' ]tE [ m pΔ pΓ pσ ]tE))) [ m pΞ pΔ pτ ]tE)
+    --   -- ≈⟨ ιresp ιsubst ⟩
+    --   --   ι' _ (ι _ ((ι _ (ter pΓ' pA' ps [ o# pΓ pΓ' ]tE [ m pΔ pΓ pσ ]tE)) [ m pΞ pΔ pτ ]tE))
+    --   -- ≈⟨ ιresp (ιresp ιsubst) ⟩
+    --   --   ι' _ (ι _ (ι _ (ter pΓ' pA' ps [ o# pΓ pΓ' ]tE [ m pΔ pΓ pσ ]tE [ m pΞ pΔ pτ ]tE)))
+    --   -- ≈⟨ ~teq .trans ιtrans ιtrans ⟩
+    --   --   ι _ (ter pΓ' pA' ps [ o# pΓ pΓ' ]tE [ m pΔ pΓ pσ ]tE [ m pΞ pΔ pτ ]tE)
+    --   -- ≈⟨ ιresp ([]t-resp-l []t-assoc) ⟩
+    --   --   ι _ (ι _ (ter pΓ' pA' ps [ o# pΓ pΓ' ∘E m pΔ pΓ pσ ]tE) [ m pΞ pΔ pτ ]tE)
+    --   -- ≈⟨ ιresp ιsubst ⟩
+    --   --   ι _ (ι _ (ter pΓ' pA' ps [ o# pΓ pΓ' ∘E m pΔ pΓ pσ ]tE [ m pΞ pΔ pτ ]tE))
+    --   -- ≈⟨ ιresp (ιresp []t-assoc) ⟩
+    --   --   ι _ (ι _ (ι _ (ter pΓ' pA' ps [ o# pΓ pΓ' ∘E m pΔ pΓ pσ ∘E  m pΞ pΔ pτ ]tE)))
+    --   -- ≈⟨ ιresp (ιresp (ιresp ([]t-resp-r eq))) ⟩
+    --   --   ι _ (ι _ (ι _ (ι _ (ter pΓ' pA' ps [ m pΔ' pΓ' pσ' ∘E m pΞ pΔ' pτ' ]tE))))
+    --   -- ≈⟨ ~teq .trans ιtrans (~teq .trans ιtrans (~teq .trans ιtrans ιirr)) ⟩
+    --   --   ι' _ (ter pΓ' pA' ps [ m pΔ' pΓ' pσ' ∘E m pΞ pΔ' pτ' ]tE)
+    --   -- ∎
+    -- ter-cong pΓ pA pt ps (ter-eq-ty-eq {A = B} {B = A} pB pt' ps' pts pBA) =
+    --   BLOCK
+    --   -- let open EqRelReason ~teq in
+    --   -- begin
+    --   --   ter pΓ pA pt
+    --   -- ≈⟨ ter#m-ty-eq pΓ pA pB (ty-eq-sym pBA) pt pt' ⟩
+    --   --   ι _ (ter pΓ pB pt')
+    --   -- ≈⟨ ιresp (ter-cong pΓ pB pt' ps' pts) ⟩
+    --   --   ι _ (ter pΓ pB ps')
+    --   -- ≈⟨ ~teq .sym (ter#m-ty-eq pΓ pA pB (ty-eq-sym pBA) ps ps') ⟩
+    --   --   ter pΓ pA ps
+    --   -- ∎
+    -- ter-cong pΓ pA pt ps (ter-eq-refl _) = ter#r pΓ pA pt ps
+    -- ter-cong pΓ pA pt ps (ter-eq-sym pst) = ~teq .sym (ter-cong pΓ pA ps pt pst)
+    -- ter-cong pΓ pA pt ps (ter-eq-trans pr ptr prs) =
+    --   ~teq .trans (ter-cong pΓ pA pt pr ptr) (ter-cong pΓ pA pr ps prs)
 
 
 
