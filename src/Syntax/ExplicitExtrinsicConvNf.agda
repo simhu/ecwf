@@ -348,6 +348,8 @@ subst-eq-<> pΓ pA pσ pσ' pt pt' pσσ' ptt' =
     (subst-eq-<>-r pA pσσ' pt)
     (subst-eq-<>-l pA pσ' (ter-eq-ty-eq (ty-subst pΓ pA pσ) pt pt' ptt' (ty-eq-subst (ty-eq-refl pA) pσσ')))
 
+
+
 ------------------------------------------------------------------------------
 
 ctx-cat : ECat
@@ -580,7 +582,8 @@ compr {Γ , pΓ} {A , pA} = record {
               (ter-ty-eq (ty-subst pΓ pA (subst-comp (ctx-cons pΓ pA) (subst-pp pA) pτ))
                 (ty-subst pΓ pA pσ) pqτid (ty-eq-subst (ty-eq-refl pA) (subst-eq-sym eq)))
               q (ty-eq-subst (ty-eq-refl pA) eq))
-            (ter-eq-ty-eq pApτ (ter-ty-eq (ty-subst pΓ pA (subst-comp (ctx-cons pΓ pA) (subst-pp pA) pτ))
+            (ter-eq-ty-eq pApτ (ter-ty-eq (ty-subst pΓ pA
+                  (subst-comp (ctx-cons pΓ pA) (subst-pp pA) pτ))
                 (ty-subst (ctx-cons pΓ pA) (ty-subst pΓ pA (subst-pp pA)) pτ) pqτid
                 (ty-eq-sym (ty-eq-assoc pA (subst-pp pA) pτ)))
               (ter-subst (ctx-cons pΓ pA) (ty-subst pΓ pA (subst-pp pA))
