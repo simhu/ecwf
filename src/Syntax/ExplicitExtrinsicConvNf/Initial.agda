@@ -433,18 +433,10 @@ module Elim {ks kr lo lh lr : Level}
         ty pΓ pA'
       ∎
 
-    -- ditto
-    -- ty#l : ∀ {Γ A} (pΓ pΓ' : Γ ⊢) (pA : Γ ⊢ A) → ty pΓ pA ~E ty pΓ' pA [ o# pΓ pΓ' ]E
-    -- -- Ind(pA : Γ ⊢ A)?
-    -- ty#l pΓ pΓ' (ty-subst pΓ'' pA pσ) = {!!}
-
-    -- -- TODO: Needed in definition of m?????? (And in the η case in m-resp.)
-    -- ty-lem : ∀ {Δ Γ A σ} (pΔ : Δ ⊢) (pΓ : Γ ⊢) (pσ : σ ∈ Δ ⇒ Γ )
-    --          (pA : Γ ⊢ A) (pAσ : Δ ⊢ A [ σ to Γ ]) →
-    --          ty pΔ pAσ ~E ty pΓ pA [ m pΔ pΓ pσ ]E
-    -- ty-lem pΔ pΓ pσ pA pAσ = ty#r pΔ pAσ (ty-subst pΓ pA pσ)
-
-    -- -- TODO: use this instead of ty-lem
+    -- TODO: This is currently used since when type-checking m (which
+    -- needs this equation) the definition of ty is not available,
+    -- since ty comes after m.  Instead one can move the definition of
+    -- m after the definition of ty.
     ty-def-subst : ∀ {Δ Γ A σ} (pΔ : Δ ⊢) (pΓ : Γ ⊢) (pσ : σ ∈ Δ ⇒ Γ )
                    (pA : Γ ⊢ A)  →
                    ty pΔ (ty-subst pΓ pA pσ) ~E ty pΓ pA [ m pΔ pΓ pσ ]E
