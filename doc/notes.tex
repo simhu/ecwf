@@ -1,0 +1,381 @@
+\documentclass{amsart}
+
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm,enumerate}
+\usepackage{mathpartir}
+\usepackage{tikz}
+\usepackage{tikz-cd}
+\usepackage{url}
+
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem*{theorem*}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem*{lemma*}{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem*{corollary*}{Corollary}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem*{proposition*}{Proposition}
+\newtheorem{claim}[theorem]{Claim}
+\newtheorem*{claim*}{Claim}
+\newtheorem{conjecture}[theorem]{Conjecture}
+\newtheorem*{conjecture*}{Conjecture}
+\newtheorem*{namedtheorem}{\theoremname}
+\newenvironment{named}[1]
+{\renewcommand{\theoremname}{#1}\begin{namedtheorem}}
+  {\end{namedtheorem}}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem*{definition*}{Definition}
+\newtheorem{notation}[theorem]{Notation}
+\newtheorem*{notation*}{Notation}
+\newtheorem{example}[theorem]{Example}
+\newtheorem*{example*}{Example}
+\newtheorem{examples}[theorem]{Examples}
+\newtheorem*{examples*}{Examples}
+
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem*{remark*}{Remark}
+\newtheorem{note}[theorem]{Note}
+\newtheorem*{note*}{Note}
+\newtheorem*{acknowledgments*}{Acknowledgments}
+
+\input{macros}
+
+\title{Towards an initial E-cwf with a total interpretation function
+  in Agda}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+\label{sec:introduction}
+
+We are in the progress of formalizing a notion of initial cwf in type
+theory using Agda, not assuming any extensionality axioms, no quotient
+types etc.  Instead we are basing the development on setoids and
+E-cwfs.  We are defining an E-category (not yet formalized) of E-cwfs
+and weak E-cwf morphisms.  In this category we want to construct an
+initial E-cwf as follows:
+\begin{itemize}
+\item We define a type of \emph{raw terms} for cwf-combinators (i.e.,
+  explicit substitutions).
+\item We then mutually inductively define seven relations
+  corresponding to the different forms of judgments.  Note that we do
+  not have a judgment for context equality.  Each introduction rule
+  for these relations corresponds to an inference rule for a version
+  of type theory based on cwf-combinators.
+\item We prove that these can be organized into an E-cwf.
+\end{itemize}
+We then construct an E-cwf morphism (i.e., an interpretation function)
+from the above E-cwf into a given E-cwf.  Unlike some related work,
+this is not constructed as a partial function on the raw syntax.
+Instead it is constructed by induction on derivations of judgments,
+with on case for each inference rule.  The uniqueness of this E-cwf
+morphism (up to natural isomorphism) has not yet been established.
+
+The code referred to in this note can be found at
+\url{https://github.com/simhu/ecwf/}.
+
+\subsection{Related work}
+\label{sec:related-work}
+
+\begin{itemize}
+\item Brunerie and de~Boer,
+  \url{https://github.com/guillaumebrunerie/initiality}, partial
+  interpretation function based on proof-irrelevant Prop in Agda,
+  assuming quotients and function extensionality.
+\item Lumsdaine and Mörtberg, in progress, partial interpretation
+  function, based on UniMath
+  \url{https://github.com/UniMath/TypeTheory} on branch
+  \texttt{initiality-add-nat}
+\item Altenkirch and Kaposi, based on QIITs
+\end{itemize}
+
+\section{E-categories with families}
+\label{sec:e-cwfs}
+
+We define setoids, E-categories, and E-functors as usual.  The
+E-category of E-sets (i.e., setoids) $\ESet$ is defined
+usual.\footnote{\texttt{src/Basics.agda}} Given a E-presheaf $F \co
+\C^\op \to \ESet$ (i.e., a contravariant E-functor into $\ESet$) we
+define the \emph{E-category of elements} $\int F$ as one
+expects.\footnote{\texttt{src/Presheaves.agda}}
+
+\begin{definition}
+  An \emph{E-cwf}\footnote{\texttt{src/Cwf/Elem.agda}; another (start
+    of a) definition based on E-families is in
+    \texttt{src/Cwf/Fam.agda}} is given by:
+  \begin{itemize}
+  \item an E-category $\C$ of \emph{contexts} and
+    \emph{substitutions};
+  \item an E-presheaf $\Ty$ of \emph{types} on $\C$;
+  \item an E-presheaf $\Ter$ of \emph{terms} on $\int \Ty$;
+  \item an terminal object $\emptyctx$ of $\C$ with morphisms
+    $\emptysubst_\Gamma \co \Gamma \to \emptyctx$;
+  \item context comprehension of $\Gamma$ in $\C$ and $A$ in $\Ty
+    (\Gamma)$, formulated as terminal object in the E-category of
+    triples $\Delta,\sigma, t$.
+  \end{itemize}
+\end{definition}
+
+\begin{remark}
+  Part of this definition are ``transport'' operations: given $p : A
+  \sim B$ in the setoid $\Ty(\Gamma)$, we get a map $\iota\,p : \Ter
+  (\Gamma, B) \to \Ter(\Gamma,A)$, which is \emph{proof-irrelevant} in
+  the sense that if also $q : A \sim B$ and $u \sim v$ in $\Ter
+  (\Gamma,B)$, then $\iota\,p\,u \sim \iota\,q\,v$ in $\Ter
+  (\Gamma,A)$.  This is a consequence of the definition of the
+  E-category of elements.
+\end{remark}
+
+\begin{definition}
+  An \emph{morphism of E-cwf}\footnote{\texttt{src/Cwf/Elem.agda}} $F$
+  between E-cwfs $\C$ and $\D$ is given by:
+  \begin{itemize}
+  \item an E-functor $F$ on underlying categories of contexts;
+  \item an E-natural transformation $F$ between $\Ty_\C$ and $\Ty_D
+    \circ F^\op$;
+  \item an E-natural transformation between $\Ter_\C$ and $\Ter_\D
+    \circ \int F$;
+  \item the induced maps
+    \[
+      F \emptyctx_\C \to \emptyctx_\D%
+      \qquad \text{and } \qquad%
+      F (\Gamma. A) \to F \Gamma. F A
+    \]
+    are isomorphisms.
+  \end{itemize}
+\end{definition}
+
+Note that we can not define the notion of \emph{strict} E-cwf morphism
+because we have no natural notion of context equality.
+
+\begin{remark}
+  In this framework, the natural choice of equivalence relation
+  between E-functors is E-natural isomorphism.  With this choice one
+  can organize E-categories themselves into an E-category.  Similarly,
+  we can organize E-cwfs into an E-category.
+\end{remark}
+
+\section{Term model}
+\label{sec:term-model}
+
+We begin by inductively defining the type of \emph{raw} expressions,
+encompassing raw terms, types, contexts, and explicit substitutions.
+Note, we have certain annotations, e.g., on composition with the
+mediating object, substitution on types with the codomain, and
+substitution on terms with type and codomain.  But we don't have
+annotations on identities of projections.
+
+We then mutually inductively define the types of derivations of
+judgments (as indexed families).  The seven forms of judgments are:
+\begin{mathpar}
+  \Gamma \der \and%
+  \Gamma \der A \and%
+  \Gamma \der A \sim B \and%
+  \Gamma \der u \in A \and%
+  \Gamma \der u \sim v \in A \and%
+  \sigma \in \Delta \Rightarrow \Gamma \and%
+  \sigma \sim \tau \in \Delta \Rightarrow \Gamma \and%
+\end{mathpar}
+
+We have experimented with several versions, the current one found in
+\texttt{src/Syntax/ExplicitExtrinsicConvNf.agda}.  What is special
+about this current approach is that we drop the type-conversion rule
+and replace by \emph{local} applications of the type-conversion rule.
+In this way derivations are syntax directed, in the sense that
+for each term constructor there is \emph{only one} typing rule:
+\begin{mathpar}
+  \inferrule %
+  { \Gamma \der A \\ \Gamma.A \der A [ \pp ] \sim B }%
+  { \Gamma . A \der \qq \in B} %
+  \and %
+  \inferrule %
+  { \Gamma \der \\
+    \Gamma \der t \in A \\
+    \sigma \in \Delta \Rightarrow \Gamma \\
+    \Gamma \der A\\
+    \Delta \der A [ \sigma ]_{\Gamma} \sim B
+  } %
+  { \Delta \der t [ \sigma ]_{\Gamma, A} \in B }
+\end{mathpar}
+This will be essential when defining the total interpretation
+function.
+
+\begin{remark}
+  An alternative could be to follow Curien and add an explicit term
+  constructor for the general type-conversion
+  rule:\footnote{\texttt{src/Syntax/ExplicitExtrinsicCoe.agda}}
+  \[
+    \inferrule {\Gamma \der t \in A \\ \Gamma \der B \sim A}
+    {\Gamma \der \iota_{A,B}\,t \in B}
+  \]
+\end{remark}
+
+\begin{remark}
+  There are several choices one could take while building a term
+  model: explicit versus implicit substitutions, the annotations on
+  raw terms, the premises in rules.\footnote{\texttt{src/Syntax/}} The
+  current setup was refined while trying to define the interpretation
+  function.
+\end{remark}
+
+\begin{theorem}
+  The term model defines an E-cwf $\T$.\footnote{See \texttt{SynCwf}
+    in \texttt{src/Syntax/ExplicitExtrinsicConvNf.agda}.}
+\end{theorem}
+
+
+\section{The interpretation function}
+\label{sec:interpretation}
+
+Given a E-cwf $\C$ we have to define a morphism $\T \to \C$.  To do
+so, we define several components
+simultaneously.\footnote{\texttt{src/Syntax/ExplicitExtrinsic/Initial.agda}}
+The intention is that these functions are defined by induction on the
+derivations.  The idea is that the given interpretation of an
+inference rule is a function from the interpretation of the premises
+to the interpretation of the conclusion.  Although, one would expect
+this definition to be structurally-recursive, it is not accepted by
+the Agda termination checker, and it is not even clear how to give an
+informal termination argument based on a measure on the complexity of
+derivations.
+
+While defining the interpretation functions we need that our
+interpretations are \emph{independent} of the given derivations.  Two
+derivations $p\sigma, p\sigma'$ of a judgment $\sigma \in \Delta
+\Rightarrow \Gamma$ should give rise to two related substitutions in
+$\C$.  As there is no primitive notion to compare two contexts in $\C$
+we formulate the independence for contexts judgments using
+isomorphisms: two derivations $p\Gamma, p\Gamma'$ of $\Gamma \der$
+should give rise to isomorphic contexts in $\C$.  And these
+isomorphism should harmonize suitably with rest of the interpretation.
+
+\begin{remark}
+  The fact that all judgments defined simultaneously is a feature of
+  dependent type theory.  This phenomena does not appear when we,
+  e.g., define the free E-category given a
+  graph\footnote{\texttt{src/FreeCat.agda}} of free E-category with
+  products\footnote{\texttt{src/Products.agda}} where objects are
+  separate from morphisms.
+\end{remark}
+
+\begin{itemize}
+\item An E-functor on the underlying categories of contexts, which
+  again has several components: we give
+  \begin{itemize}
+  \item a function on objects $\mathtt{o}$ and auxiliary functions
+    \begin{itemize}
+    \item a function that maps two derivations $p\Gamma, p\Gamma'$ of
+      $\Gamma \der$ to a morphism between $\mathtt{o} p\Gamma$ and
+      $\mathtt{o} p\Gamma'$, and
+    \item witnesses $\mathtt{o\# id}, \mathtt{o\# comp}$ that
+      $\mathtt{o\#}$ is suitably functorial.
+    \end{itemize}
+
+
+  \item a function on morphisms $\mathtt{m}$ and auxiliary functions:
+    \begin{itemize}
+    \item a function $\mathtt{m\#}$ stating independence of
+      $\mathtt{m}$, and
+    \item $\mathtt{m-o\#}$ witnessing how $\mathtt{m}$ interacts with
+    $\mathtt{o\#}$.
+    \end{itemize}
+  \item a proof $\mathtt{m-resp}$ that $\mathtt{m}$ preserves the
+    equivalence relation
+  \item proofs that $\mathtt{m}$ preserves identity and composition;
+    for the former we need $\mathtt{o\# id}$, the latter is by
+    definition.
+  \end{itemize}
+\item An E-natural transformation for types, consisting of:
+  \begin{itemize}
+  \item A function $\mathtt{ty}$ assigning types in $\C$ to
+    derivations of types, with auxiliary functions:
+    \begin{itemize}
+    \item $\mathtt{ty\#}$ stating independence of type derivations,
+      together with independence of the underlying context
+    \end{itemize}
+  \item A function $\mathtt{ty-cong}$ that $\mathtt{ty}$ preserves the
+    setoid relation.
+  \item A witness for naturality (substitution on types).
+  \end{itemize}
+
+\item An E-natural transformation for terms, consisting of:
+  \begin{itemize}
+  \item A function $\mathtt{ter}$ assigning terms in $\C$ to
+    derivations of terms, with auxiliary functions:
+    \begin{itemize}
+    \item $\mathtt{ter\#-ty-eq}$ stating independence of term
+      derivations, together with independence of the underlying types
+      and context (where we allow two judgmentally equal types).
+    \end{itemize}
+  \item A function $\mathtt{ter-cong}$ that $\mathtt{ter}$ preserves
+    the setoid relation.
+  \item A witness for naturality.
+  \end{itemize}
+
+\item The proofs that terminal object and context comprehension are
+  preserved, should be direct by how the definition is set up (but is
+  not formalized yet).
+\end{itemize}
+
+
+\subsection{Agda type checking}
+
+Agda type checker accepts the definition when turning off the
+termination checker.  The definition of the derivations is an indexed
+inductive family in the usual sense with a definite elimination rule.
+However, as it is written our interpretation function is not expressed
+in terms of this eliminator.  Instead we make use of Agda's powerful
+way of doing dependently typed pattern matching, often matching on
+several different arguments simultaneously.  Moreover, when Agda type
+checks mutual recursive definitions the right-hand sides of our
+equations are checked in order, and when checking a given right-hand
+side the definitional equalities of the previous functions are
+available.
+
+
+\subsection{Termination}
+
+Most of the recursive calls are on clearly structurally smaller
+arguments.  But there are several exceptions which are probably the
+cause of Agda's termination checker not accepting our definition.  (A
+particular complex case is the interpretation of substitution
+extension $\langle \sigma, t \rangle$ by the function $\mathtt{m}$.)
+
+One possibility would be to assign a measure on the recursive calls,
+for example, summing the sizes of the derivations, or using multiset
+ordering.  However, neither of these succeeds because of either
+duplication or ``reshuffling'' of the arguments.
+
+What does not seem to work is to do an induction on the structure of
+raw syntax, since this breaks when interpreting equality of types (in
+the case of transitivity).
+
+\subsection{Directions}
+
+Another possibility one could try is to define the interpretation
+referring to ``inversion'' functions (e.g., a derivation $\Gamma \der
+A$ includes a derivation of $\Gamma \der$).  Then the interpretation
+of a type derivation $\Gamma \der A$ would be a type over the
+interpretation of the \emph{induced} derivation $\Gamma \der$ (and not
+a given derivation of $\Gamma \der$).  A problem with this approach is
+that we have to keep track that the induced derivations don't increase
+in size.
+
+
+
+
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
